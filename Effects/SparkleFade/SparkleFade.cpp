@@ -187,7 +187,7 @@ void SparkleFade::StepEffect(std::vector<ControllerZone*> controller_zones)
                 {
                     int idx = (row_id * cols) + col_id;
                     int LedID = controller_zones[i]->map()[idx];
-                    controller_zones[i]->SetLED(LedID, ledInfo[i][LedID].color, Brightness, Temperature, Tint);
+                    controller_zones[i]->SetLED(LedID, ledInfo[i][idx].color, Brightness, Temperature, Tint);
                 }
             }
         }
