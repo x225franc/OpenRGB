@@ -64,6 +64,7 @@ private:
     Ui::CustomGradientWave *ui;
 
     void SetDynamicStrings();
+    void SyncPresetSelection();
 
     double progress = 0.0;
     RGBColor GetColor(float, float, float, float);

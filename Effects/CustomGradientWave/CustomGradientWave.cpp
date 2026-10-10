@@ -33,6 +33,13 @@ CustomGradientWave::CustomGradientWave(QWidget *parent) :
 
     ui->preset->setCurrentIndex(0);
 
+    /*-----------------------------------------------------*\
+    | SetDynamicStrings() repopulates the preset box with   |
+    | signals blocked, so apply the default preset colors   |
+    | explicitly                                            |
+    \*-----------------------------------------------------*/
+    ui->colorsPicker->SetColors(presets[0].colors);
+
     GenerateGradient();
 }
 
@@ -89,17 +96,38 @@ void CustomGradientWave::SetDynamicStrings()
     EffectDetails.EffectName        = tr(UI_Name().c_str()).toStdString();
     EffectDetails.EffectDescription = tr("Create your own gradient wave or use predefined color set").toStdString();
 
+    /*-----------------------------------------------------*\
+    | Remember the current selections and block signals     |
+    | while the boxes are repopulated. Repopulating emits   |
+    | currentIndexChanged, which would otherwise push the   |
+    | default preset over the colors and settings loaded    |
+    | from a profile                                        |
+    \*-----------------------------------------------------*/
+    int preset_index    = ui->preset->currentIndex();
+    int direction_index = ui->direction->currentIndex();
+
+    ui->preset->blockSignals(true);
+
     ui->preset->clear();
     for(const CustomGradientWavePreset& preset: presets)
     {
         ui->preset->addItem(tr(preset.name));
     }
+    ui->preset->addItem(tr("Custom"));
+
+    ui->preset->setCurrentIndex(preset_index < 0 ? 0 : preset_index);
+    ui->preset->blockSignals(false);
+
+    ui->direction->blockSignals(true);
 
     ui->direction->clear();
     ui->direction->addItems({tr("Horizontal"),
                              tr("Vertical"),
                              tr("Radial out"),
                              tr("Radial in")});
+
+    ui->direction->setCurrentIndex(direction_index < 0 ? HORIZONTAL : direction_index);
+    ui->direction->blockSignals(false);
 }
 
 void CustomGradientWave::StepEffect(std::vector<ControllerZone*> controller_zones)
@@ -183,6 +211,34 @@ RGBColor CustomGradientWave::GetColor(float x, float y, float w, float h)
 void CustomGradientWave::on_colorsPicker_ColorsChanged()
 {
     GenerateGradient();
+    SyncPresetSelection();
+}
+
+/*---------------------------------------------------------*\
+| Keep the preset box in sync with the colors currently     |
+| selected. Colors that do not come from a preset are shown |
+| as "Custom" instead of a stale preset selection           |
+\*---------------------------------------------------------*/
+void CustomGradientWave::SyncPresetSelection()
+{
+    std::vector<RGBColor> colors = ui->colorsPicker->Colors();
+    int                   index  = (int)presets.size();
+
+    for(int preset_index = 0; preset_index < (int)presets.size(); preset_index++)
+    {
+        if(colors == presets[preset_index].colors)
+        {
+            index = preset_index;
+            break;
+        }
+    }
+
+    if(ui->preset->currentIndex() != index)
+    {
+        ui->preset->blockSignals(true);
+        ui->preset->setCurrentIndex(index);
+        ui->preset->blockSignals(false);
+    }
 }
 
 void CustomGradientWave::on_spread_valueChanged(int value)
@@ -192,7 +248,11 @@ void CustomGradientWave::on_spread_valueChanged(int value)
 
 void CustomGradientWave::on_preset_currentIndexChanged(int value)
 {
-    if(value > -1)
+    /*-----------------------------------------------------*\
+    | Only apply actual presets. The trailing "Custom"      |
+    | entry has no preset colors to apply                   |
+    \*-----------------------------------------------------*/
+    if((value >= 0) && (value < (int)presets.size()))
     {
         ui->colorsPicker->SetColors(presets[value].colors);
     }

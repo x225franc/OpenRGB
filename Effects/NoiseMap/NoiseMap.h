@@ -58,12 +58,13 @@ private slots:
 
     void on_colors_choice_currentIndexChanged(int);
     void on_colorsPicker_ColorsChanged();
-    void on_preset_choice_currentTextChanged(int);
+    void on_preset_choice_currentIndexChanged(int);
 
 private:
     Ui::NoiseMap *ui;
 
     void SetDynamicStrings();
+    void SyncPresetSelection();
 
     void Defaults();
     void ResetNoise();

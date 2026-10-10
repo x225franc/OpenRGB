@@ -11,7 +11,6 @@
 #include <QAction>
 #include <QComboBox>
 #include <QDialog>
-#include <QDirIterator>
 #include <QFile>
 #include <QInputDialog>
 #include <QMainWindow>
@@ -64,33 +63,49 @@ void OpenRGBEffectTab::SetLanguage()
     }
 
     QApplication*           app             = static_cast<QApplication *>(QApplication::instance());
-    QDirIterator            language_files(":/i18n/", QDirIterator::Subdirectories);
-    bool                    loaded          = false;
+    std::string             resolved        = "";
+
+    /*-----------------------------------------------------*\
+    | Resolve the translation file used for the requested   |
+    | locale: the given locale first, then the system       |
+    | locale as a fallback                                  |
+    \*-----------------------------------------------------*/
+    if(QFile::exists(":/i18n/OpenRGB_EffectsEngine_" + QString::fromStdString(locale) + ".qm"))
+    {
+        resolved = locale;
+    }
+    else
+    {
+        QLocale system_locale(QLocale::system());
+        QLocale::setDefault(system_locale);
+
+        if(QFile::exists(":/i18n/OpenRGB_EffectsEngine_" + system_locale.name() + ".qm"))
+        {
+            resolved = system_locale.name().toStdString();
+        }
+    }
+
+    /*-----------------------------------------------------*\
+    | Return early when the translation in use did not      |
+    | change. Installing or removing a translator           |
+    | broadcasts a LanguageChange event to every widget, so |
+    | doing it needlessly makes all effect UIs retranslate  |
+    | and drop their state on any unrelated settings update |
+    \*-----------------------------------------------------*/
+    if(resolved == current_i18n_file)
+    {
+        return;
+    }
 
     app->removeTranslator(&translator);
 
-    /*-----------------------------------------------------*\
-    | Attempt to load given locale                          |
-    \*-----------------------------------------------------*/
-    loaded = translator.load(":/i18n/" + QString("OpenRGB_EffectsEngine_%1.qm").arg(QString::fromStdString(locale)));
-
-    /*-----------------------------------------------------*\
-    | If the given locale could not be loaded, try loading  |
-    | the system locale                                     |
-    \*-----------------------------------------------------*/
-    if(!loaded)
-    {
-        QLocale locale = QLocale(QLocale::system());
-        QLocale::setDefault(locale);
-
-        loaded = translator.load(":/i18n/" + QString("OpenRGB_EffectsEngine_%1.qm").arg(locale.name()));
-    }
-
-    if(loaded)
+    if(!resolved.empty() && translator.load(":/i18n/OpenRGB_EffectsEngine_" + QString::fromStdString(resolved) + ".qm"))
     {
         app->installTranslator(&translator);
-        LOG_DEBUG("[OpenRGBEffectTab] Changed Language to %s\n", locale.c_str());
+        LOG_DEBUG("[OpenRGBEffectTab] Changed Language to %s\n", resolved.c_str());
     }
+
+    current_i18n_file = resolved;
 }
 
 void OpenRGBEffectTab::AddGlobalMenus()

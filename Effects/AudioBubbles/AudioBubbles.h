@@ -86,6 +86,7 @@ private:
     Ui::AudioBubbles   *ui;
 
     void SetDynamicStrings();
+    void SyncPresetSelection();
     void ExpandBubbles();
     void TriggerBubbles();
     void InitBubble(int, double);

@@ -29,12 +29,17 @@ NoiseMap::NoiseMap(QWidget *parent) :
 
     ui->colorsPicker->hide();
 
-
-    ui->preset_choice->blockSignals(false);
     ui->preset_choice->hide();
     ui->preset_label->hide();
 
     ui->preset_choice->setCurrentIndex(0);
+
+    /*-----------------------------------------------------*\
+    | SetDynamicStrings() repopulates the preset box with   |
+    | signals blocked, so apply the default preset colors   |
+    | explicitly to initialize the gradient                 |
+    \*-----------------------------------------------------*/
+    ui->colorsPicker->SetColors(presets[0].colors);
 
     SetSpeed(50);
     Defaults();
@@ -61,11 +66,27 @@ void NoiseMap::SetDynamicStrings()
     EffectDetails.EffectName        = tr(UI_Name().c_str()).toStdString();
     EffectDetails.EffectDescription = tr("Floor is lava").toStdString();
 
+    /*-----------------------------------------------------*\
+    | Remember the current selections and block signals     |
+    | while the boxes are repopulated. Repopulating emits   |
+    | currentIndexChanged, which would otherwise reset the  |
+    | mode, motion and preset selections loaded from a      |
+    | profile back to their defaults                        |
+    \*-----------------------------------------------------*/
+    int preset_index = ui->preset_choice->currentIndex();
+    int mode_index   = ui->colors_choice->currentIndex();
+    int motion_index = ui->motion->currentIndex();
+
+    ui->preset_choice->blockSignals(true);
+    ui->colors_choice->blockSignals(true);
+    ui->motion->blockSignals(true);
+
     ui->preset_choice->clear();
     for(const NoiseMapPreset& preset: presets)
     {
         ui->preset_choice->addItem(tr(preset.name));
     }
+    ui->preset_choice->addItem(tr("Custom"));
 
     ui->colors_choice->clear();
     ui->colors_choice->addItems({tr("Rainbow"),
@@ -76,6 +97,14 @@ void NoiseMap::SetDynamicStrings()
                           tr("Down"),
                           tr("Left"),
                           tr("Right")});
+
+    ui->preset_choice->setCurrentIndex(preset_index < 0 ? 0 : preset_index);
+    ui->colors_choice->setCurrentIndex(mode_index < 0 ? 0 : mode_index);
+    ui->motion->setCurrentIndex(motion_index < 0 ? 0 : motion_index);
+
+    ui->preset_choice->blockSignals(false);
+    ui->colors_choice->blockSignals(false);
+    ui->motion->blockSignals(false);
 }
 
 void NoiseMap::GenerateGradient()
@@ -112,6 +141,34 @@ void NoiseMap::GenerateGradient()
 void NoiseMap::on_colorsPicker_ColorsChanged()
 {
     GenerateGradient();
+    SyncPresetSelection();
+}
+
+/*---------------------------------------------------------*\
+| Keep the preset box in sync with the colors currently     |
+| selected. Colors that do not come from a preset are shown |
+| as "Custom" instead of a stale preset selection           |
+\*---------------------------------------------------------*/
+void NoiseMap::SyncPresetSelection()
+{
+    std::vector<RGBColor> colors = ui->colorsPicker->Colors();
+    int                   index  = (int)presets.size();
+
+    for(int preset_index = 0; preset_index < (int)presets.size(); preset_index++)
+    {
+        if(colors == presets[preset_index].colors)
+        {
+            index = preset_index;
+            break;
+        }
+    }
+
+    if(ui->preset_choice->currentIndex() != index)
+    {
+        ui->preset_choice->blockSignals(true);
+        ui->preset_choice->setCurrentIndex(index);
+        ui->preset_choice->blockSignals(false);
+    }
 }
 
 void NoiseMap::Defaults()
@@ -322,9 +379,13 @@ void NoiseMap::on_colors_choice_currentIndexChanged(int value)
     ui->preset_label->setVisible(value==2);
 }
 
-void NoiseMap::on_preset_choice_currentTextChanged(int value)
+void NoiseMap::on_preset_choice_currentIndexChanged(int value)
 {
-    if(value > -1)
+    /*-----------------------------------------------------*\
+    | Only apply actual presets. The trailing "Custom"      |
+    | entry has no preset colors to apply                   |
+    \*-----------------------------------------------------*/
+    if((value >= 0) && (value < (int)presets.size()))
     {
         ui->colorsPicker->SetColors(presets[value].colors);
     }

@@ -50,7 +50,7 @@ private:
     Ui::OpenRGBEffectTab *ui;
     EffectList* effect_list = nullptr;
 
-    std::string current_i18n_file = "default";
+    std::string current_i18n_file = "";
     QTranslator translator;
 
     void AddGlobalMenus();

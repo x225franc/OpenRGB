@@ -64,6 +64,13 @@ AudioBubbles::AudioBubbles(QWidget *parent) :
 
     ui->preset->setCurrentIndex(0);
 
+    /*-----------------------------------------------------*\
+    | SetDynamicStrings() repopulates the preset box with   |
+    | signals blocked, so apply the default preset colors   |
+    | explicitly                                            |
+    \*-----------------------------------------------------*/
+    ui->colorsPicker->SetColors(presets[0].colors);
+
     GenerateGradient();
 }
 
@@ -86,12 +93,29 @@ void AudioBubbles::SetDynamicStrings()
     EffectDetails.EffectName        = tr(UI_Name().c_str()).toStdString();
     EffectDetails.EffectDescription = tr("Bloop bloop").toStdString();
 
-    ui->preset->clear();
+    /*-----------------------------------------------------*\
+    | Remember the current selections and block signals     |
+    | while the boxes are repopulated. Repopulating emits   |
+    | currentIndexChanged, which would otherwise push the   |
+    | default preset over the colors and settings loaded    |
+    | from a profile                                        |
+    \*-----------------------------------------------------*/
+    int preset_index = ui->preset->currentIndex();
+    int spawn_index  = ui->spawnMode->currentIndex();
 
+    ui->preset->blockSignals(true);
+
+    ui->preset->clear();
     for(const AudioBubblesPreset& preset: presets)
     {
         ui->preset->addItem(tr(preset.name));
     }
+    ui->preset->addItem(tr("Custom"));
+
+    ui->preset->setCurrentIndex(preset_index < 0 ? 0 : preset_index);
+    ui->preset->blockSignals(false);
+
+    ui->spawnMode->blockSignals(true);
 
     ui->spawnMode->clear();
     ui->spawnMode->addItems({
@@ -100,6 +124,9 @@ void AudioBubbles::SetDynamicStrings()
         tr("Random Y"),
         tr("Center")
     });
+
+    ui->spawnMode->setCurrentIndex(spawn_index < 0 ? RANDOM_XY : spawn_index);
+    ui->spawnMode->blockSignals(false);
 }
 
 void AudioBubbles::EffectState(const bool state)
@@ -126,7 +153,11 @@ void AudioBubbles::Stop()
 
 void AudioBubbles::on_preset_currentIndexChanged(int value)
 {
-    if(value > -1)
+    /*-----------------------------------------------------*\
+    | Only apply actual presets. The trailing "Custom"      |
+    | entry has no preset colors to apply                   |
+    \*-----------------------------------------------------*/
+    if((value >= 0) && (value < (int)presets.size()))
     {
         ui->colorsPicker->SetColors(presets[value].colors);
     }
@@ -423,6 +454,34 @@ json AudioBubbles::SaveCustomSettings()
 void AudioBubbles::on_colorsPicker_ColorsChanged()
 {
     GenerateGradient();
+    SyncPresetSelection();
+}
+
+/*---------------------------------------------------------*\
+| Keep the preset box in sync with the colors currently     |
+| selected. Colors that do not come from a preset are shown |
+| as "Custom" instead of a stale preset selection           |
+\*---------------------------------------------------------*/
+void AudioBubbles::SyncPresetSelection()
+{
+    std::vector<RGBColor> colors = ui->colorsPicker->Colors();
+    int                   index  = (int)presets.size();
+
+    for(int preset_index = 0; preset_index < (int)presets.size(); preset_index++)
+    {
+        if(colors == presets[preset_index].colors)
+        {
+            index = preset_index;
+            break;
+        }
+    }
+
+    if(ui->preset->currentIndex() != index)
+    {
+        ui->preset->blockSignals(true);
+        ui->preset->setCurrentIndex(index);
+        ui->preset->blockSignals(false);
+    }
 }
 
 void AudioBubbles::on_trigger_valueChanged(int value)
