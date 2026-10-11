@@ -333,6 +333,9 @@ private:
 
     std::atomic<bool>                           background_thread_running;
     std::atomic<bool>                           detection_in_progress;
+    // Razer pair refresh may only touch HID/controllers between a finished
+    // detection and the next cleanup (or shutdown).
+    std::atomic<bool>                           razer_pair_refresh_allowed{false};
 
     /*-----------------------------------------------------*\
     | Background Thread Functions                           |

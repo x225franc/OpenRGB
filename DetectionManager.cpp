@@ -23,6 +23,11 @@
 #include "SettingsManager.h"
 #include "StringUtils.h"
 
+namespace
+{
+std::recursive_mutex& ConfiguredRazerPairMutex();
+}
+
 #ifdef __linux__
 #include <unistd.h>
 #endif
@@ -177,6 +182,15 @@ DetectionManager::DetectionManager()
 
 DetectionManager::~DetectionManager()
 {
+    /*-----------------------------------------------------*\
+    | Stop the Razer pair refresh and wait for any pass in  |
+    | flight before HID is shut down                        |
+    \*-----------------------------------------------------*/
+    razer_pair_refresh_allowed = false;
+    {
+        std::lock_guard<std::recursive_mutex> pair_lock(ConfiguredRazerPairMutex());
+    }
+
     /*-----------------------------------------------------*\
     | Exit HID in background thread                         |
     \*-----------------------------------------------------*/
@@ -503,6 +517,15 @@ void DetectionManager::RegisterRGBController(RGBController *rgb_controller, cons
             delete rgb_controller;
             return;
         }
+        // Plugins retain controller pointers while their effects are running.
+        // Replacement is safe only inside detection, after the pre-detection
+        // hooks have drained those workers; defer a late takeover to Rescan.
+        if(!previous.empty() && !detection_in_progress.load())
+        {
+            LOG_WARNING("[%s] Deferring Razer controller replacement until rescan", DETECTIONMANAGER);
+            delete rgb_controller;
+            return;
+        }
         for(RGBController* existing : previous)
         {
             UnregisterRGBController(existing);
@@ -727,6 +750,8 @@ void DetectionManager::BackgroundThreadFunction()
 void DetectionManager::BackgroundRefreshConfiguredRazerPair()
 {
     std::lock_guard<std::recursive_mutex> pair_lock(ConfiguredRazerPairMutex());
+    // Never enumerate or register while a cleanup, rescan or shutdown is under way.
+    if(!razer_pair_refresh_allowed || detection_in_progress.load()) return;
     bool keyboard = false;
     bool mouse = false;
     {
@@ -980,6 +1005,7 @@ void DetectionManager::BackgroundDetectDevices()
     | Clear detection in progress flag                      |
     \*-----------------------------------------------------*/
     detection_in_progress = false;
+    razer_pair_refresh_allowed = true;
 
     /*-----------------------------------------------------*\
     | Unlock detection mutex                                |
@@ -1785,11 +1811,22 @@ void DetectionManager::RunHIDWrappedDetector(const hidapi_wrapper* wrapper, hid_
 \*---------------------------------------------------------*/
 void DetectionManager::ProcessCleanup()
 {
+    // Block the Razer pair refresh first, then wait for detection and for any refresh pass in flight
+    // so nothing registers a controller (or touches HID) while the list is being torn down.
+    razer_pair_refresh_allowed = false;
     WaitForDetection();
+    {
+        std::lock_guard<std::recursive_mutex> pair_drain_lock(ConfiguredRazerPairMutex());
+        // Detection may have enabled refresh again while WaitForDetection waited.
+        razer_pair_refresh_allowed = false;
+    }
 
 #if(HID_HOTPLUG_ENABLED)
+    // A hotplug callback can acquire the pair mutex. Do not hold it while
+    // deregistration waits for callbacks to finish.
     StopHIDHotplug();
 #endif
+    std::lock_guard<std::recursive_mutex> pair_cleanup_lock(ConfiguredRazerPairMutex());
 
     /*-----------------------------------------------------*\
     | Make a copy of the list so that the controllers can   |
