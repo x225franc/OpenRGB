@@ -11,6 +11,11 @@
    </rect>
   </property>
   <layout class="QGridLayout" name="gridLayout" columnstretch="0,0">
+   <item row="0" column="0"><widget class="QLabel" name="saturation_label"><property name="text"><string>Saturation</string></property></widget></item>
+   <item row="0" column="1"><layout class="QHBoxLayout" name="saturation_layout">
+    <item><widget class="QTooltipedSlider" name="saturation"><property name="maximum"><number>200</number></property><property name="value"><number>100</number></property><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="toolTip"><string>0%: grayscale; 100%: original colors; 200%: stronger colors.</string></property></widget></item>
+    <item><widget class="QSpinBox" name="saturation_value"><property name="maximum"><number>200</number></property><property name="value"><number>100</number></property><property name="suffix"><string>%</string></property></widget></item>
+   </layout></item>
    <item row="2" column="0">
     <widget class="QLabel" name="mode_label">
      <property name="text">

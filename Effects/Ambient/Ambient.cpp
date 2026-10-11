@@ -31,6 +31,12 @@ Ambient::Ambient(QWidget *parent) :
     ui(new Ui::Ambient)
 {
     ui->setupUi(this);
+    connect(ui->saturation, &QSlider::valueChanged, this, [this](int value) {
+        ambient_saturation = value;
+        ui->saturation_value->setValue(value);
+    });
+    connect(ui->saturation_value, QOverload<int>::of(&QSpinBox::valueChanged),
+            ui->saturation, &QSlider::setValue);
 
     SetDynamicStrings();
     EffectDetails.EffectClassName   = ClassName();
@@ -339,6 +345,7 @@ void Ambient::RenderFrame(const std::vector<ControllerZone*>& zones, bool previe
     const auto effect_mode = mode.load();
     const unsigned int smoothing = smoothness.load();
     const int brightness = ambient_brightness.load(), temperature = ambient_temperature.load(), tint = ambient_tint.load();
+    const unsigned int saturation = ambient_saturation.load();
     const unsigned int threshold = preview ? 0 : color_threshold.load();
     // Equivalent to the old coefficient at 60 FPS, but based on actual elapsed time.
     const double tau = smoothing ? -1.0 / (60.0 * std::log(smoothing * 0.01)) : 0;
@@ -372,7 +379,13 @@ void Ambient::RenderFrame(const std::vector<ControllerZone*>& zones, bool previe
                 if(std::abs(values[c] - channels[c]) < 0.5) values[c] = channels[c];
                 else settled = false;
             }
-            const RGBColor color = ToRGBColor(int(std::round(values[0])), int(std::round(values[1])), int(std::round(values[2])));
+            RGBColor color = ToRGBColor(int(std::round(values[0])), int(std::round(values[1])), int(std::round(values[2])));
+            if(saturation != 100)
+            {
+                QColor hsv(RGBGetRValue(color), RGBGetGValue(color), RGBGetBValue(color));
+                hsv.setHsv(hsv.hsvHue(), std::min(255, int(std::lround(hsv.hsvSaturation() * saturation / 100.0))), hsv.value());
+                color = ToRGBColor(hsv.red(), hsv.green(), hsv.blue());
+            }
             const RGBColor adjusted = ColorUtils::apply_adjustments(color, (zone->self_brightness / 100.f) * (brightness / 100.f), temperature, tint);
             const RGBColor previous = zone->GetLED(index); // Includes zone/segment offset.
             const int delta = std::max({std::abs(int(RGBGetRValue(previous)) - int(RGBGetRValue(adjusted))),
@@ -422,6 +435,7 @@ void Ambient::RenderFrame(const std::vector<ControllerZone*>& zones, bool previe
 
 void Ambient::LoadCustomSettings(json settings)
 {
+    ui->saturation->setValue(settings.value("saturation", 100));
     if(settings.contains("left"))           ui->left->setValue(settings["left"]);
     if(settings.contains("top"))            ui->top->setValue(settings["top"]);
     if(settings.contains("width"))          ui->width->setValue(settings["width"]);
@@ -476,6 +490,7 @@ json Ambient::SaveCustomSettings()
     settings["framerate"]       = framerate.load();
     settings["restore_token"]   = restore_token.toStdString();
     settings["crop_stream"]     = crop_stream.load();
+    settings["saturation"]      = ambient_saturation.load();
 
     settings["performance"] = {
         {"mode", performance_mode.load()}, {"capture_fps", framerate.load()},

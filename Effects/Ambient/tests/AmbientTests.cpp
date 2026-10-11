@@ -64,6 +64,24 @@ public:
         Check(controller.colors[7] == ToRGBColor(120,60,30) && controller.colors[0] == 0,
               "average mode uses zone-relative LED offsets");
         Check(ambient.NeedsControllerUpdate(&controller), "changed colors request a hardware update");
+        auto saturation_settings = Settings();
+        saturation_settings["saturation"] = 0;
+        ambient.LoadCustomSettings(saturation_settings);
+        ambient.StepEffect(zones);
+        Check(controller.colors[7] == ToRGBColor(120,120,120), "zero saturation produces grayscale without lowering HSV value");
+        saturation_settings["saturation"] = 200;
+        ambient.LoadCustomSettings(saturation_settings);
+        ambient.StepEffect(zones);
+        Check(RGBGetRValue(controller.colors[7]) == 120 && RGBGetBValue(controller.colors[7]) == 0,
+              "boosted saturation clamps safely while preserving HSV value");
+        Ambient saturation_roundtrip;
+        saturation_roundtrip.LoadCustomSettings(ambient.SaveCustomSettings());
+        Check(saturation_roundtrip.SaveCustomSettings()["saturation"] == 200, "saturation survives profile roundtrip");
+        ambient.LoadCustomSettings(Settings());
+        ambient.StepEffect(zones);
+        Check(controller.colors[7] == ToRGBColor(120,60,30), "legacy profiles restore neutral saturation exactly");
+        ambient.NeedsControllerUpdate(&controller);
+
         ambient.StepEffect(zones);
         Check(!ambient.NeedsControllerUpdate(&controller), "identical colors suppress hardware updates");
         ambient.SetBrightness(50);
