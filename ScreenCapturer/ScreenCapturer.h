@@ -37,6 +37,8 @@ public:
     virtual void SetScreen(int) {};
     virtual void SetAnalysisWidth(unsigned int) {};
     virtual void SetModernCapture(bool) {};
+    virtual void SetKeepEffectDuringScreensaver(bool) {};
+    virtual bool IsPaused() const { return false; };
     virtual QSize SourceSize() const { return QSize(); };
 
 protected:

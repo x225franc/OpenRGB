@@ -339,8 +339,55 @@ void WindowsScreenCapturer::CaptureThreadFunction()
     auto retry_at = CaptureClock::time_point::min();
     auto deadline = CaptureClock::now();
     AmbientPerformanceMetrics metrics("capture");
+    bool previous_screensaver = false;
+    HDESK original_desktop = GetThreadDesktop(GetCurrentThreadId());
+    HDESK attached_desktop = nullptr;
+    auto desktop_retry = CaptureClock::time_point::min();
     while(running)
     {
+        BOOL screensaver = previous_screensaver;
+        SystemParametersInfoW(SPI_GETSCREENSAVERRUNNING, 0, &screensaver, 0);
+        if(bool(screensaver) != previous_screensaver)
+        {
+            resources.reset();
+            retry_at = CaptureClock::time_point::min();
+            previous_screensaver = screensaver;
+        }
+        if(screensaver && !keep_during_screensaver)
+        {
+            capture_paused = true;
+            resources.reset();
+            std::unique_lock<std::mutex> guard(settings_mutex);
+            wake.wait_for(guard, std::chrono::milliseconds(100));
+            deadline = CaptureClock::now();
+            continue;
+        }
+        // Follow the screensaver input desktop from this dedicated capture
+        // thread only; secure desktops may deny access, so retain the last colors.
+        if((screensaver || attached_desktop) && CaptureClock::now() >= desktop_retry)
+        {
+            desktop_retry = CaptureClock::now() + std::chrono::milliseconds(400);
+            HDESK input = OpenInputDesktop(0, FALSE, DESKTOP_READOBJECTS | DESKTOP_WRITEOBJECTS | DESKTOP_SWITCHDESKTOP);
+            if(input)
+            {
+                wchar_t current_name[256]{}, input_name[256]{};
+                DWORD needed = 0;
+                const bool names_ok = GetUserObjectInformationW(GetThreadDesktop(GetCurrentThreadId()), UOI_NAME, current_name, sizeof(current_name), &needed)
+                    && GetUserObjectInformationW(input, UOI_NAME, input_name, sizeof(input_name), &needed);
+                if(names_ok && wcscmp(current_name, input_name) != 0)
+                {
+                    resources.reset();
+                    if(SetThreadDesktop(input))
+                    {
+                        if(attached_desktop) CloseDesktop(attached_desktop);
+                        attached_desktop = input;
+                        input = nullptr;
+                        retry_at = CaptureClock::time_point::min();
+                    }
+                }
+                if(input) CloseDesktop(input);
+            }
+        }
         QString name;
         unsigned int requested_width, current_generation;
         bool requested_modern;
@@ -371,11 +418,18 @@ void WindowsScreenCapturer::CaptureThreadFunction()
             metrics.Add(start);
             if(FAILED(hr))
             {
+                capture_paused = true;
                 resources.reset();
                 // Access loss (lock, hibernate, monitor change): retry rather than retaining a dead duplication.
                 retry_at = CaptureClock::now() + std::chrono::milliseconds(500);
             }
-            else if(!frame.isNull()) emit OnImage(frame);
+            else if(!frame.isNull())
+            {
+                BOOL saver_after_capture = FALSE;
+                SystemParametersInfoW(SPI_GETSCREENSAVERRUNNING, 0, &saver_after_capture, 0);
+                capture_paused = saver_after_capture && !keep_during_screensaver;
+                if(!capture_paused) emit OnImage(frame);
+            }
         }
         const unsigned int active_rate = (std::max)(1u, framerate.load());
         const auto period = std::chrono::microseconds(1000000 / active_rate);
@@ -384,5 +438,8 @@ void WindowsScreenCapturer::CaptureThreadFunction()
         std::unique_lock<std::mutex> guard(settings_mutex);
         wake.wait_until(guard, deadline, [&]{ return !running || generation != active_generation || framerate != active_rate; });
     }
+    resources.reset();
+    if(attached_desktop && SetThreadDesktop(original_desktop)) CloseDesktop(attached_desktop);
+    capture_paused = false;
     metrics.Report(); // One summary when stopped, never per-frame logging.
 }

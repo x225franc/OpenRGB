@@ -5,6 +5,8 @@
 #include <QComboBox>
 #include <QCheckBox>
 #include <QPluginLoader>
+#include <QScopedValueRollback>
+#include "ScreenCapturer.h"
 #include <QJsonDocument>
 #include <iostream>
 #include <stdexcept>
@@ -12,6 +14,8 @@
 #include "Ambient.h"
 #include "MockController.h"
 #include "OpenRGBPluginInterface.h"
+
+class PausedCapturer : public ScreenCapturer { public: bool paused = true; bool IsPaused() const override { return paused; } };
 
 class AmbientTests
 {
@@ -35,6 +39,31 @@ class AmbientTests
 public:
     static void Run()
     {
+        {
+            Ambient freeze;
+            MockController device;
+            ControllerZone zone(&device, 0, false, 100, true, false);
+            freeze.LoadCustomSettings(Settings());
+            Check(!freeze.SaveCustomSettings()["keep_effect_during_screensaver"].get<bool>(), "legacy profiles freeze during screensaver by default");
+            auto enabled = Settings();
+            enabled["keep_effect_during_screensaver"] = true;
+            freeze.LoadCustomSettings(enabled);
+            Ambient restored;
+            restored.LoadCustomSettings(freeze.SaveCustomSettings());
+            Check(restored.SaveCustomSettings()["keep_effect_during_screensaver"].get<bool>(), "screensaver toggle survives profile roundtrip");
+            QImage frame(4,2,QImage::Format_RGB32);
+            frame.fill(qRgb(180,90,45));
+            Publish(freeze, frame);
+            PausedCapturer capture;
+            QScopedValueRollback<ScreenCapturer*> restore(freeze.capturer, &capture);
+            const auto previous = device.colors;
+            freeze.StepEffect({&zone});
+            freeze.StepPreview({&zone});
+            Check(device.colors == previous && freeze.zone_states.empty(), "paused capture freezes RGB and preview without advancing smoothing");
+            capture.paused = false;
+            freeze.StepEffect({&zone});
+            Check(device.colors[7] == ToRGBColor(180,90,45), "capture resume restores Ambient updates");
+        }
         Ambient ambient;
         MockController controller;
         ControllerZone zone(&controller, 0, false, 100, true, false);

@@ -67,6 +67,12 @@ Ambient::Ambient(QWidget *parent) :
         capturer = new QtScreenCapturer();
     }
 
+    connect(ui->keep_during_screensaver, &QCheckBox::toggled, this, [this](bool value) {
+        capturer->SetKeepEffectDuringScreensaver(value);
+    });
+#ifndef _WIN32
+    ui->keep_during_screensaver->hide();
+#endif
     ui->framerate->setValue(OpenRGBEffectSettings::globalSettings.fpscapture);
 
     rectangle_selector_overlay = new RectangleSelectorOverlay(this);
@@ -247,6 +253,7 @@ void Ambient::AcceptFrame(const QImage& input)
         last_analysis = last_analysis == Clock::time_point{} ? now + period : last_analysis + period;
         if(last_analysis < now) last_analysis = now + period;
     }
+    if(capturer->IsPaused()) return;
     const auto start = Clock::now();
     Frame frame;
     frame.captured = now;
@@ -337,6 +344,7 @@ void Ambient::StepEffect(std::vector<ControllerZone*> zones)
 
 void Ambient::RenderFrame(const std::vector<ControllerZone*>& zones, bool preview)
 {
+    if(capturer->IsPaused()) return;
     const auto start = Clock::now();
     Frame frame;
     { std::lock_guard<std::mutex> guard(lock); frame = latest_frame; }
@@ -436,6 +444,7 @@ void Ambient::RenderFrame(const std::vector<ControllerZone*>& zones, bool previe
 void Ambient::LoadCustomSettings(json settings)
 {
     ui->saturation->setValue(settings.value("saturation", 100));
+    ui->keep_during_screensaver->setChecked(settings.value("keep_effect_during_screensaver", false));
     if(settings.contains("left"))           ui->left->setValue(settings["left"]);
     if(settings.contains("top"))            ui->top->setValue(settings["top"]);
     if(settings.contains("width"))          ui->width->setValue(settings["width"]);
@@ -491,6 +500,7 @@ json Ambient::SaveCustomSettings()
     settings["restore_token"]   = restore_token.toStdString();
     settings["crop_stream"]     = crop_stream.load();
     settings["saturation"]      = ambient_saturation.load();
+    settings["keep_effect_during_screensaver"] = ui->keep_during_screensaver->isChecked();
 
     settings["performance"] = {
         {"mode", performance_mode.load()}, {"capture_fps", framerate.load()},

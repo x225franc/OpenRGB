@@ -11,6 +11,7 @@
    </rect>
   </property>
   <layout class="QGridLayout" name="gridLayout" columnstretch="0,0">
+   <item row="10" column="0" colspan="2"><widget class="QCheckBox" name="keep_during_screensaver"><property name="text"><string>Keep the effect during screensaver</string></property><property name="toolTip"><string>When disabled, freeze the last colors and pause capture during the Windows screensaver.</string></property></widget></item>
    <item row="0" column="0"><widget class="QLabel" name="saturation_label"><property name="text"><string>Saturation</string></property></widget></item>
    <item row="0" column="1"><layout class="QHBoxLayout" name="saturation_layout">
     <item><widget class="QTooltipedSlider" name="saturation"><property name="maximum"><number>200</number></property><property name="value"><number>100</number></property><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="toolTip"><string>0%: grayscale; 100%: original colors; 200%: stronger colors.</string></property></widget></item>

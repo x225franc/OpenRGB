@@ -19,6 +19,8 @@ public:
     void SetAnalysisWidth(unsigned int) override;
     void SetModernCapture(bool) override;
     QSize SourceSize() const override;
+    void SetKeepEffectDuringScreensaver(bool value) override { keep_during_screensaver = value; wake.notify_all(); }
+    bool IsPaused() const override { return capture_paused.load(); }
 private:
     struct CaptureResources;
     void CaptureThreadFunction();
@@ -30,6 +32,7 @@ private:
     QString display_name;
     unsigned int analysis_width = 320;
     bool modern_capture = true;
+    std::atomic<bool> keep_during_screensaver{false}, capture_paused{false};
     unsigned int generation = 0;
     QSize source_size;
 };
