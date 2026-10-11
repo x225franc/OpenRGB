@@ -10,6 +10,7 @@
 |   SPDX-License-Identifier: GPL-2.0-or-later               |
 \*---------------------------------------------------------*/
 
+#include "HidApiLifecycle.h"
 #include <chrono>
 #include <cctype>
 #include <cstdio>
@@ -94,10 +95,10 @@ const hidapi_wrapper default_hidapi_wrapper =
     (hidapi_wrapper_send_feature_report)            hid_send_feature_report,
     (hidapi_wrapper_get_feature_report)             hid_get_feature_report,
     (hidapi_wrapper_get_serial_number_string)       hid_get_serial_number_string,
-    (hidapi_wrapper_open_path)                      hid_open_path,
-    (hidapi_wrapper_enumerate)                      hid_enumerate,
+    (hidapi_wrapper_open_path)                      HidApiLifecycle::OpenPath,
+    (hidapi_wrapper_enumerate)                      HidApiLifecycle::Enumerate,
     (hidapi_wrapper_free_enumeration)               hid_free_enumeration,
-    (hidapi_wrapper_close)                          hid_close,
+    (hidapi_wrapper_close)                          HidApiLifecycle::Close,
     (hidapi_wrapper_error)                          hid_error,
 #if(HID_HOTPLUG_ENABLED)
     (hidapi_wrapper_hotplug_register_callback)      hid_hotplug_register_callback,
@@ -773,7 +774,7 @@ void DetectionManager::BackgroundRefreshConfiguredRazerPair()
     json detector_settings = ResourceManager::get()->GetSettingsManager()->GetSettings("Detectors");
     for(unsigned short pid : {0x00D7, 0x0271})
     {
-        hid_device_info* receivers = hid_enumerate(0x1532, pid);
+        hid_device_info* receivers = HidApiLifecycle::Enumerate(0x1532, pid);
         for(hid_device_info* info = receivers; info; info = info->next)
         {
             if((pid == 0x00D7 && info->interface_number == 0 && info->usage_page == 1 && info->usage == 2)
@@ -895,7 +896,7 @@ void DetectionManager::BackgroundDetectDevices()
     \*-----------------------------------------------------*/
     if(!hid_safe_mode)
     {
-        hid_devices = hid_enumerate(0, 0);
+        hid_devices = HidApiLifecycle::Enumerate(0, 0);
     }
 
     /*-----------------------------------------------------*\
@@ -1353,7 +1354,7 @@ void DetectionManager::BackgroundDetectHIDDevicesSafe(json& detector_settings)
 
         unsigned short enumerate_vid = (detector.vid == HID_VID_ANY) ? 0 : detector.vid;
         unsigned short enumerate_pid = (detector.pid == HID_PID_ANY) ? 0 : detector.pid;
-        hid_device_info* current_hid_device = hid_enumerate(enumerate_vid, enumerate_pid);
+        hid_device_info* current_hid_device = HidApiLifecycle::Enumerate(enumerate_vid, enumerate_pid);
 
         while(current_hid_device)
         {
@@ -1509,7 +1510,7 @@ void DetectionManager::BackgroundHIDExit()
     /*-----------------------------------------------------*\
     | Exit HID interface                                    |
     \*-----------------------------------------------------*/
-    int hid_status = hid_exit();
+    int hid_status = HidApiLifecycle::Exit();
 
     LOG_DEBUG("[%s] Exiting HID interface: %s", DETECTIONMANAGER, ((hid_status == 0) ? "Success" : "Failed"));
 }
@@ -1519,7 +1520,7 @@ void DetectionManager::BackgroundHIDInit()
     /*-----------------------------------------------------*\
     | Initialize HID interface                              |
     \*-----------------------------------------------------*/
-    int hid_status = hid_init();
+    int hid_status = HidApiLifecycle::Init();
 
     LOG_DEBUG("[%s] Initializing HID interfaces: %s", DETECTIONMANAGER, ((hid_status == 0) ? "Success" : "Failed"));
 
@@ -1671,7 +1672,13 @@ void DetectionManager::RunHIDDetector(hid_device_info* current_hid_device, json&
 
                     SignalUpdate(DETECTIONMANAGER_UPDATE_REASON_DETECTION_PROGRESS_CHANGED);
 
-                    DetectedControllers detected_controllers = detector->function(current_hid_device, detector->name);
+                    DetectedControllers detected_controllers;
+                    {
+                        // Detectors may call HIDAPI's global-state functions internally.
+                        // Release before registration/callbacks to avoid reversing pair-lock order.
+                        std::lock_guard<std::recursive_mutex> hid_lock(HidApiLifecycle::Mutex());
+                        detected_controllers = detector->function(current_hid_device, detector->name);
+                    }
 
                     for(std::size_t detected_controller_idx = 0; detected_controller_idx < detected_controllers.size(); detected_controller_idx++)
                     {
@@ -2278,7 +2285,7 @@ int DetectionManager::UnplugCallbackFunction(hid_hotplug_callback_handle /*callb
             json detector_settings = ResourceManager::get()->GetSettingsManager()->GetSettings("Detectors");
             for(unsigned short pid : {0x0258, 0x00D6})
             {
-                hid_device_info* wired_devices = hid_enumerate(0x1532, pid);
+                hid_device_info* wired_devices = HidApiLifecycle::Enumerate(0x1532, pid);
                 for(hid_device_info* info = wired_devices; info; info = info->next)
                 {
                     dm->RunHIDDetector(info, detector_settings);

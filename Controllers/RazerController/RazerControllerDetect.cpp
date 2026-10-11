@@ -9,6 +9,7 @@
 |   SPDX-License-Identifier: GPL-2.0-or-later               |
 \*---------------------------------------------------------*/
 
+#include "HidApiLifecycle.h"
 #include <unordered_set>
 #include "SettingsManager.h"
 #include "LogManager.h"
@@ -42,7 +43,7 @@ DetectedControllers DetectRazerControllers(hid_device_info* info, const std::str
         for(unsigned short pid : {RAZER_BASILISK_V3_PRO_35K_PG_WIRELESS_PID,
                                   RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID})
         {
-            hid_device_info* receivers = hid_enumerate(RAZER_VID, pid);
+            hid_device_info* receivers = HidApiLifecycle::Enumerate(RAZER_VID, pid);
             for(hid_device_info* receiver = receivers; receiver; receiver = receiver->next)
             {
                 receiver_present |= (pid == RAZER_BASILISK_V3_PRO_35K_PG_WIRELESS_PID
@@ -65,7 +66,7 @@ DetectedControllers DetectRazerControllers(hid_device_info* info, const std::str
         for(unsigned short pid : {RAZER_BASILISK_V3_PRO_35K_PG_WIRELESS_PID,
                                   RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID})
         {
-            hid_device* dev = hid_open_path(info->path);
+            hid_device* dev = HidApiLifecycle::OpenPath(info->path);
             if(!dev) continue;
             const bool keyboard = pid == RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID;
             RazerController* controller = new RazerController(dev, dev, info->path, pid,
@@ -87,7 +88,7 @@ DetectedControllers DetectRazerControllers(hid_device_info* info, const std::str
     }
     else
     {
-        hid_device* dev = hid_open_path(info->path);
+        hid_device* dev = HidApiLifecycle::OpenPath(info->path);
         if(dev)
         {
             RazerController* controller = new RazerController(dev, dev, info->path, info->product_id, name);
@@ -130,7 +131,7 @@ DetectedControllers DetectRazerARGBControllers(hid_device_info* info, const std:
     \*-----------------------------------------------------*/
     hid_device*        dev_interface_0 = nullptr;
     hid_device*        dev_interface_1 = nullptr;
-    hid_device_info*   info_full       = hid_enumerate(RAZER_VID, RAZER_CHROMA_ADDRESSABLE_RGB_CONTROLLER_PID);
+    hid_device_info*   info_full       = HidApiLifecycle::Enumerate(RAZER_VID, RAZER_CHROMA_ADDRESSABLE_RGB_CONTROLLER_PID);
     hid_device_info*   info_temp       = info_full;
 
      /*----------------------------------------------------*\
@@ -154,12 +155,12 @@ DetectedControllers DetectRazerARGBControllers(hid_device_info* info, const std:
         {
             if(info_temp->interface_number == 0)
             {
-                dev_interface_0 = hid_open_path(info_temp->path);
+                dev_interface_0 = HidApiLifecycle::OpenPath(info_temp->path);
                 dev_interface_0_path = info_temp->path;
             }
             else if(info_temp->interface_number == 1)
             {
-                dev_interface_1 = hid_open_path(info_temp->path);
+                dev_interface_1 = HidApiLifecycle::OpenPath(info_temp->path);
                 dev_interface_1_path = info_temp->path;
             }
         }
@@ -185,8 +186,8 @@ DetectedControllers DetectRazerARGBControllers(hid_device_info* info, const std:
     else
     {
         // Not all of them could be opened, do some cleanup
-        hid_close(dev_interface_0);
-        hid_close(dev_interface_1);
+        HidApiLifecycle::Close(dev_interface_0);
+        HidApiLifecycle::Close(dev_interface_1);
     }
 
     return(detected_controllers);
@@ -197,7 +198,7 @@ DetectedControllers DetectRazerKrakenControllers(hid_device_info* info, const st
     DetectedControllers detected_controllers;
     hid_device*         dev;
 
-    dev = hid_open_path(info->path);
+    dev = HidApiLifecycle::OpenPath(info->path);
 
     if(dev)
     {
@@ -215,7 +216,7 @@ DetectedControllers DetectRazerKrakenV3Controllers(hid_device_info* info, const 
     DetectedControllers detected_controllers;
     hid_device*         dev;
 
-    dev = hid_open_path(info->path);
+    dev = HidApiLifecycle::OpenPath(info->path);
 
     if(dev)
     {
@@ -233,7 +234,7 @@ DetectedControllers DetectRazerKrakenV4Controllers(hid_device_info* info, const 
     DetectedControllers detected_controllers;
     hid_device*         dev;
 
-    dev = hid_open_path(info->path);
+    dev = HidApiLifecycle::OpenPath(info->path);
 
     if(dev)
     {
@@ -251,7 +252,7 @@ DetectedControllers DetectRazerHanboControllers(hid_device_info* info, const std
     DetectedControllers detected_controllers;
     hid_device*         dev;
 
-    dev = hid_open_path(info->path);
+    dev = HidApiLifecycle::OpenPath(info->path);
 
     if(dev)
     {

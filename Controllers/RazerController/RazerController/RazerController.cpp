@@ -9,6 +9,7 @@
 |   SPDX-License-Identifier: GPL-2.0-or-later               |
 \*---------------------------------------------------------*/
 
+#include "HidApiLifecycle.h"
 #include <string.h>
 #include "RazerController.h"
 #include "RazerDevices.h"
@@ -207,8 +208,8 @@ RazerController::~RazerController()
         delete keepalive_thread;
     }
 
-    if(usb_dev) hid_close(usb_dev);
-    hid_close(receiver_dev);
+    if(usb_dev) HidApiLifecycle::Close(usb_dev);
+    HidApiLifecycle::Close(receiver_dev);
     delete guard_manager_ptr;
 }
 
@@ -1928,7 +1929,7 @@ void RazerController::RefreshSharedTransport()
     const bool keyboard = dev_pid == RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID;
     const unsigned short usb_pid = keyboard ? RAZER_BLACKWIDOW_V3_MINI_WIRED_PID
                                            : RAZER_BASILISK_V3_PRO_35K_PG_WIRED_PID;
-    hid_device_info* devices = hid_enumerate(RAZER_VID, usb_pid);
+    hid_device_info* devices = HidApiLifecycle::Enumerate(RAZER_VID, usb_pid);
     std::string path;
     for(hid_device_info* info = devices; info; info = info->next)
     {
@@ -1941,13 +1942,13 @@ void RazerController::RefreshSharedTransport()
     }
     hid_free_enumeration(devices);
     if(path == usb_path) return;
-    hid_device* replacement = path.empty() ? nullptr : hid_open_path(path.c_str());
+    hid_device* replacement = path.empty() ? nullptr : HidApiLifecycle::OpenPath(path.c_str());
     if(!path.empty() && !replacement) return;
     hid_device* previous = usb_dev;
     usb_dev = replacement;
     usb_path = path;
     dev = usb_dev ? usb_dev : receiver_dev;
-    if(previous) hid_close(previous);
+    if(previous) HidApiLifecycle::Close(previous);
     LOG_INFO("[Razer] Shared %s transport: %s", keyboard ? "keyboard" : "mouse", usb_dev ? "USB" : "HyperSpeed");
 }
 

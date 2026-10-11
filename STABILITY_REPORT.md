@@ -19,3 +19,14 @@ Configuration preservation: the pre-intervention config and binaries are copied 
 Rollback: Quit OpenRGB; restore OpenRGB.exe and the two plugin DLLs from the deployment backup, then reopen. Restore the saved config separately only if wanted.
 
 User acceptance test: load your saved map; enable Ambient at 60 FPS; move and scale zones, resize the map, switch tabs, save, reload, then quit/reopen. Check geometry and observe stability for at least 30 minutes. Device reconnect/rescan and shutdown also need a real hardware run. No claim is made that all random crashes are eliminated, and no CPU/GPU or P95 measurement is invented.
+
+
+## Follow-up: HIDAPI global error-state corruption (12 October 2026)
+
+The installed corrected build still crashed with Ambient running. CDB analysis of OpenRGB.exe.40976.dmp reports HEAP_FAILURE_LFH_BITMAP_MISMATCH; its GUI stack detects corruption during allocation rather than identifying its source.
+
+A separate copy running with PageHeap stopped at verifier error 0x10 (corrupted start stamp) while freeing a block in hidapi-hotplug!hid_init called by hid_enumerate. Razer transport polling calls enumeration from effect/device threads, independently of detection and per-device mutexes. HIDAPI's documented lifecycle operations are not safe concurrently: https://github.com/libusb/hidapi/wiki/Multi%E2%80%90threading-Notes
+
+The isolated regression deliberately enumerates a nonexistent VID/PID with four threads while another thread initializes the same shipped DLL. The unguarded negative control reproduces Invalid address specified to RtlFreeHeap. The protected variant passes 600 enumerations without hardware writes.
+
+HidApiLifecycle.h supplies one process-wide recursive mutex for initialization, finalization, enumeration, open and close. Detection and Razer transport polling use these wrappers; native HID detector construction is protected separately, releasing the guard before controller registration/callbacks. RGB writes and the capture/Qt pipeline are unchanged. Physical usage still needs validation after deployment.
