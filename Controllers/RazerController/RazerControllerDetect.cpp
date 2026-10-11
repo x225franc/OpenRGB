@@ -10,6 +10,8 @@
 \*---------------------------------------------------------*/
 
 #include <unordered_set>
+#include "SettingsManager.h"
+#include "LogManager.h"
 #include <hidapi.h>
 #include "DetectionManager.h"
 #include "RazerController.h"
@@ -29,19 +31,70 @@
 DetectedControllers DetectRazerControllers(hid_device_info* info, const std::string& name)
 {
     DetectedControllers detected_controllers;
-    hid_device*         dev;
-
-    dev = hid_open_path(info->path);
-
-    if(dev)
+    const json settings = ResourceManager::get()->GetSettingsManager()->GetSettings("RazerHyperspeed");
+    const bool configured_pair = settings.is_object()
+        && settings.value("BlackWidowV3MiniAndPhantomGreenSharedPair",
+                          settings.value("BlackWidowV3MiniOnPhantomGreenReceiver", false));
+    if(configured_pair && (info->product_id == RAZER_BLACKWIDOW_V3_MINI_WIRED_PID
+                           || info->product_id == RAZER_BASILISK_V3_PRO_35K_PG_WIRED_PID))
     {
-        RazerController*     controller     = new RazerController(dev, dev, info->path, info->product_id, name);
-        RGBController_Razer* rgb_controller = new RGBController_Razer(controller);
-
-        detected_controllers.push_back(rgb_controller);
+        bool receiver_present = false;
+        for(unsigned short pid : {RAZER_BASILISK_V3_PRO_35K_PG_WIRELESS_PID,
+                                  RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID})
+        {
+            hid_device_info* receivers = hid_enumerate(RAZER_VID, pid);
+            for(hid_device_info* receiver = receivers; receiver; receiver = receiver->next)
+            {
+                receiver_present |= (pid == RAZER_BASILISK_V3_PRO_35K_PG_WIRELESS_PID
+                                  && receiver->interface_number == 0 && receiver->usage_page == 1 && receiver->usage == 2)
+                                 || (pid == RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID
+                                  && receiver->interface_number == 3 && receiver->usage_page == 0x0C && receiver->usage == 1);
+            }
+            hid_free_enumeration(receivers);
+        }
+        // A shared pair controller selects USB itself; do not add a duplicate.
+        if(receiver_present) return detected_controllers;
     }
-
-    return(detected_controllers);
+    const bool shared = configured_pair
+        && (info->product_id == RAZER_BASILISK_V3_PRO_35K_PG_WIRELESS_PID
+            || info->product_id == RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID);
+    if(shared)
+    {
+        // The model pair is explicit: neither receiver PID reveals its peer model.
+        // Same target identities on both verified receiver control interfaces.
+        for(unsigned short pid : {RAZER_BASILISK_V3_PRO_35K_PG_WIRELESS_PID,
+                                  RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID})
+        {
+            hid_device* dev = hid_open_path(info->path);
+            if(!dev) continue;
+            const bool keyboard = pid == RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID;
+            RazerController* controller = new RazerController(dev, dev, info->path, pid,
+                keyboard ? "Razer BlackWidow V3 Mini (USB/HyperSpeed auto)"
+                         : "Razer Basilisk V3 Pro 35K Phantom Green (USB/HyperSpeed auto)", true);
+            const bool responsive = keyboard ? controller->ProbeSharedKeyboard()
+                                            : (!controller->GetFirmwareString().empty() && !controller->GetSerialString().empty());
+            if(responsive)
+            {
+                detected_controllers.push_back(new RGBController_Razer(controller));
+                LOG_DEBUG("[Razer] Verified shared %s on receiver %04X", keyboard ? "keyboard" : "mouse", info->product_id);
+            }
+            else
+            {
+                delete controller;
+                LOG_DEBUG("[Razer] Shared %s not responsive; no controller created", keyboard ? "keyboard" : "mouse");
+            }
+        }
+    }
+    else
+    {
+        hid_device* dev = hid_open_path(info->path);
+        if(dev)
+        {
+            RazerController* controller = new RazerController(dev, dev, info->path, info->product_id, name);
+            detected_controllers.push_back(new RGBController_Razer(controller));
+        }
+    }
+    return detected_controllers;
 }
 
 /*---------------------------------------------------------*\

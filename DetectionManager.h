@@ -344,6 +344,7 @@ private:
     | Functions that must be run in the background thread   |
     \*-----------------------------------------------------*/
     void BackgroundDetectDevices();
+    void BackgroundRefreshConfiguredRazerPair();
     void BackgroundDetectHIDDevices(hid_device_info* hid_devices, json& detector_settings);
     void BackgroundDetectHIDDevicesSafe(json& detector_settings);
 #ifdef __linux__

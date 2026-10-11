@@ -449,9 +449,17 @@ void DetectionManager::RegisterI2CBus(i2c_smbus_interface *bus)
 | Functions for registering RGBControllers from within      |
 | detectors                                                 |
 \*---------------------------------------------------------*/
+namespace
+{
+std::recursive_mutex& ConfiguredRazerPairMutex()
+{
+    static std::recursive_mutex mutex;
+    return mutex;
+}
+}
+
 void DetectionManager::RegisterRGBController(RGBController *rgb_controller, const std::string& detection_path)
 {
-    LOG_INFO("[%s] Registering RGB controller %s", DETECTIONMANAGER, rgb_controller->GetName().c_str());
 
     /*-----------------------------------------------------*\
     | Late registrants (hotplug) pass their node path here; |
@@ -461,6 +469,48 @@ void DetectionManager::RegisterRGBController(RGBController *rgb_controller, cons
     {
         rgb_controller->detection_path = detection_path;
     }
+
+    // Only the explicitly configured Razer shared pair replaces its wired
+    // instance. Match actual identity, never just a model name or receiver PID.
+    if(rgb_controller->vendor == "Razer" && rgb_controller->name.find("USB/HyperSpeed") != std::string::npos
+       && !rgb_controller->serial.empty())
+    {
+        std::lock_guard<std::recursive_mutex> pair_lock(ConfiguredRazerPairMutex());
+        std::vector<RGBController*> previous;
+        bool already_registered = false;
+        {
+            std::lock_guard<std::mutex> lock(RGBControllersMutex);
+            for(RGBController* existing : rgb_controllers)
+            {
+                if(existing->vendor == "Razer" && existing->type == rgb_controller->type
+                   && (existing->flags & CONTROLLER_FLAG_LOCAL) && !existing->detection_path.empty()
+                   && existing->serial == rgb_controller->serial)
+                {
+                    if(existing->name.find("USB/HyperSpeed") != std::string::npos
+                       && existing->detection_path == rgb_controller->detection_path)
+                    {
+                        already_registered = true;
+                    }
+                    else
+                    {
+                        previous.push_back(existing);
+                    }
+                }
+            }
+        }
+        if(already_registered)
+        {
+            delete rgb_controller;
+            return;
+        }
+        for(RGBController* existing : previous)
+        {
+            UnregisterRGBController(existing);
+            delete existing;
+        }
+    }
+
+    LOG_INFO("[%s] Registering RGB controller %s", DETECTIONMANAGER, rgb_controller->GetName().c_str());
 
     /*-----------------------------------------------------*\
     | Mark this controller as locally owned                 |
@@ -651,7 +701,63 @@ void DetectionManager::BackgroundThreadFunction()
         | the condition variable is triggered               |
         | NOTE: it may be subject to "spurious wakeups"     |
         \*-------------------------------------------------*/
-        BackgroundThreadScheduledFunctionStart.wait(lock);
+        // Do not access ResourceManager from static detector initialization.
+        const json pair_settings = initial_detection ? json()
+            : ResourceManager::get()->GetSettingsManager()->GetSettings("RazerHyperspeed");
+        const bool refresh_pair = !initial_detection && pair_settings.is_object()
+            && pair_settings.value("BlackWidowV3MiniAndPhantomGreenSharedPair",
+                                   pair_settings.value("BlackWidowV3MiniOnPhantomGreenReceiver", false));
+        if(refresh_pair)
+        {
+            // Reuse this worker for peers that become ready after USB arrival.
+            // No new thread and no foreground enumeration or active polling.
+            if(BackgroundThreadScheduledFunctionStart.wait_for(lock, std::chrono::seconds(1))
+               == std::cv_status::timeout && background_thread_running)
+            {
+                BackgroundRefreshConfiguredRazerPair();
+            }
+        }
+        else
+        {
+            BackgroundThreadScheduledFunctionStart.wait(lock);
+        }
+    }
+}
+
+void DetectionManager::BackgroundRefreshConfiguredRazerPair()
+{
+    std::lock_guard<std::recursive_mutex> pair_lock(ConfiguredRazerPairMutex());
+    bool keyboard = false;
+    bool mouse = false;
+    {
+        std::lock_guard<std::mutex> lock(RGBControllersMutex);
+        for(RGBController* controller : rgb_controllers)
+        {
+            if(controller->vendor == "Razer" && (controller->flags & CONTROLLER_FLAG_LOCAL)
+               && controller->name.find("USB/HyperSpeed") != std::string::npos)
+            {
+                keyboard |= controller->type == DEVICE_TYPE_KEYBOARD;
+                mouse |= controller->type == DEVICE_TYPE_MOUSE;
+            }
+        }
+    }
+    if(keyboard && mouse) return;
+
+    // Enumerate only the two configured receiver models when a peer is absent.
+    // Registration preserves a matching live controller and its colors/profile.
+    json detector_settings = ResourceManager::get()->GetSettingsManager()->GetSettings("Detectors");
+    for(unsigned short pid : {0x00D7, 0x0271})
+    {
+        hid_device_info* receivers = hid_enumerate(0x1532, pid);
+        for(hid_device_info* info = receivers; info; info = info->next)
+        {
+            if((pid == 0x00D7 && info->interface_number == 0 && info->usage_page == 1 && info->usage == 2)
+               || (pid == 0x0271 && info->interface_number == 3 && info->usage_page == 0x0C && info->usage == 1))
+            {
+                RunHIDDetector(info, detector_settings);
+            }
+        }
+        hid_free_enumeration(receivers);
     }
 }
 
@@ -2071,6 +2177,13 @@ int DetectionManager::HotplugCallbackFunction(hid_hotplug_callback_handle /*call
 
         LOG_INFO("[%s] HID device connected: [%04x:%04x - %s]", DETECTIONMANAGER, device->vendor_id, device->product_id, device->path);
 
+        std::unique_lock<std::recursive_mutex> pair_lock(ConfiguredRazerPairMutex(), std::defer_lock);
+        if(device->vendor_id == 0x1532
+           && (device->product_id == 0x0258 || device->product_id == 0x00D6
+               || device->product_id == 0x0271 || device->product_id == 0x00D7))
+        {
+            pair_lock.lock();
+        }
         dm->RunHIDDetector(device, detector_settings);
         dm->RunHIDWrappedDetector(&default_hidapi_wrapper, device, detector_settings);
     }
@@ -2086,6 +2199,13 @@ int DetectionManager::UnplugCallbackFunction(hid_hotplug_callback_handle /*callb
     {
         LOG_INFO("[%s] HID device disconnected: [%04x:%04x - %s]", DETECTIONMANAGER, device->vendor_id, device->product_id, device->path);
 
+        std::unique_lock<std::recursive_mutex> pair_lock(ConfiguredRazerPairMutex(), std::defer_lock);
+        if(device->vendor_id == 0x1532
+           && (device->product_id == 0x0258 || device->product_id == 0x00D6
+               || device->product_id == 0x0271 || device->product_id == 0x00D7))
+        {
+            pair_lock.lock();
+        }
         std::string path = std::string(device->path);
 
         /*-------------------------------------------------*\
@@ -2110,6 +2230,24 @@ int DetectionManager::UnplugCallbackFunction(hid_hotplug_callback_handle /*callb
         {
             dm->UnregisterRGBController(controller);
             delete controller;
+        }
+        const json pair_settings = ResourceManager::get()->GetSettingsManager()->GetSettings("RazerHyperspeed");
+        if(device->vendor_id == 0x1532
+           && ((device->product_id == 0x00D7 && device->interface_number == 0 && device->usage_page == 1 && device->usage == 2)
+               || (device->product_id == 0x0271 && device->interface_number == 3 && device->usage_page == 0x0C && device->usage == 1))
+           && pair_settings.is_object() && pair_settings.value("BlackWidowV3MiniAndPhantomGreenSharedPair",
+               pair_settings.value("BlackWidowV3MiniOnPhantomGreenReceiver", false)))
+        {
+            json detector_settings = ResourceManager::get()->GetSettingsManager()->GetSettings("Detectors");
+            for(unsigned short pid : {0x0258, 0x00D6})
+            {
+                hid_device_info* wired_devices = hid_enumerate(0x1532, pid);
+                for(hid_device_info* info = wired_devices; info; info = info->next)
+                {
+                    dm->RunHIDDetector(info, detector_settings);
+                }
+                hid_free_enumeration(wired_devices);
+            }
         }
     }
     return 0;

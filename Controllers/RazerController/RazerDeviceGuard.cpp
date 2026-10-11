@@ -18,6 +18,13 @@ RazerDeviceGuard::RazerDeviceGuard() : DeviceGuard()
 #endif
 }
 
+RazerDeviceGuard::~RazerDeviceGuard()
+{
+#ifdef _WIN32
+    if(mutex_handle) CloseHandle(mutex_handle);
+#endif
+}
+
 void RazerDeviceGuard::Acquire()
 {
 #ifdef _WIN32

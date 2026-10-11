@@ -15,6 +15,7 @@
 #include <chrono>
 #include <string>
 #include <thread>
+#include <mutex>
 #include <hidapi.h>
 #include "RGBController.h"
 #include "DeviceGuardManager.h"
@@ -221,7 +222,7 @@ PACK(struct razer_argb_report
 class RazerController
 {
 public:
-    RazerController(hid_device* dev_handle, hid_device* dev_argb_handle, const char* path, unsigned short pid, std::string dev_name);
+    RazerController(hid_device* dev_handle, hid_device* dev_argb_handle, const char* path, unsigned short pid, std::string dev_name, bool shared_receiver = false);
     ~RazerController();
 
     unsigned int            GetDeviceIndex();
@@ -230,6 +231,8 @@ public:
     std::string             GetFirmwareString();
     std::string             GetName();
     std::string             GetSerialString();
+    bool                    ProbeSharedKeyboard();
+    bool                    IsAvailable();
     unsigned char           GetMaxBrightness();
 
     unsigned char           GetKeyboardLayoutType();
@@ -262,6 +265,17 @@ private:
     | Device-specific protocol settings                         |
     \*---------------------------------------------------------*/
     unsigned char           dev_transaction_id;
+    bool                    shared_receiver;
+    hid_device*             receiver_dev;
+    hid_device*             usb_dev = nullptr;
+    std::string             usb_path;
+    std::mutex              transport_mutex;
+    std::chrono::steady_clock::time_point next_transport_check{};
+    void                    RefreshSharedTransport();
+    bool                    available = true;
+    std::atomic<int>        last_frame_kind{-1};
+    std::mutex              presence_mutex;
+    std::chrono::steady_clock::time_point next_presence_check{};
     unsigned char           dev_led_id;
 
     /*---------------------------------------------------------*\
@@ -346,6 +360,7 @@ private:
     void                    razer_set_mode_static(unsigned char red, unsigned char grn, unsigned char blu);
     void                    razer_set_mode_wave(unsigned char direction);
 
+    bool                    razer_usb_query(razer_report* request, razer_report* response, unsigned int turnaround_ms);
     int                     razer_usb_receive(razer_report* report);
     int                     razer_usb_send(razer_report* report);
     int                     razer_usb_send_argb(razer_argb_report* report);

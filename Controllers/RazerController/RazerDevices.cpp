@@ -253,8 +253,8 @@ keyboard_keymap_overlay_values razer_blackwidow_v3_mini_layout
         {   0,      4,      7,          0,          "Logo",                     KEY_EN_UNUSED,              KEYBOARD_OPCODE_SWAP_ONLY,          },  // Insert 'Logo' key
         {   0,      4,      12,         0,          KEY_EN_RIGHT_CONTROL,       KEY_EN_UNUSED,              KEYBOARD_OPCODE_SWAP_ONLY,          },  // Swap Right Control in for Right Menu
         {   0,      4,      13,         0,          KEY_EN_LEFT_ARROW,          KEY_EN_UNUSED,              KEYBOARD_OPCODE_SWAP_ONLY,          },  // Insert Left Arrow
-        {   0,      4,      14,         0,          KEY_EN_DOWN_ARROW,          KEY_EN_UNUSED,              KEYBOARD_OPCODE_SWAP_ONLY,          },  // Insert Down Arrow
-        {   0,      4,      15,         0,          KEY_EN_RIGHT_ARROW,         KEY_EN_UNUSED,              KEYBOARD_OPCODE_SWAP_ONLY,          },  // Insert Right Arrow
+        {   0,      4,      14,         0,          KEY_EN_DOWN_ARROW,          KEY_EN_UNUSED,              KEYBOARD_OPCODE_INSERT_SHIFT_RIGHT,          },  // Insert Down Arrow
+        {   0,      4,      15,         0,          KEY_EN_RIGHT_ARROW,         KEY_EN_UNUSED,              KEYBOARD_OPCODE_INSERT_SHIFT_RIGHT,          },  // Insert Right Arrow
     }
 };
 
@@ -5161,7 +5161,7 @@ static const razer_device basilisk_v3_pro_35k_pg_wired_device =
     RAZER_MATRIX_TYPE_EXTENDED,
     0x1F,
     1,
-    13,
+    12,
     {
         &basilisk_v3_pro_35k_wired_scroll_wheel_zone,
         &basilisk_v3_pro_35k_wired_ledstrip_zone,
@@ -5193,7 +5193,7 @@ static const razer_device basilisk_v3_pro_35k_pg_wireless_device =
     RAZER_MATRIX_TYPE_EXTENDED,
     0x1F,
     1,
-    13,
+    12,
     {
         &basilisk_v3_pro_35k_wireless_scroll_wheel_zone,
         &basilisk_v3_pro_35k_wireless_ledstrip_zone,
@@ -5225,7 +5225,7 @@ static const razer_device basilisk_v3_pro_35k_pg_bluetooth_device =
     RAZER_MATRIX_TYPE_EXTENDED,
     0x1F,
     1,
-    13,
+    12,
     {
         &basilisk_v3_pro_35k_wireless_scroll_wheel_zone,
         &basilisk_v3_pro_35k_wireless_ledstrip_zone,

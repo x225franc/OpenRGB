@@ -17,9 +17,11 @@
 
 using namespace std::chrono_literals;
 
-RazerController::RazerController(hid_device* dev_handle, hid_device* dev_argb_handle, const char* path, unsigned short pid, std::string dev_name)
+RazerController::RazerController(hid_device* dev_handle, hid_device* dev_argb_handle, const char* path, unsigned short pid, std::string dev_name, bool shared_receiver)
 {
+    this->shared_receiver = shared_receiver;
     dev               = dev_handle;
+    receiver_dev      = dev_handle;
     dev_argb          = dev_argb_handle;
     dev_pid           = pid;
     location          = path;
@@ -202,9 +204,11 @@ RazerController::~RazerController()
     {
         keepalive_thread_run = false;
         keepalive_thread->join();
+        delete keepalive_thread;
     }
 
-    hid_close(dev);
+    if(usb_dev) hid_close(usb_dev);
+    hid_close(receiver_dev);
     delete guard_manager_ptr;
 }
 
@@ -225,7 +229,7 @@ device_type RazerController::GetDeviceType()
 
 std::string RazerController::GetDeviceLocation()
 {
-    return("HID: " + location);
+    return("HID: " + location + (shared_receiver ? (dev_transaction_id == 0x9F ? " [shared keyboard; USB/HyperSpeed auto]" : " [shared mouse; USB/HyperSpeed auto]") : ""));
 }
 
 std::string RazerController::GetFirmwareString()
@@ -292,6 +296,7 @@ void RazerController::SetBrightness(unsigned char brightness)
 
 void RazerController::SetLEDs(RGBColor* colors)
 {
+    if(shared_receiver && !IsAvailable()) return;
     /*---------------------------------------------------------*\
     | Get the matrix layout information from the device list    |
     \*---------------------------------------------------------*/
@@ -303,6 +308,24 @@ void RazerController::SetLEDs(RGBColor* colors)
     | a single row                                              |
     \*---------------------------------------------------------*/
     unsigned char* output_array = new unsigned char[matrix_cols * 3];
+
+    // Targeted diagnostics for Identify: log transitions, not every frame.
+    if(shared_receiver)
+    {
+        bool black = true;
+        bool green_only = true;
+        for(unsigned int i = 0; i < matrix_rows * matrix_cols; i++)
+        {
+            black &= colors[i] == ToRGBColor(0, 0, 0);
+            green_only &= colors[i] == ToRGBColor(0, 0, 0) || colors[i] == ToRGBColor(0, 255, 0);
+        }
+        const int kind = black ? 0 : (green_only ? 1 : 2);
+        if(kind != last_frame_kind.exchange(kind))
+        {
+            LOG_DEBUG("[Razer] Logical target %02X requested custom frame: %s", dev_transaction_id,
+                      black ? "black" : (green_only ? "Identify green" : "other colors"));
+        }
+    }
 
     /*---------------------------------------------------------*\
     | Send one row of the custom frame at a time                |
@@ -769,7 +792,12 @@ razer_report RazerController::razer_create_custom_frame_linear_report(unsigned c
 razer_report RazerController::razer_create_custom_frame_extended_matrix_report(unsigned char row_index, unsigned char start_col, unsigned char stop_col, unsigned char* rgb_data)
 {
     const size_t row_length     = (size_t)(((stop_col + 1) - start_col) * 3);
-    const size_t packet_length  = row_length + 5;
+    // The V3 Mini acknowledges shorter rows but does not display them.
+    // Its extended matrix protocol requires the padded 0x47-byte payload
+    // used by OpenRazer, verified on the physical HyperSpeed keyboard.
+    const bool mini_keyboard = dev_pid == RAZER_BLACKWIDOW_V3_MINI_WIRED_PID
+                            || dev_pid == RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID;
+    const size_t packet_length  = mini_keyboard ? 0x47 : row_length + 5;
 
     razer_report report         = razer_create_report(0x0F, 0x03, (unsigned char)packet_length);
 
@@ -1059,10 +1087,10 @@ unsigned char RazerController::razer_get_device_mode()
     struct razer_report report                  = razer_create_report(0x00, RAZER_COMMAND_ID_GET_DEVICE_MODE, 0x02);
     struct razer_report response_report         = razer_create_response();
 
-    std::this_thread::sleep_for(2ms);
-    razer_usb_send(&report);
-    std::this_thread::sleep_for(5ms);
-    razer_usb_receive(&response_report);
+    if(!razer_usb_query(&report, &response_report, 5))
+    {
+        return RAZER_DEVICE_MODE_HARDWARE;
+    }
 
     return(response_report.arguments[0]);
 }
@@ -1073,10 +1101,10 @@ std::string RazerController::razer_get_firmware()
     struct razer_report report                  = razer_create_report(0x00, RAZER_COMMAND_ID_GET_FIRMWARE_VERSION, 0x02);
     struct razer_report response_report         = razer_create_response();
 
-    std::this_thread::sleep_for(2ms);
-    razer_usb_send(&report);
-    std::this_thread::sleep_for(5ms);
-    razer_usb_receive(&response_report);
+    if(!razer_usb_query(&report, &response_report, 5))
+    {
+        return "";
+    }
 
     firmware_string = "v" + std::to_string(response_report.arguments[0]) + "." + std::to_string(response_report.arguments[1]);
 
@@ -1089,10 +1117,10 @@ std::string RazerController::razer_get_serial()
     struct razer_report report              = razer_create_report(0x00, RAZER_COMMAND_ID_GET_SERIAL_STRING, 0x16);
     struct razer_report response_report     = razer_create_response();
 
-    std::this_thread::sleep_for(2ms);
-    razer_usb_send(&report);
-    std::this_thread::sleep_for(5ms);
-    razer_usb_receive(&response_report);
+    if(!razer_usb_query(&report, &response_report, 5))
+    {
+        return "";
+    }
 
     memcpy(&serial_string[0], &response_report.arguments[0], 22);
     serial_string[22] = '\0';
@@ -1114,10 +1142,10 @@ void RazerController::razer_get_keyboard_info(unsigned char* layout, unsigned ch
     struct razer_report report              = razer_create_report(0x00, RAZER_COMMAND_ID_GET_KEYBOARD_INFO, 0x00);
     struct razer_report response_report     = razer_create_response();
 
-    std::this_thread::sleep_for(1ms);
-    razer_usb_send(&report);
-    std::this_thread::sleep_for(1ms);
-    razer_usb_receive(&response_report);
+    if(!razer_usb_query(&report, &response_report, 1))
+    {
+        *layout = RAZER_KEYBOARD_LAYOUT_NONE; *variant = 0; return;
+    }
 
     *layout = response_report.arguments[0];
     *variant = response_report.arguments[1];
@@ -1887,6 +1915,122 @@ void RazerController::razer_set_mode_wave(unsigned char direction)
 | USB transfer functions                                                            |
 \*---------------------------------------------------------------------------------*/
 
+/* Prefer the wired transport of the explicitly configured shared pair.
+ * Called only while transport_mutex is held; no worker or stale frame queue.
+ * The receiver handle stays owned for a cable removal fallback.
+ */
+void RazerController::RefreshSharedTransport()
+{
+    if(!shared_receiver) return;
+    const auto now = std::chrono::steady_clock::now();
+    if(now < next_transport_check) return;
+    next_transport_check = now + std::chrono::seconds(1);
+    const bool keyboard = dev_pid == RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID;
+    const unsigned short usb_pid = keyboard ? RAZER_BLACKWIDOW_V3_MINI_WIRED_PID
+                                           : RAZER_BASILISK_V3_PRO_35K_PG_WIRED_PID;
+    hid_device_info* devices = hid_enumerate(RAZER_VID, usb_pid);
+    std::string path;
+    for(hid_device_info* info = devices; info; info = info->next)
+    {
+        if((keyboard && info->interface_number == 3 && info->usage_page == 0x0C && info->usage == 1)
+           || (!keyboard && info->interface_number == 0 && info->usage_page == 1 && info->usage == 2))
+        {
+            path = info->path;
+            break;
+        }
+    }
+    hid_free_enumeration(devices);
+    if(path == usb_path) return;
+    hid_device* replacement = path.empty() ? nullptr : hid_open_path(path.c_str());
+    if(!path.empty() && !replacement) return;
+    hid_device* previous = usb_dev;
+    usb_dev = replacement;
+    usb_path = path;
+    dev = usb_dev ? usb_dev : receiver_dev;
+    if(previous) hid_close(previous);
+    LOG_INFO("[Razer] Shared %s transport: %s", keyboard ? "keyboard" : "mouse", usb_dev ? "USB" : "HyperSpeed");
+}
+
+bool RazerController::razer_usb_query(razer_report* request, razer_report* response, unsigned int turnaround_ms)
+{
+    std::lock_guard<std::mutex> transport_lock(transport_mutex);
+    RefreshSharedTransport();
+    request->transaction_id.id = usb_dev ? 0x1F : dev_transaction_id;
+    request->crc = razer_calculate_crc(request);
+    DeviceGuardLock guard = guard_manager_ptr->AwaitExclusiveAccess();
+    if(hid_send_feature_report(dev, (unsigned char*)request, sizeof(*request)) != sizeof(*request))
+    {
+        LOG_DEBUG("[Razer] GET failed, target %02X", dev_transaction_id);
+        return false;
+    }
+    // OpenRazer specifies 4900 us for the V3 Mini radio turnaround.
+    // Both targets share this receiver's response buffer: premature reads
+    // on either target can leave a cached ACK for the next transaction.
+    // Keep USB and unconfigured devices unchanged.
+    if(shared_receiver && !usb_dev && turnaround_ms < 5)
+    {
+        turnaround_ms = 5;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(turnaround_ms));
+    for(unsigned int attempt = 0; attempt < 16; attempt++)
+    {
+        if(razer_usb_receive(response) != sizeof(*response)) return false;
+        const bool valid = response->status == 0x02
+                        && response->transaction_id.id == request->transaction_id.id
+                        && response->command_class == request->command_class
+                        && response->command_id.id == request->command_id.id
+                        && response->data_size <= sizeof(response->arguments)
+                        && (!(request->command_id.id & 0x80) || response->data_size >= request->data_size)
+                        && response->crc == razer_calculate_crc(response);
+        if(valid) return true;
+        const bool matching = response->transaction_id.id == request->transaction_id.id
+                           && response->command_class == request->command_class
+                           && response->command_id.id == request->command_id.id;
+        if(matching && response->status >= 0x03) return false;
+        // Radio ACKs may arrive after the initial turnaround. Ignore BUSY and
+        // stale responses, retaining the interprocess lock for this request.
+        std::this_thread::sleep_for(2ms);
+    }
+    LOG_DEBUG("[Razer] Response timeout target %02X command %02X:%02X, last %02X:%02X target %02X status %02X, row %u stop %u / reply row %u stop %u",
+              request->transaction_id.id, request->command_class, request->command_id.id,
+              response->command_class, response->command_id.id, response->transaction_id.id, response->status,
+              request->arguments[2], request->arguments[4], response->arguments[2], response->arguments[4]);
+    return false;
+}
+
+
+
+bool RazerController::ProbeSharedKeyboard()
+{
+    razer_report request = razer_create_report(0x00, RAZER_COMMAND_ID_GET_KEYBOARD_INFO, 0);
+    razer_report response = razer_create_response();
+    return razer_usb_query(&request, &response, 1)
+        && response.data_size >= 2
+        && response.arguments[0] >= RAZER_KEYBOARD_LAYOUT_US
+        && response.arguments[0] <= RAZER_KEYBOARD_LAYOUT_ARABIC
+        && !GetSerialString().empty();
+}
+
+bool RazerController::IsAvailable()
+{
+    if(!shared_receiver) return true;
+    std::lock_guard<std::mutex> guard(presence_mutex);
+    const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+    if(now >= next_presence_check)
+    {
+        next_presence_check = now + std::chrono::seconds(1);
+        razer_report request = razer_create_report(0x00, RAZER_COMMAND_ID_GET_FIRMWARE_VERSION, 2);
+        razer_report response = razer_create_response();
+        const bool responsive = razer_usb_query(&request, &response, 5);
+        if(responsive != available)
+        {
+            LOG_INFO("[Razer] HyperSpeed target %02X %s", dev_transaction_id, responsive ? "available" : "unavailable");
+            available = responsive;
+        }
+    }
+    return available;
+}
+
 int RazerController::razer_usb_receive(razer_report* report)
 {
     return hid_get_feature_report(dev, (unsigned char*)report, sizeof(*report));
@@ -1894,6 +2038,15 @@ int RazerController::razer_usb_receive(razer_report* report)
 
 int RazerController::razer_usb_send(razer_report* report)
 {
+    if(!IsAvailable()) return -1;
+    if(shared_receiver)
+    {
+        razer_report response = razer_create_response();
+        return razer_usb_query(report, &response, 1) ? sizeof(*report) : -1;
+    }
+    std::lock_guard<std::mutex> transport_lock(transport_mutex);
+    RefreshSharedTransport();
+    report->transaction_id.id = usb_dev ? 0x1F : dev_transaction_id;
     report->crc = razer_calculate_crc(report);
 
     DeviceGuardLock _ = guard_manager_ptr->AwaitExclusiveAccess();

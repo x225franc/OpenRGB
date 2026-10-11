@@ -10,6 +10,8 @@
 \*---------------------------------------------------------*/
 
 #include "DetectionManager.h"
+#include "ResourceManager.h"
+#include "SettingsManager.h"
 #include "HIDLampArrayController.h"
 #include "RGBController.h"
 #include "RGBController_HIDLampArray.h"
@@ -20,6 +22,16 @@ DetectedControllers DetectHIDLampArrayControllers(hid_device_info* info, const s
 {
     DetectedControllers detected_controllers;
     hid_device*         dev;
+
+    /* Leave the user's Lenovo keyboard to Windows Dynamic Lighting.
+     * This opt-in exclusion is deliberately checked before opening the HID.
+     */
+    const json settings = ResourceManager::get()->GetSettingsManager()->GetSettings("HIDLampArray");
+    if(info->vendor_id == 0x048D && info->product_id == 0xC193
+       && settings.is_object() && settings.value("ExcludeLenovoLighting", false))
+    {
+        return detected_controllers;
+    }
 
     dev = hid_open_path(info->path);
 

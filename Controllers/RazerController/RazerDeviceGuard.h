@@ -21,6 +21,7 @@ class RazerDeviceGuard : public DeviceGuard
 {
 public:
     RazerDeviceGuard();
+    ~RazerDeviceGuard() override;
 
     void Acquire() override;
     void Release() override;
