@@ -99,6 +99,17 @@ public:
         ambient.StepEffect(zones);
         Check(controller.colors[7] == ToRGBColor(40,0,0) && controller.colors[9] == ToRGBColor(40,100,0),
               "matrix mapping skips holes before reading/writing LED indices");
+        controller.invalidate_after_snapshot = true;
+        ambient.StepEffect(zones);
+        Check(controller.raw_map_reads == 0 && controller.colors[9] == ToRGBColor(40,100,0),
+              "matrix rendering owns its snapshot when Visual Map replaces the live map");
+        controller.invalidate_after_snapshot = false;
+        controller.matrix_width = controller.matrix_height = 2;
+        controller.mapping = {0};
+        const auto before_incomplete = controller.colors;
+        ambient.StepEffect(zones);
+        Check(controller.colors == before_incomplete, "incomplete matrix snapshot is skipped without an out-of-bounds read");
+        controller.mapping = {0, 0xffffffff, 2, 3};
         controller.type = ZONE_TYPE_LINEAR;
         ControllerZone segment(&controller, 0, false, 100, true, true, 0);
         ambient.StepEffect({&segment});
@@ -136,9 +147,12 @@ public:
         std::atomic<unsigned int> captured_frames{0};
         QObject::connect(ambient.capturer, &ScreenCapturer::OnImage, [&captured_frames](const QImage&){ ++captured_frames; });
         ambient.resize(760, 560);
-        ambient.show();
-        QApplication::processEvents();
-        ambient.grab().save(QString::fromLocal8Bit(qgetenv("AMBIENT_TEST_SCREENSHOT")));
+        if(!qEnvironmentVariableIsSet("AMBIENT_TEST_HEADLESS"))
+        {
+            ambient.show();
+            QApplication::processEvents();
+            ambient.grab().save(QString::fromLocal8Bit(qgetenv("AMBIENT_TEST_SCREENSHOT")));
+        }
         for(int i=0;i<2;++i)
         {
             ambient.EffectState(true);

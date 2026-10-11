@@ -399,12 +399,17 @@ void Ambient::RenderFrame(const std::vector<ControllerZone*>& zones, bool previe
             for(unsigned int i = 0; i < count; ++i) set(i, sample(zone->reverse ? count-i-1 : i, 0, count, 1));
         else
         {
-            const unsigned int w = zone->matrix_map_width(), h = zone->matrix_map_height();
-            const auto* mapping = zone->map();
-            if(mapping)
+            // Visual Map can replace its matrix while an effect frame is rendering.
+            // The SDK copies this value under the controller's access lock. A raw
+            // map pointer outlives that lock and can point to a freed vector.
+            const matrix_map_type mapping = zone->is_segment
+                ? zone->controller->GetZoneSegmentMatrixMap(zone->zone_idx, zone->segment_idx)
+                : zone->controller->GetZoneMatrixMap(zone->zone_idx);
+            const unsigned int w = mapping.width, h = mapping.height;
+            if(w && h && uint64_t(w) * h <= mapping.map.size())
                 for(unsigned int y = 0; y < h; ++y)
                     for(unsigned int x = 0; x < w; ++x)
-                        set(mapping[y*w+x], sample(zone->reverse ? w-x-1 : x, y, w, h));
+                        set(mapping.map[size_t(y)*w+x], sample(zone->reverse ? w-x-1 : x, y, w, h));
         }
         if(changed)
         {
