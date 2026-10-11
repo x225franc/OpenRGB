@@ -169,9 +169,9 @@ int main(int argc, char** argv)
             if(!plugin) throw std::runtime_error(loader.errorString().toStdString());
             if(plugin->GetPluginAPIVersion() != OPENRGB_PLUGIN_API_VERSION) throw std::runtime_error("plugin API mismatch");
             std::cout << "PASS plugin DLL loads with Qt " << qVersion() << " and API " << plugin->GetPluginAPIVersion() << '\n';
-            if(argc > 2 && plugin->GetPluginInfo().Commit != QString::fromLocal8Bit(argv[2]))
+            if(argc > 2 && plugin->GetPluginInfo().Commit != std::string(argv[2]))
                 throw std::runtime_error("built DLL commit does not match the reviewed source commit");
-            std::cout << "INFO built DLL commit " << plugin->GetPluginInfo().Commit.toStdString() << '\n';
+            std::cout << "INFO built DLL commit " << plugin->GetPluginInfo().Commit << '\n';
             loader.unload();
         }
         AmbientTests::Run();
