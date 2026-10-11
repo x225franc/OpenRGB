@@ -10,6 +10,7 @@
 #include <set>
 #include "EffectManager.h"
 #include "OpenRGBEffectsPlugin.h"
+#include "Effects/Ambient/Ambient.h"
 
 EffectManager* EffectManager::instance;
 
@@ -365,6 +366,7 @@ void EffectManager::EffectThreadFunction(RGBEffect* effect)
             | Step the effect, which updates the controller |
             | internal states                               |
             \*---------------------------------------------*/
+            Ambient* ambient = dynamic_cast<Ambient*>(effect);
             effect->StepEffect(controller_zones);
 
             /*---------------------------------------------*\
@@ -380,7 +382,7 @@ void EffectManager::EffectThreadFunction(RGBEffect* effect)
 
             for(RGBControllerInterface* controller : controllers)
             {
-                controller->UpdateLEDs();
+                if(!ambient || ambient->NeedsControllerUpdate(controller)) controller->UpdateLEDs();
             }
 
             /*---------------------------------------------*\
@@ -388,14 +390,15 @@ void EffectManager::EffectThreadFunction(RGBEffect* effect)
             \*---------------------------------------------*/
             std::map<RGBEffect*, ControllerZone*>::iterator preview_iterator    = previews.find(effect);
 
-            if(preview_iterator != previews.end())
+            if(preview_iterator != previews.end() && (!ambient || ambient->PreparePreview()))
             {
                 ControllerZone*                 preview_zone                    = preview_iterator->second;
                 std::vector<ControllerZone*>    preview_zones;
 
                 preview_zones.push_back(preview_zone);
 
-                effect->StepEffect(preview_zones);
+                if(ambient) ambient->StepPreview(preview_zones);
+                else effect->StepEffect(preview_zones);
 
                 preview_zone->controller->UpdateLEDs();
             }

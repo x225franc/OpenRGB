@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <QObject>
 #include <QString>
 #include <QImage>
@@ -25,18 +26,21 @@ class ScreenCapturer : public QObject
 
 public:
     ScreenCapturer(QObject* parent = nullptr): QObject(parent){};
-    ~ScreenCapturer() {};
+    ~ScreenCapturer() override = default;
 
-    void SetFrameRate(unsigned int value) {framerate = value;};
+    virtual void SetFrameRate(unsigned int value) {framerate = value ? value : 1;};
 
     virtual void Init(const QString& restore_token = "", bool auto_start = false) { (void)restore_token; (void)auto_start; };
     virtual void SetToken(const QString& restore_token = "") { (void)restore_token; };
     virtual void Start() {};
     virtual void Stop() {};
     virtual void SetScreen(int) {};
+    virtual void SetAnalysisWidth(unsigned int) {};
+    virtual void SetModernCapture(bool) {};
+    virtual QSize SourceSize() const { return QSize(); };
 
 protected:
-    unsigned int framerate = 60;
+    std::atomic<unsigned int> framerate{60};
 
 signals:
     void OnStarted();

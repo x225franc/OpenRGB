@@ -187,6 +187,175 @@
      </property>
     </widget>
    </item>
+   <item row="9" column="0" colspan="2">
+ <widget class="QGroupBox" name="performance_group">
+  <property name="title">
+   <string>Optimisation des performances</string>
+  </property>
+  <layout class="QGridLayout" name="performance_layout">
+   <item row="0" column="0">
+    <widget class="QLabel" name="performance_mode_label">
+     <property name="text">
+      <string>Mode</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QComboBox" name="performance_mode">
+</widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="capture_fps_label">
+     <property name="text">
+      <string>FPS de capture</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QSpinBox" name="capture_fps">
+     <property name="minimum">
+      <number>1</number>
+     </property>
+     <property name="maximum">
+      <number>60</number>
+     </property>
+     <property name="value">
+      <number>60</number>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="analysis_fps_label">
+     <property name="text">
+      <string>FPS d'analyse</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QSpinBox" name="analysis_fps">
+     <property name="minimum">
+      <number>1</number>
+     </property>
+     <property name="maximum">
+      <number>60</number>
+     </property>
+     <property name="value">
+      <number>60</number>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="rgb_fps_label">
+     <property name="text">
+      <string>FPS de transmission RGB</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QSpinBox" name="rgb_fps">
+     <property name="minimum">
+      <number>1</number>
+     </property>
+     <property name="maximum">
+      <number>60</number>
+     </property>
+     <property name="value">
+      <number>60</number>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0">
+    <widget class="QLabel" name="analysis_width_label">
+     <property name="text">
+      <string>Résolution d'analyse</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QComboBox" name="analysis_width">
+</widget>
+   </item>
+   <item row="5" column="0">
+    <widget class="QLabel" name="temporal_smoothing_label">
+     <property name="text">
+      <string>Intensité du lissage</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <widget class="QSpinBox" name="temporal_smoothing">
+     <property name="maximum">
+      <number>99</number>
+     </property>
+     <property name="value">
+      <number>80</number>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="0">
+    <widget class="QLabel" name="color_threshold_label">
+     <property name="text">
+      <string>Seuil minimal de changement de couleur</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="1">
+    <widget class="QSpinBox" name="color_threshold">
+     <property name="maximum">
+      <number>32</number>
+     </property>
+     <property name="value">
+      <number>2</number>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="0">
+    <widget class="QLabel" name="preview_enabled_label">
+     <property name="text">
+      <string>Prévisualisation</string>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="1">
+    <widget class="QCheckBox" name="preview_enabled">
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="8" column="0">
+    <widget class="QLabel" name="preview_fps_label">
+     <property name="text">
+      <string>FPS de prévisualisation</string>
+     </property>
+    </widget>
+   </item>
+   <item row="8" column="1">
+    <widget class="QSpinBox" name="preview_fps">
+     <property name="minimum">
+      <number>1</number>
+     </property>
+     <property name="maximum">
+      <number>60</number>
+     </property>
+     <property name="value">
+      <number>10</number>
+     </property>
+    </widget>
+   </item>
+   <item row="9" column="0" colspan="2">
+    <widget class="QLabel" name="performance_note">
+     <property name="text">
+      <string>Équilibré recommandé. La résolution indique la largeur en pixels ; le ratio de l'écran est conservé. Le seuil utilise les canaux RGB (0-255).</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+</item>
   </layout>
  </widget>
  <customwidgets>
