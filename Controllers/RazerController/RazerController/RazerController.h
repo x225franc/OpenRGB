@@ -274,6 +274,8 @@ private:
     void                    RefreshSharedTransport();
     bool                    available = true;
     std::atomic<int>        last_frame_kind{-1};
+    std::atomic<int>        requested_brightness{-1};
+    std::atomic<long long>  last_brightness_refresh_ms{0};
     std::mutex              presence_mutex;
     std::chrono::steady_clock::time_point next_presence_check{};
     unsigned char           dev_led_id;

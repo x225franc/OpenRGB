@@ -30,3 +30,26 @@ A separate copy running with PageHeap stopped at verifier error 0x10 (corrupted 
 The isolated regression deliberately enumerates a nonexistent VID/PID with four threads while another thread initializes the same shipped DLL. The unguarded negative control reproduces Invalid address specified to RtlFreeHeap. The protected variant passes 600 enumerations without hardware writes.
 
 HidApiLifecycle.h supplies one process-wide recursive mutex for initialization, finalization, enumeration, open and close. Detection and Razer transport polling use these wrappers; native HID detector construction is protected separately, releasing the guard before controller registration/callbacks. RGB writes and the capture/Qt pipeline are unchanged. Physical usage still needs validation after deployment.
+
+
+## Razer Direct brightness recovery (2026-10-12)
+
+Live SDK inspection reported keyboard Direct brightness 255/255, but explicitly
+resending that unchanged setting noticeably restored physical brightness (user
+confirmed). This establishes a software/hardware state mismatch; the exact event
+that discarded the hardware setting was not captured. The shared-pair driver
+previously resent RGB frames without reapplying brightness after transport changes.
+
+The USB/HyperSpeed shared-pair driver now retains the last requested brightness,
+invalidates the refresh deadline on USB/RF changes and radio return, and reapplies
+the requested value at most once every two seconds while sending Direct frames.
+It preserves zero and lower brightness requests and never changes the RGB buffer.
+The periodic reapply also recovers from an unnoticed hardware reset/lost command.
+This is bounded recovery, not a claim that the original reset trigger is known.
+
+Mouse isolation verified live with Ambient running: only the 11 LED Strip colors
+were set to black via SDK; scroll-wheel colors continued to change, and all strip
+values remained zero on a subsequent read. User confirmed wheel follows Ambient
+and strip remains off. Visual Map intentionally preserves excluded-zone colors;
+excluding a zone is not an off command. Global mouse brightness had been 0/255
+and was restored to 255/255 to permit the wheel to light independently.

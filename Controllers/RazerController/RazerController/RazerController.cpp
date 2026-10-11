@@ -292,12 +292,28 @@ unsigned char RazerController::GetMaxBrightness()
 
 void RazerController::SetBrightness(unsigned char brightness)
 {
+    requested_brightness.store(brightness);
     razer_set_brightness(brightness);
+    last_brightness_refresh_ms.store(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count());
 }
 
 void RazerController::SetLEDs(RGBColor* colors)
 {
     if(shared_receiver && !IsAvailable()) return;
+    if(shared_receiver)
+    {
+        // A reconnect or a lost brightness command can leave the hardware dim
+        // while OpenRGB still reports the requested value. Reapply that value
+        // independently of RGB frames; never scale or clear the color buffer.
+        const auto now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count();
+        const int brightness = requested_brightness.load();
+        if(brightness >= 0 && now_ms - last_brightness_refresh_ms.load() >= 2000)
+        {
+            SetBrightness(static_cast<unsigned char>(brightness));
+        }
+    }
     /*---------------------------------------------------------*\
     | Get the matrix layout information from the device list    |
     \*---------------------------------------------------------*/
@@ -1948,6 +1964,7 @@ void RazerController::RefreshSharedTransport()
     usb_dev = replacement;
     usb_path = path;
     dev = usb_dev ? usb_dev : receiver_dev;
+    last_brightness_refresh_ms.store(0);
     if(previous) HidApiLifecycle::Close(previous);
     LOG_INFO("[Razer] Shared %s transport: %s", keyboard ? "keyboard" : "mouse", usb_dev ? "USB" : "HyperSpeed");
 }
@@ -2027,6 +2044,7 @@ bool RazerController::IsAvailable()
         {
             LOG_INFO("[Razer] HyperSpeed target %02X %s", dev_transaction_id, responsive ? "available" : "unavailable");
             available = responsive;
+            if(responsive) last_brightness_refresh_ms.store(0);
         }
     }
     return available;
