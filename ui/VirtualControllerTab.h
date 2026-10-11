@@ -17,6 +17,7 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 #include <QWidget>
+#include <QTimer>
 #include <nlohmann/json.hpp>
 #include "ui_VirtualControllerTab.h"
 #include "VirtualController.h"
@@ -81,6 +82,7 @@ signals:
     void VirtualControllerPostUpdateSignal(const QImage&);
 
 private:
+    friend class VisualMapRegression;
     void AddActiveZone(ControllerZone* added_zone);
     void AddActiveEntry(json added_zone_json);
     void RemoveActiveZone(ControllerZone* removed_zone);
@@ -88,6 +90,7 @@ private:
     void InitZoneList();
     void UpdateVirtualControllerDetails();
     void ReassignZones();
+    void CaptureActiveState();
     void UpdateItemOptions(std::vector<ControllerZone*>);
 
     Ui::VirtualControllerTab*       ui;
@@ -98,6 +101,9 @@ private:
     QAction*                        register_controller;
     QAction*                        add_background;
     json                            active_state;
+    std::string                     saved_filename;
+    QTimer*                         autosave_timer = nullptr;
+    bool                            restoring = false;
 
 protected:
     void resizeEvent(QResizeEvent*) override;

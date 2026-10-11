@@ -12,6 +12,7 @@
 #include <limits>
 #include <QInputDialog>
 #include <QMenu>
+#include <QScopedValueRollback>
 #include <QMessageBox>
 #include <QTableWidgetItem>
 #include <QWidgetAction>
@@ -83,6 +84,13 @@ VirtualControllerTab::VirtualControllerTab(QWidget *parent):
     | Init Menu                                             |
     \*-----------------------------------------------------*/
     CreateMainMenu();
+    autosave_timer = new QTimer(this);
+    autosave_timer->setSingleShot(true);
+    connect(autosave_timer, &QTimer::timeout, this, [this]()
+    {
+        if(!saved_filename.empty() && !VisualMapSettingsManager::SaveMap(saved_filename, active_state))
+            LOG_ERROR("[OpenRGBVisualMapPlugin] Autosave failed for %s; live changes remain in memory", saved_filename.c_str());
+    });
 }
 
 VirtualControllerTab::~VirtualControllerTab()
@@ -162,10 +170,12 @@ void VirtualControllerTab::LoadFile(std::string filename)
     RenameController(filename);
 
     LoadJson(j);
+    saved_filename = filename;
 }
 
 void VirtualControllerTab::LoadJson(json j)
-{    
+{
+    QScopedValueRollback<bool> restore_guard(restoring, true);
     virtual_controller->Clear();
 
     active_state["ctrl_zones"] = json::array();
@@ -338,6 +348,7 @@ void VirtualControllerTab::Recreate()
     /*-----------------------------------------------------*\
     | Drop the zones before InitZoneList frees them         |
     \*-----------------------------------------------------*/
+    CaptureActiveState();
     virtual_controller->Clear();
 
     Clear();
@@ -350,6 +361,15 @@ void VirtualControllerTab::Recreate()
     }
 }
 
+void VirtualControllerTab::CaptureActiveState()
+{
+    // Cached controller identities are still usable after a device disconnects.
+    // Merge live edits, retaining entries that cannot currently be rebound.
+    for(ControllerZone* zone : virtual_controller->GetZones()) AddActiveZone(zone);
+    active_state["grid_settings"] = settings;
+    if(autosave_timer && !restoring && !saved_filename.empty()) autosave_timer->start(300);
+}
+
 void VirtualControllerTab::ReassignZones()
 {
     LoadJson(active_state);
@@ -357,6 +377,7 @@ void VirtualControllerTab::ReassignZones()
 
 void VirtualControllerTab::PauseForDetection()
 {
+    CaptureActiveState();
     virtual_controller->Clear();
 }
 
@@ -385,6 +406,7 @@ void VirtualControllerTab::AddActiveEntry(json added_zone_json)
             ((added_zone_json["controller"]["location"] == saved_zone_json["controller"]["location"]) || hid_location) &&
             (added_zone_json["zone_idx"] == saved_zone_json["zone_idx"]))
         {
+            active_state["ctrl_zones"][saved_zone_idx] = added_zone_json;
             found = true;
             break;
         }
@@ -461,6 +483,7 @@ void VirtualControllerTab::on_device_list_DeviceAdded(ControllerZone* controller
     AddActiveZone(controller_zone);
     virtual_controller->Add(controller_zone);
     UpdateVirtualControllerDetails();
+    CaptureActiveState();
     ui->grid->ResetItems(virtual_controller->GetZones());
 }
 
@@ -470,6 +493,7 @@ void VirtualControllerTab::on_device_list_DeviceRemoved(ControllerZone* controll
     RemoveActiveZone(controller_zone);
     virtual_controller->Remove(controller_zone);
     UpdateVirtualControllerDetails();
+    CaptureActiveState();
     ui->grid->ResetItems(virtual_controller->GetZones());
 }
 
@@ -489,12 +513,14 @@ void VirtualControllerTab::on_itemOptions_ItemOptionsChanged()
 {
     virtual_controller->UpdateVirtualZone();
     ui->grid->UpdateItems();
+    CaptureActiveState();
 }
 
 void VirtualControllerTab::on_grid_Changed()
 {
     virtual_controller->UpdateVirtualZone();
     ui->itemOptions->Update();
+    CaptureActiveState();
 }
 
 void VirtualControllerTab::on_itemOptions_ShapeEditRequest(ControllerZone* controller_zone)
@@ -515,6 +541,7 @@ void VirtualControllerTab::on_gridOptions_SettingsChanged()
     ui->grid->ApplySettings(settings);
     ui->backgroundApplier->SetSize(settings->w, settings->h);
     virtual_controller->UpdateSize(settings->w, settings->h);
+    CaptureActiveState();
 }
 
 void VirtualControllerTab::on_gridOptions_AutoResizeRequest()
@@ -591,6 +618,8 @@ void VirtualControllerTab::ClearVmapAction()
     }
 
     virtual_controller->Clear();
+    active_state["ctrl_zones"] = json::array();
+    CaptureActiveState();
 
     ui->grid->ResetItems(virtual_controller->GetZones());
 
@@ -609,10 +638,17 @@ void VirtualControllerTab::SaveVmapAction()
 
         json j;
 
-        j["ctrl_zones"]     = virtual_controller->GetZones();
-        j["grid_settings"]  = settings;
-
-        VisualMapSettingsManager::SaveMap(filename.toStdString(), j);
+        CaptureActiveState();
+        j = active_state;
+        if(!VisualMapSettingsManager::SaveMap(filename.toStdString(), j))
+        {
+            QMessageBox::warning(this, tr("Save visual map"),
+                tr("The map could not be saved. Check that the configuration folder is writable. Your changes are still in memory."));
+        }
+        else
+        {
+            saved_filename = filename.toStdString();
+        }
     }
 }
 

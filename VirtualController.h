@@ -68,7 +68,7 @@ private:
     std::function<void(QImage)>     callback;
     std::vector<ControllerZone*>    added_zones;
     std::unordered_map<ControllerZone*, std::vector<LedRouting::LedRoute>> led_routes;
-    std::mutex                      added_zones_mutex;
+    std::recursive_mutex            added_zones_mutex;
     RGBController_Setup             setup;
 
     void                            ForceDirectMode();

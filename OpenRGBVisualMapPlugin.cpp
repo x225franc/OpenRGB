@@ -13,6 +13,7 @@
 #include "TooltipProxy.h"
 #include "VisualMapSettingsManager.h"
 #include "ZoneManager.h"
+#include <QThread>
 
 /*---------------------------------------------------------*\
 | Plugin Global Variables                                   |
@@ -171,12 +172,16 @@ void OpenRGBVisualMapPlugin::ResourceManagerUpdated(unsigned int update_reason)
             | virtual controller's device thread stops      |
             | touching controllers before they are deleted. |
             \*---------------------------------------------*/
-            ui->PauseForDetection();
+            QMetaObject::invokeMethod(ui, [this]() { ui->PauseForDetection(); },
+                QThread::currentThread() == ui->thread() ? Qt::DirectConnection : Qt::BlockingQueuedConnection);
             break;
 
         case RESOURCEMANAGER_UPDATE_REASON_DEVICE_LIST_UPDATED:
-            ZoneManager::Get()->UpdateControllerZones();
-            QMetaObject::invokeMethod(ui, "Recreate", Qt::BlockingQueuedConnection);
+            QMetaObject::invokeMethod(ui, [this]()
+            {
+                ZoneManager::Get()->UpdateControllerZones();
+                ui->Recreate();
+            }, QThread::currentThread() == ui->thread() ? Qt::DirectConnection : Qt::BlockingQueuedConnection);
             break;
     }
 }

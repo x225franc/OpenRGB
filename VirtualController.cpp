@@ -95,6 +95,7 @@ VirtualController::~VirtualController()
 
 void VirtualController::UpdateVirtualZone()
 {
+    std::lock_guard<std::recursive_mutex> state_lock(added_zones_mutex);
     /*-----------------------------------------------------*\
     | Resize matrix map                                     |
     \*-----------------------------------------------------*/
@@ -191,6 +192,7 @@ void VirtualController::UpdateVirtualZone()
 
 void VirtualController::DeviceUpdateLEDs()
 {
+    std::lock_guard<std::recursive_mutex> state_lock(added_zones_mutex);
     float           brightness = virtual_controller->GetModeBrightness(0) / 100.f;
     unsigned int    color_index = 0;
     QImage          image(width, height, QImage::Format_ARGB32);
@@ -221,6 +223,7 @@ void VirtualController::DeviceUpdateLEDs()
 
 void VirtualController::UpdateSize(int w, int h)
 {
+    std::lock_guard<std::recursive_mutex> state_lock(added_zones_mutex);
     width   = w;
     height  = h;
 
@@ -229,12 +232,14 @@ void VirtualController::UpdateSize(int w, int h)
 
 void VirtualController::SetName(std::string name)
 {
+    std::lock_guard<std::recursive_mutex> state_lock(added_zones_mutex);
     setup.name = name;
     OpenRGBVisualMapPlugin::api->UpdateVirtualRGBController(virtual_controller, &setup);   
 }
 
 void VirtualController::SetPostUpdateCallBack(std::function<void(const QImage&)> callback)
 {
+    std::lock_guard<std::recursive_mutex> state_lock(added_zones_mutex);
     this->callback = callback;
 }
 
@@ -334,6 +339,7 @@ void VirtualController::Register(bool state, bool hide_members)
 
 void VirtualController::ForceDirectMode()
 {
+    std::lock_guard<std::recursive_mutex> state_lock(added_zones_mutex);
     std::set<RGBControllerInterface*> controllers;
 
     for(ControllerZone* ctrl_zone: added_zones)
@@ -355,12 +361,13 @@ void VirtualController::ForceDirectMode()
 
 bool VirtualController::HasZone(ControllerZone* ctrl_zone)
 {
+    std::lock_guard<std::recursive_mutex> state_lock(added_zones_mutex);
     return std::find(added_zones.begin(), added_zones.end(),ctrl_zone) != added_zones.end();
 }
 
 void VirtualController::Add(ControllerZone* ctrl_zone)
 {
-    std::lock_guard<std::mutex> lock(added_zones_mutex);
+    std::lock_guard<std::recursive_mutex> lock(added_zones_mutex);
 
     if(!HasZone(ctrl_zone))
     {
@@ -386,7 +393,7 @@ void VirtualController::Add(ControllerZone* ctrl_zone)
 
 void VirtualController::Remove(ControllerZone* ctrl_zone)
 {
-    std::lock_guard<std::mutex> lock(added_zones_mutex);
+    std::lock_guard<std::recursive_mutex> lock(added_zones_mutex);
 
     if(HasZone(ctrl_zone))
     {
@@ -402,28 +409,33 @@ void VirtualController::Clear()
     | DETECTION_STARTED stops the device thread touching    |
     | controllers that are about to be freed.               |
     \*-----------------------------------------------------*/
-    std::lock_guard<std::mutex> lock(added_zones_mutex);
+    std::lock_guard<std::recursive_mutex> lock(added_zones_mutex);
 
     added_zones.clear();
+    led_routes.clear();
 }
 
 std::vector<ControllerZone*> VirtualController::GetZones()
 {
+    std::lock_guard<std::recursive_mutex> state_lock(added_zones_mutex);
     return added_zones;
 }
 
 bool VirtualController::IsEmpty()
 {
+    std::lock_guard<std::recursive_mutex> state_lock(added_zones_mutex);
     return added_zones.empty();
 }
 
 std::string VirtualController::GetName()
 {
+    std::lock_guard<std::recursive_mutex> state_lock(added_zones_mutex);
     return virtual_controller->GetName();
 }
 
 unsigned int VirtualController::GetTotalLeds()
 {
+    std::lock_guard<std::recursive_mutex> state_lock(added_zones_mutex);
     unsigned int result = 0;
 
     for(ControllerZone* ctrl_zone : added_zones)
@@ -436,6 +448,7 @@ unsigned int VirtualController::GetTotalLeds()
 
 void VirtualController::ApplyImage(const QImage& original)
 {
+    std::lock_guard<std::recursive_mutex> state_lock(added_zones_mutex);
     /*-----------------------------------------------------*\
     | Make sure the image only targets the existing LEDs    |
     \*-----------------------------------------------------*/
@@ -494,7 +507,7 @@ void VirtualController::ApplyToDevice(const QImage& image)
     | mid-update by a DETECTION_STARTED on another thread.  |
     \*-----------------------------------------------------*/
     {
-        std::lock_guard<std::mutex> lock(added_zones_mutex);
+        std::lock_guard<std::recursive_mutex> lock(added_zones_mutex);
 
         for(ControllerZone* ctrl_zone: added_zones)
         {
@@ -513,6 +526,7 @@ void VirtualController::ApplyToDevice(const QImage& image)
 
 void VirtualController::ApplyToZone(ControllerZone* ctrl_zone, const QImage& image)
 {
+    std::lock_guard<std::recursive_mutex> state_lock(added_zones_mutex);
     RGBControllerInterface* controller  = ctrl_zone->controller;
     unsigned int            start_idx;
 

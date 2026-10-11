@@ -11,6 +11,7 @@
 #include <fstream>
 #include <QDir>
 #include <QFile>
+#include <QSaveFile>
 #include <QString>
 #include "OpenRGBVisualMapPlugin.h"
 #include "VisualMapSettingsManager.h"
@@ -121,23 +122,30 @@ filesystem::path VisualMapSettingsManager::GradientsFolder()
 
 bool VisualMapSettingsManager::write_file(filesystem::path file_name, json j)
 {
-    std::ofstream file(file_name, std::ios::out | std::ios::binary);
-
-    if(file)
+    // Commit by replacing the original only after a complete successful write.
+    QSaveFile file(QString::fromStdWString(file_name.wstring()));
+    if(!file.open(QIODevice::WriteOnly))
     {
-        try
+        LOG_ERROR("[OpenRGBVisualMapPlugin] Cannot open settings file: %s", file.errorString().toStdString().c_str());
+        return false;
+    }
+    try
+    {
+        const std::string data = j.dump(4);
+        if(file.write(data.data(), static_cast<qint64>(data.size())) != static_cast<qint64>(data.size()))
+            return false;
+        if(!file.commit())
         {
-            file << j.dump(4);
-            file.close();
-        }
-        catch(const std::exception& e)
-        {
-            LOG_ERROR("[OpenRGBVisualMapPlugin] Cannot write file: %s\n", e.what());
+            LOG_ERROR("[OpenRGBVisualMapPlugin] Cannot commit settings file: %s", file.errorString().toStdString().c_str());
             return false;
         }
+        return true;
     }
-
-    return true;
+    catch(const std::exception& e)
+    {
+        LOG_ERROR("[OpenRGBVisualMapPlugin] Cannot write file: %s", e.what());
+        return false;
+    }
 }
 
 json VisualMapSettingsManager::load_json_file(filesystem::path file_name)
