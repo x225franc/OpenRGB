@@ -98,7 +98,7 @@ Le chargement API ne remplace pas un test d’animation d’Effects ou d’édit
 
 1. Extraire l’archive de Downloads dans un dossier neuf et garder tous les fichiers ensemble.
 2. Quitter les autres OpenRGB via la zone de notification.
-3. Lancer `Lancer-OpenRGB.cmd`. Il vérifie qu’aucune autre instance OpenRGB n’est ouverte et utilise le sous-dossier `config` propre à cette copie.
+3. Lancer directement `OpenRGB.exe`. Cette copie utilise automatiquement le sous-dossier `config` adjacent contenant `OpenRGB.json`, quel que soit le dossier de travail du raccourci. `Lancer-OpenRGB.cmd` reste facultatif et ajoute la vérification des autres instances. `--config` / `--localconfig` explicites restent prioritaires ; le service garde `service_config`. Sans configuration adjacente, le dossier Windows habituel reste utilisé.
 4. Garder un seul dongle partagé connecté, avec l’appairage effectué auparavant. La paire explicite et l’exclusion Lenovo sont déjà activées dans la copie de configuration.
 5. Dans Périphériques, sélectionner Direct puis une couleur différente sur chaque appareil. Les deux nouvelles entrées Razer ont le suffixe `USB/HyperSpeed auto`.
 6. Vérifier les associations de zones dans Visual Map et des effets avant de les réactiver. Les noms/locations logiques ont changé : un profil ancien peut demander une nouvelle association. Les fichiers originaux sont conservés dans `Backup-installation` et les profils copiés dans `config/profiles`.
@@ -124,3 +124,18 @@ Tests : `tests\RazerSupport\Run-Layout-Tests.cmd`, `Run-Transport-Tests.cmd`. Il
 Les résultats sont dans `validation` de la distribution, les traces de build complètes dans `build` du dépôt. Le correctif Git fourni s’applique à la base officielle 1.0 ci-dessus.
 
 Sources : [OpenRGB officiel](https://gitlab.com/CalcProgrammer1/OpenRGB), [dongle partagé](https://gitlab.com/CalcProgrammer1/OpenRGB/-/issues/3307), [Phantom Green et limitation Bluetooth](https://gitlab.com/CalcProgrammer1/OpenRGB/-/merge_requests/3218), [protocole clavier OpenRazer](https://github.com/openrazer/openrazer/blob/master/driver/razerkbd_driver.c), [format matriciel](https://github.com/openrazer/openrazer/blob/master/driver/razerchromacommon.c), [délais radio](https://github.com/openrazer/openrazer/blob/master/driver/razerkbd_driver.h), [dimensions souris](https://github.com/openrazer/openrazer/blob/master/daemon/openrazer_daemon/hardware/mouse.py).
+
+## Mise à jour : lancement direct de la version portable
+
+Le 11 octobre 2026, le lancement direct de cette copie personnalisée charge
+le dossier config adjacent. Deux tests sur le binaire compilé ont validé le
+chargement depuis un autre dossier de travail et la priorité de --config,
+sans détection matérielle ni envoi RGB.
+
+La copie extraite dans Downloads et la copie personnalisée ensuite placée par
+l’utilisateur dans Program Files ont été mises à jour. Le SHA256 du binaire
+installé a été vérifié comme étant celui de notre précédente version avant
+remplacement. Les fichiers de configuration existants sont conservés et leurs
+empreintes vérifiées. L’ancien exécutable personnalisé est sauvegardé dans
+Backup-installation/OpenRGB-before-portable-config.exe. La sauvegarde de la
+version officielle initiale reste conservée séparément dans ce même dossier.

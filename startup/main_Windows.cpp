@@ -577,7 +577,39 @@ static int common_main(int argc, char* argv[])
         | Perform CLI pre-detection processing to get       |
         | return flags                                      |
         \*-------------------------------------------------*/
+        // Portable copies use their adjacent configuration regardless of the working directory.
+        // An explicit CLI configuration always takes precedence; services keep service_config.
+        bool explicit_config = false;
+        for(int index = 1; index < argc; index++)
+        {
+            if((std::string(argv[index]) == "--config") || (std::string(argv[index]) == "--localconfig"))
+            {
+                explicit_config = true;
+                break;
+            }
+        }
+
+        bool portable_config = false;
+        WCHAR executable_path[32768];
+        DWORD path_length = GetModuleFileNameW(NULL, executable_path, 32768);
+        if(!explicit_config && path_length > 0 && path_length < 32768)
+        {
+            filesystem::path directory = filesystem::path(executable_path).parent_path() / L"config";
+            std::error_code error;
+            if(filesystem::is_regular_file(directory / L"OpenRGB.json", error))
+            {
+                ResourceManager::get()->SetConfigurationDirectory(directory);
+                portable_config = true;
+                LOG_INFO("[Startup] Using adjacent portable config directory");
+            }
+        }
+
         ret_flags = cli_pre_detection(argc, argv);
+        if(portable_config)
+        {
+            // Match the supplied launcher: never hand portable control to another local instance.
+            ret_flags |= RET_FLAG_NO_AUTO_CONNECT;
+        }
     }
 
     /*-----------------------------------------------------*\
