@@ -3,17 +3,37 @@ using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.Devices.Enumeration;
 using Windows.Storage.Streams;
 
-if (args.Length > 1 || args.Any(a => a != "--color-test" && a != "--restore"))
+var keyboard = args.Contains("--keyboard");
+args = args.Where(a => a != "--keyboard").ToArray();
+if (args.Length > 1 || args.Any(a => a != "--color-test" && a != "--restore" && a != "--wave-test"))
     throw new ArgumentException("Usage: prototype [--color-test | --restore]");
-var snapshotPath = Path.Combine(AppContext.BaseDirectory, "original-lighting.json");
+if (args.Contains("--wave-test") && !keyboard) throw new ArgumentException("Wave is validated only on this keyboard.");
+var snapshotPath = Path.Combine(AppContext.BaseDirectory, keyboard ? "original-keyboard-lighting.json" : "original-lighting.json");
 var vendor = Guid.Parse("52401523-f97c-7f90-0e7f-6c6f4e36db1c");
 var devices = await DeviceInformation.FindAllAsync(BluetoothLEDevice.GetDeviceSelectorFromPairingState(true)).AsTask().WaitAsync(TimeSpan.FromSeconds(15));
-foreach (var info in devices.Where(d => d.Name.Equals("BSKV3P 35K", StringComparison.OrdinalIgnoreCase)))
+foreach (var info in devices.Where(d => (keyboard ? d.Name.Contains("BlackWidow", StringComparison.OrdinalIgnoreCase) : d.Name.Equals("BSKV3P 35K", StringComparison.OrdinalIgnoreCase))))
 {
     Console.WriteLine($"Device: {info.Name}");
     using var device = await BluetoothLEDevice.FromIdAsync(info.Id).AsTask().WaitAsync(TimeSpan.FromSeconds(15));
     if (device is null) { Console.WriteLine("Device unavailable"); continue; }
     Console.WriteLine($"Connection: {device.ConnectionStatus}");
+    var identityServices = await device.GetGattServicesForUuidAsync(Guid.Parse("0000180a-0000-1000-8000-00805f9b34fb"), BluetoothCacheMode.Uncached).AsTask().WaitAsync(TimeSpan.FromSeconds(15));
+    foreach (var identityService in identityServices.Services)
+    using (identityService)
+    {
+        var identityChars = await identityService.GetCharacteristicsForUuidAsync(Guid.Parse("00002a50-0000-1000-8000-00805f9b34fb"), BluetoothCacheMode.Uncached).AsTask().WaitAsync(TimeSpan.FromSeconds(15));
+        foreach (var identityChar in identityChars.Characteristics)
+        {
+            var identity = await identityChar.ReadValueAsync(BluetoothCacheMode.Uncached).AsTask().WaitAsync(TimeSpan.FromSeconds(10));
+            if (identity.Status == GattCommunicationStatus.Success)
+            {
+                using var reader = DataReader.FromBuffer(identity.Value);
+                var value = new byte[reader.UnconsumedBufferLength]; reader.ReadBytes(value);
+                Console.WriteLine($"PnP identity: {Convert.ToHexString(value)}");
+            }
+        }
+    }
+
     var result = await device.GetGattServicesForUuidAsync(vendor, BluetoothCacheMode.Uncached).AsTask().WaitAsync(TimeSpan.FromSeconds(15));
     Console.WriteLine($"Vendor discovery: {result.Status}");
     foreach (var service in result.Services)
@@ -74,31 +94,32 @@ foreach (var info in devices.Where(d => d.Name.Equals("BSKV3P 35K", StringCompar
                     Console.WriteLine($"{Convert.ToHexString(key)}: timeout");return null;
                 }
                 var zones = await Exchange(new byte[] {0x10,0x80,0,1});
+                if (keyboard) await Exchange(new byte[] {0x10,0x84,0,0});
                 var original = new Dictionary<byte, byte[]>();
                 if(zones is not null)
                     foreach(byte zone in zones.Distinct().Where(z => z != 0)) {
                         var state = await Exchange(new byte[] {0x10,0x83,0,zone});
                         var brightness = await Exchange(new byte[] {0x10,0x85,1,zone});
-                        if (zone is 1 or 10 && state?.Length == 10 && brightness?.Length == 1)
+                        if ((keyboard ? zone == 5 : zone is 1 or 10) && state?.Length == 10 && brightness?.Length == 1)
                             original.Add(zone, state.Concat(brightness).ToArray());
                     }
                 if (args.Length != 0)
                 {
-                    if (original.Count != 2)
-                        throw new InvalidOperationException("Both physical zones must respond before changing lighting.");
+                    if (original.Count != (keyboard ? 1 : 2))
+                        throw new InvalidOperationException("All physical zones must respond before changing lighting.");
                     Dictionary<byte, byte[]> target;
                     if (args[0] == "--restore")
                     {
                         target = System.Text.Json.JsonSerializer.Deserialize<Dictionary<byte, byte[]>>(File.ReadAllText(snapshotPath))
                             ?? throw new InvalidOperationException("Invalid snapshot.");
-                        if (target.Count != 2 || target.Any(p => p.Key is not (1 or 10) || p.Value.Length != 11))
+                        if (target.Count != original.Count || target.Any(p => !original.ContainsKey(p.Key) || p.Value.Length != 11))
                             throw new InvalidOperationException("Invalid snapshot zones.");
                     }
                     else
                     {
                         if (!File.Exists(snapshotPath))
                             File.WriteAllText(snapshotPath, System.Text.Json.JsonSerializer.Serialize(original));
-                        target = new() {
+                        target = keyboard ? new() { [5] = args[0] == "--wave-test" ? new byte[] {4,1,40,1,0,255,0,0,0,0,96} : new byte[] {1,0,0,1,255,0,0,0,0,0,96} } : new() {
                             [1] = new byte[] {1,0,0,1,0,0,255,0,0,0,96},
                             [10] = new byte[] {1,0,0,1,0,255,0,0,0,0,96}
                         };
@@ -114,7 +135,7 @@ foreach (var info in devices.Where(d => d.Name.Equals("BSKV3P 35K", StringCompar
                         if (state is null || brightness is null || !state.SequenceEqual(pair.Value[..10]) || !brightness.SequenceEqual(pair.Value[10..]))
                             throw new InvalidOperationException("Readback does not match requested lighting.");
                     }
-                    Console.WriteLine("Both zones confirmed by device readback. Visual confirmation still required.");
+                    Console.WriteLine("All zones confirmed by device readback. Visual confirmation still required.");
                 }
             }
             finally

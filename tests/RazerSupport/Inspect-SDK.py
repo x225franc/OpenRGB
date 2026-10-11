@@ -52,7 +52,7 @@ with socket.create_connection(('127.0.0.1',args.port),timeout=5) as sock:
         with open(args.output,'w',encoding='utf-8') as file:json.dump(result,file,indent=2,ensure_ascii=False)
     for device in devices:
         print(device['index'],device['name'],'LEDs:',len(device['leds']),'zones:',[z['name'] for z in device['zones']])
-        if 'BlackWidow' in device['name'] or 'Blackwidow' in device['name']:
+        if ('BlackWidow' in device['name'] or 'Blackwidow' in device['name']) and '(Bluetooth)' not in device['name']:
             for name,address in (('Key: Down Arrow',78),('Key: Right Arrow',79)):
                 assert device['leds'][address]['name']==name
                 assert device['zones'][0]['matrix']['map'][address]==address

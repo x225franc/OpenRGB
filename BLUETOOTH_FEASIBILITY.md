@@ -132,3 +132,12 @@ faisabilité et un outillage de découverte, pas un support Bluetooth terminé.
 ## Premier prototype Windows validé côté protocole
 
 Le prototype .NET 9 WinRT dans `tests/RazerBluetoothPrototype` a connecté la souris BSKV3P 35K, lu les zones et leurs paramètres, puis écrit des couleurs fixes et une luminosité de 96/255 sur la molette et le contour. Les acquittements et relectures exactes ont réussi. Cela dépasse la simple découverte GATT ; la confirmation visuelle de l’utilisateur a également validé les deux couleurs fixes et stables. Un mode de restauration conserve les états initiaux. Aucun pilote OpenRGB installé n’a été modifié.
+
+
+## Clavier et intégration native
+
+Clavier 1532:0272 : catalogue limité à 05, couleur fixe rouge confirmée par l’utilisateur. Wave activé au clavier donne un état de dix octets, réécrit et relu avec succès. La commande de lecture de trame Bluetooth connue renvoie statut 5. Aucun protocole de couleurs individuelles n’est identifié ; cela ne constitue pas une preuve d’impossibilité matérielle. Razer réserve Chroma Studio aux connexions USB et 2,4 GHz.
+
+Le transport C++ natif a été compilé et lit les deux modèles. Le contrôleur OpenRGB Windows déclare uniquement les groupes validés : clavier entier, molette, contour. Modes Static/Off, luminosité 0–255, Wave matériel pour le clavier. Vérification PnP stricte : source USB 02, VID/PID 1532:0272 ou 068E:00D8. Worker dédié, une seule scène en attente, transactions sérialisées, temporisation des requêtes, reprise après déconnexion et priorité à la présence USB. Aucun mode Direct ni matrice fictive.
+
+Compilation complète Windows x64 Qt 6.8.3 réussie, API de plugins conservée. La détection SDK a exposé les deux contrôleurs et leurs trois groupes. Les confirmations matérielles et limites de livraison sont consignées dans `RAZER_BLUETOOTH_REPORT.md`.

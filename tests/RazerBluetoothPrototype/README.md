@@ -7,6 +7,10 @@ Prérequis : Windows 11, SDK .NET 9, souris Bluetooth appairée nommée `BSKV3P 
 dotnet run --project tests/RazerBluetoothPrototype
 dotnet run --project tests/RazerBluetoothPrototype -- --color-test
 dotnet run --project tests/RazerBluetoothPrototype -- --restore
+dotnet run --project tests/RazerBluetoothPrototype -- --keyboard
+dotnet run --project tests/RazerBluetoothPrototype -- --keyboard --color-test
+dotnet run --project tests/RazerBluetoothPrototype -- --keyboard --wave-test
+dotnet run --project tests/RazerBluetoothPrototype -- --keyboard --restore
 ```
 
 Sans argument : lectures uniquement. Le test écrit du bleu sur la molette (01), du vert sur le contour (0A), luminosité 96/255. Il relit les deux paramètres après chaque écriture. La zone logo (04), sans éclairage physique sur Phantom Green, est exclue des écritures.
