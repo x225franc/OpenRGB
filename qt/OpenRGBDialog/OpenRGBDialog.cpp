@@ -601,6 +601,18 @@ void OpenRGBDialog::closeEvent(QCloseEvent *event)
         \*-------------------------------------------------*/
         ResourceManager::get()->UnregisterResourceManagerCallback(OpenRGBDialogResourceManagerCallback, this);
 
+        // Device pages unregister their callbacks in their destructors. Delete
+        // every page (including hidden members) before plugins delete devices.
+        for(OpenRGBDevicePage* page : findChildren<OpenRGBDevicePage*>())
+        {
+            delete page;
+        }
+        hidden_pages.clear();
+        for(OpenRGBDeviceInfoPage* page : findChildren<OpenRGBDeviceInfoPage*>())
+        {
+            delete page;
+        }
+
         plugin_manager->UnloadPlugins();
 
         if(ResourceManager::get()->GetProfileManager()->LoadAutoProfileExit())
