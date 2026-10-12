@@ -61,3 +61,5 @@ Pour défaire ce changement, utiliser le chemin de sauvegarde affiché :
 La désinstallation des binaires n'écrase pas automatiquement les préférences Windows de priorité ; restaurer cette sauvegarde séparément si souhaité. Les contrôleurs Razer et leur priorité ne sont pas modifiés par ce script.
 
 La livraison inclut également la correction de fermeture Visual Map : son contrôleur virtuel est détruit avant son objet de rappel. Effects retire ses callbacks avant déchargement. Les trois DLL sont sauvegardées par l'installateur et restaurées par le script de désinstallation.
+
+Fermeture OpenRGB : les pages Devices et Information, y compris les membres masqués d'une carte, sont détruites avant que les plugins suppriment leurs contrôleurs. Cela évite un accès à un contrôleur déjà libéré pendant le retrait des callbacks Qt.
