@@ -2,10 +2,10 @@ param([string]$Target='C:\Program Files\OpenRGB')
 $ErrorActionPreference='Stop'
 if(Get-Process OpenRGB -ErrorAction SilentlyContinue){throw 'Quittez OpenRGB avant installation (enregistrez profil et VMap).'}
 $payload=Join-Path $PSScriptRoot 'payload'
-foreach($file in 'OpenRGB.exe','Qt6Network.dll','plugins\OpenRGBLightSyncPlugin.dll','plugins\OpenRGBEffectsPlugin.dll','OpenRGB.LightSync.msix','OpenRGBLightSync.cer'){if(-not(Test-Path (Join-Path $payload $file))){throw "Fichier absent : $file"}}
+foreach($file in 'OpenRGB.exe','Qt6Network.dll','plugins\OpenRGBLightSyncPlugin.dll','plugins\OpenRGBEffectsPlugin.dll','plugins\OpenRGBVisualMapPlugin.dll','OpenRGB.LightSync.msix','OpenRGBLightSync.cer'){if(-not(Test-Path (Join-Path $payload $file))){throw "Fichier absent : $file"}}
 $backup=Join-Path $Target ('Backup-installation\LightSync-'+(Get-Date -Format yyyyMMdd-HHmmss))
 New-Item -ItemType Directory -Path $backup,(Join-Path $Target 'plugins') -Force | Out-Null
-$files=@('OpenRGB.exe','Qt6Network.dll','plugins\OpenRGBLightSyncPlugin.dll','plugins\OpenRGBEffectsPlugin.dll')
+$files=@('OpenRGB.exe','Qt6Network.dll','plugins\OpenRGBLightSyncPlugin.dll','plugins\OpenRGBEffectsPlugin.dll','plugins\OpenRGBVisualMapPlugin.dll')
 $existing=@()
 foreach($file in $files){$path=Join-Path $Target $file;if(Test-Path $path){$existing+=$file;$dest=Join-Path $backup $file;New-Item -ItemType Directory -Path (Split-Path $dest) -Force | Out-Null;Copy-Item -LiteralPath $path -Destination $dest}}
 if(Test-Path (Join-Path $Target 'config')){Copy-Item -LiteralPath (Join-Path $Target 'config') -Destination $backup -Recurse}

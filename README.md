@@ -59,3 +59,5 @@ Pour défaire ce changement, utiliser le chemin de sauvegarde affiché :
 `powershell -ExecutionPolicy Bypass -File .\Configure-KeyboardPriority.ps1 -Restore 'C:\...\Lenovo-priority-AAAA.reg'`
 
 La désinstallation des binaires n'écrase pas automatiquement les préférences Windows de priorité ; restaurer cette sauvegarde séparément si souhaité. Les contrôleurs Razer et leur priorité ne sont pas modifiés par ce script.
+
+La livraison inclut également la correction de fermeture Visual Map : son contrôleur virtuel est détruit avant son objet de rappel. Effects retire ses callbacks avant déchargement. Les trois DLL sont sauvegardées par l'installateur et restaurées par le script de désinstallation.
