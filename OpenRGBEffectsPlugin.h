@@ -70,6 +70,7 @@ private:
     | User interface widget                                 |
     \*-----------------------------------------------------*/
     OpenRGBEffectTab*           ui;
+    std::atomic<bool>           unloading{true};
 
     void                        MigrateLegacyProfiles();
     

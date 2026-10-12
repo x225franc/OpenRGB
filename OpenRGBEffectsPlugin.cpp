@@ -59,6 +59,7 @@ unsigned int OpenRGBEffectsPlugin::GetPluginAPIVersion()
 \*---------------------------------------------------------*/
 void OpenRGBEffectsPlugin::Load(OpenRGBPluginAPIInterface* api_interface_ptr)
 {
+    unloading = false;
     /*-----------------------------------------------------*\
     | Store API interface pointer                           |
     \*-----------------------------------------------------*/
@@ -147,7 +148,11 @@ void OpenRGBEffectsPlugin::Unload()
     /*-----------------------------------------------------*\
     | Stop all effects                                      |
     \*-----------------------------------------------------*/
+    unloading = true;
     ui->StopAll();
+    // Drain callbacks before this QObject is destroyed and other plugins remove devices.
+    for(RGBControllerInterface* controller : api->GetRGBControllers())
+        controller->UnregisterUpdateCallback(this);
 }
 
 unsigned char* OpenRGBEffectsPlugin::OnSDKCommand(unsigned int pkt_id, unsigned char* data, unsigned int* data_size)
@@ -222,6 +227,7 @@ void OpenRGBEffectsPlugin::ProfileManagerUpdated(unsigned int /*update_reason*/)
 
 void OpenRGBEffectsPlugin::ResourceManagerUpdated(unsigned int update_reason)
 {
+    if(unloading) return;
     switch(update_reason)
     {
         case RESOURCEMANAGER_UPDATE_REASON_DEVICE_LIST_UPDATED:
@@ -232,6 +238,7 @@ void OpenRGBEffectsPlugin::ResourceManagerUpdated(unsigned int update_reason)
 
 void OpenRGBEffectsPlugin::SettingsManagerUpdated(unsigned int update_reason)
 {
+    if(unloading) return;
     switch(update_reason)
     {
         case SETTINGSMANAGER_UPDATE_REASON_SETTINGS_UPDATED:
@@ -243,6 +250,7 @@ void OpenRGBEffectsPlugin::SettingsManagerUpdated(unsigned int update_reason)
 void OpenRGBEffectsPlugin::OpenRGBEffectsPluginRGBControllerCallback(void * this_ptr, unsigned int update_reason, void * /*controller_ptr*/)
 {
     OpenRGBEffectsPlugin * this_obj = (OpenRGBEffectsPlugin *)this_ptr;
+    if(this_obj->unloading) return;
 
     switch(update_reason)
     {
@@ -330,6 +338,7 @@ void OpenRGBEffectsPlugin::MigrateLegacyProfiles()
 \*---------------------------------------------------------*/
 void OpenRGBEffectsPlugin::UpdateControllers()
 {
+    if(unloading) return;
     controllers_updating = true;
 
     /*-----------------------------------------------------*\
