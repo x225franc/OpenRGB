@@ -39,7 +39,7 @@ Build Release x64 Qt 6.8.3, API plugins 5, MSVC. Tests des paquets Govee, décou
 
 Tester après installation : découverte des huit appareils, Ambient sur les segments, reprise après veille/hibernation, Google éteint les Yeelight après fermeture OpenRGB, désactivation/réactivation et redémarrage avec profil/VMap. Ces scénarios système complets demandent une observation humaine ; aucune mesure de fluidité/latence n'est inventée.
 
-Yeelight est limité à 2 FPS et une quota de commandes conservateur pour éviter les blocages W4. Les Govee inconnus utilisent un nombre de segments par défaut et peuvent nécessiter une entrée de modèle ; cette version est validée sur les modèles ci-dessus. Un changement de nombre de lampes nécessite de relancer OpenRGB. Les sessions Yeelight peuvent ne pas acquitter la libération malgré l'envoi ; les logs distinguent cela.
+Yeelight utilise le mode musique, sans quota TCP normal sur les couleurs, avec une cadence logicielle configurable de 1 à 20 FPS (10 par défaut). Cette borne ne certifie pas la cadence matérielle continue. Les Govee inconnus utilisent un nombre de segments par défaut et peuvent nécessiter une entrée de modèle ; cette version est validée sur les modèles ci-dessus. Un changement de nombre de lampes nécessite de relancer OpenRGB. Les sessions Yeelight peuvent ne pas acquitter la libération malgré l'envoi ; les logs distinguent cela.
 
 ## Sources et compilation
 

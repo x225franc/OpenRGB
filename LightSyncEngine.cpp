@@ -182,6 +182,7 @@ void LightSyncEngine::command(LightSyncDevice& d,QString method,QJsonArray param
     QJsonObject json{{"id",commandId++},{"method",method},{"params",params}};
     auto bytes=QJsonDocument(json).toJson(QJsonDocument::Compact)+"\r\n";
     auto* socket=d.music&&d.music->state()==QAbstractSocket::ConnectedState?d.music:d.control;
+    if(method=="set_scene" && (!d.music || socket!=d.music))return; // No high-rate normal TCP fallback.
     if(socket&&socket->state()==QAbstractSocket::ConnectedState)socket->write(bytes);
 }
 void LightSyncEngine::power(LightSyncDevice& d,bool on)
@@ -267,8 +268,8 @@ void LightSyncEngine::yeelight(LightSyncDevice& d,RGBColor rgb,int brightness,qi
         return;
     }
     if(d.music->bytesToWrite()>2048){d.status="LAN stream congested; dropping stale frame";return;}
-    while(!d.quota.isEmpty()&&now-d.quota.front()>=60000)d.quota.pop_front();
-    if(d.quota.size()>=54||now-d.lastSend<1000/std::max(1,settings.yeelightFps))return;
+    // Established music transport has no normal-TCP command quota.
+    if(now-d.lastSend<1000/std::max(1,settings.yeelightFps))return;
     int r=RGBGetRValue(rgb),g=RGBGetGValue(rgb),b=RGBGetBValue(rgb),level=std::max({r,g,b});
     int cutoff=settings.darkBelow*255/100;
     bool dark=cutoff>0&&(d.dark?level<cutoff+std::max(4,cutoff/2):level<=cutoff);
@@ -281,14 +282,14 @@ void LightSyncEngine::yeelight(LightSyncDevice& d,RGBColor rgb,int brightness,qi
             int faded=std::max(1,int(d.fadeBright*(1.0-double(now-d.fadeAt)/std::max(1,settings.fadeMs))));
             command(d,"set_scene",{"color",int(RGBToBGRColor(d.previousColor)),faded});
         }else{command(d,"set_power",{"off","smooth",100});d.dark=true;}
-        d.lastSend=now;d.quota.push_back(now);return;
+        d.lastSend=now;return;
     }
     d.fadeAt=-1;int bright=std::clamp(int(std::round(level*brightness/255.0)),1,100);
     RGBColor normalized=level?ToRGBColor(r*255/level,g*255/level,b*255/level):d.previousColor;
     if(!d.dark&&normalized==d.previousColor&&bright==d.previousBright&&now-d.lastSend<10000)return;
     // set_scene applies the hue before waking the light at its intended brightness.
     command(d,"set_scene",{"color",int(RGBToBGRColor(normalized)),bright});d.dark=false;d.previousColor=normalized;d.previousBright=bright;
-    d.lastSend=now;d.quota.push_back(now);d.status="Streaming";
+    d.lastSend=now;d.status="Streaming";
 }
 void LightSyncEngine::tick()
 {

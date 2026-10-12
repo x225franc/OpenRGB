@@ -28,7 +28,7 @@ void LightSyncPlugin::load(nlohmann::json j)
     settings.enabled=j.value("enabled",true);settings.offOnSuspend=j.value("off_on_suspend",false);settings.onOnResume=j.value("on_on_resume",true);
     settings.interpolate=j.value("interpolate",true);settings.laptop=j.value("laptop",true);
     settings.darkBelow=std::clamp(j.value("dark_below",1),0,25);settings.fadeMs=std::clamp(j.value("fade_ms",100),0,2000);
-    settings.goveeFps=std::clamp(j.value("govee_fps",25),1,60);settings.yeelightFps=std::clamp(j.value("yeelight_fps",2),1,2);
+    settings.goveeFps=std::clamp(j.value("govee_fps",25),1,60);settings.yeelightFps=std::clamp(j.value("yeelight_fps",10),1,20);
     if(j.contains("devices"))cachedDevices=QJsonDocument::fromJson(QByteArray::fromStdString(j["devices"].dump())).array();
     disabled=j.value("disabled_devices",nlohmann::json::object());if(!disabled.is_object())disabled=nlohmann::json::object();
 }
@@ -86,7 +86,7 @@ void LightSyncPlugin::buildUI()
     spin("Yeelight: turn off in the dark (below %)",settings.darkBelow,0,25,&settings.darkBelow,"dark");
     spin("Yeelight: fade out before turning off (ms)",settings.fadeMs,0,2000,&settings.fadeMs,"fade");
     spin("Govee update rate (FPS)",settings.goveeFps,1,60,&settings.goveeFps,"govee");
-    spin("Yeelight update rate (FPS)",settings.yeelightFps,1,2,&settings.yeelightFps,"yeelight");layout->addWidget(group);
+    spin("Yeelight music-mode rate (FPS, software cap)",settings.yeelightFps,1,20,&settings.yeelightFps,"yeelight");layout->addWidget(group);
     auto* maintenance=new QHBoxLayout;auto* openLog=new QPushButton("Open log");auto* openFolder=new QPushButton("Open folder");auto* windows=new QPushButton("Windows Dynamic Lighting settings");maintenance->addWidget(openLog);maintenance->addWidget(openFolder);maintenance->addWidget(windows);maintenance->addStretch();layout->addLayout(maintenance);
     connect(openLog,&QPushButton::clicked,this,[this]{QDesktopServices::openUrl(QUrl::fromLocalFile(directory+"/LightSync.log"));});
     connect(openFolder,&QPushButton::clicked,this,[this]{QDesktopServices::openUrl(QUrl::fromLocalFile(directory));});

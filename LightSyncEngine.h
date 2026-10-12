@@ -17,7 +17,7 @@
 struct LightSyncSettings
 {
     bool enabled = true, offOnSuspend = false, onOnResume = true, interpolate = true, laptop = true;
-    int darkBelow = 1, fadeMs = 100, goveeFps = 25, yeelightFps = 2;
+    int darkBelow = 1, fadeMs = 100, goveeFps = 25, yeelightFps = 10;
 };
 struct LightSyncDevice
 {
@@ -46,7 +46,7 @@ struct LightSyncDevice
     std::vector<double> smooth;
     std::vector<RGBColor> sent;
     quint64 sentRevision = 0;
-    QList<qint64> quota;
+
 };
 class LampArrayBackend;
 class LightSyncEngine : public QObject
