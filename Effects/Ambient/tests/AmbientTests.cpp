@@ -235,6 +235,8 @@ public:
         ambient.last_preview = {};
         Check(ambient.PreparePreview(), "preview supports 60 FPS independently of capture");
 
+        // This test must capture even when the desktop screensaver is active.
+        ambient.ui->keep_during_screensaver->setChecked(true);
         // Start/stop twice while switching output and resolution. No device IO is involved.
         std::atomic<unsigned int> captured_frames{0};
         QObject::connect(ambient.capturer, &ScreenCapturer::OnImage, [&captured_frames](const QImage&){ ++captured_frames; });
