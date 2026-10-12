@@ -302,7 +302,7 @@ void LightSyncEngine::tick()
         {std::lock_guard<std::mutex> lock(d.mutex);colors=d.latest;brightness=d.brightness;revision=d.revision;}
         if(!revision)continue; // Discovery must never switch on an untouched device.
         if(!d.submitted){if(settings.onOnResume && d.kind=="govee"){power(d,true);d.nextAttempt=now+400;d.submitted=true;continue;}d.submitted=true;}
-        if(settings.interpolate)
+        if(settings.interpolate && d.kind!="laptop")
         {
             if(d.smooth.size()!=colors.size()*3){d.smooth.resize(colors.size()*3);for(size_t i=0;i<colors.size();i++){d.smooth[i*3]=RGBGetRValue(colors[i]);d.smooth[i*3+1]=RGBGetGValue(colors[i]);d.smooth[i*3+2]=RGBGetBValue(colors[i]);}}
             double alpha=1-std::exp(-dt/0.04);
@@ -315,13 +315,13 @@ void LightSyncEngine::tick()
         }else d.smooth.clear();
         if(d.kind=="govee")govee(d,colors,brightness,now);
         else if(d.kind=="yeelight")yeelight(d,colors[0],brightness,now);
-        else if(d.kind=="laptop"&&now-d.lastSend>=33){d.status=lamps->send(d.id.mid(QString("laptop:").size()),colors,brightness);d.lastSend=now;}
+        else if(d.kind=="laptop"){d.status=lamps->send(d.id.mid(QString("laptop:").size()),colors,brightness);d.lastSend=now;}
     }
     static qint64 published=0;if(now-published>=1000){publish();published=now;}
 }
 void LightSyncEngine::publish()
 {
-    for(auto& d:devices)if(d->reportedStatus!=d->status){log(QString::fromStdString(d->setup.name)+": "+d->status);d->reportedStatus=d->status;}
+    for(auto& d:devices){QString state=d->status.section(" | ",0,0);if(d->reportedStatus!=state){log(QString::fromStdString(d->setup.name)+": "+state);d->reportedStatus=state;}}
     QJsonArray rows;for(auto& d:devices)rows.append(QJsonObject{{"id",d->id},{"name",QString::fromStdString(d->setup.name)},{"ip",d->ip},{"model",d->model},{"leds",d->count},{"enabled",d->enabled},{"status",settings.enabled?d->status:"Plugin disabled; control released"},{"cache",d->discoveryData}});emit inventory(rows);
 }
 void LightSyncEngine::shutdown()

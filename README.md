@@ -46,3 +46,16 @@ Yeelight est limité à 2 FPS et une quota de commandes conservateur pour évite
 `build.cmd`, puis `test.cmd`. Qt/MSVC sont configurés pour ce PC ; adapter leurs chemins sur une autre machine. `Prepare-Identity.ps1` est réservé à une reconstruction/signature locale et requiert les outils Windows SDK. Les scripts d'installation utilisent les fichiers précompilés dans payload, jamais la clé privée.
 
 Core OpenRGB : arrêt explicite des callbacks du contrôleur virtuel avant destruction. Effects : uniquement les options Ambient de bord inférieur et centre 16:9. Les autres effets et les contrôleurs Razer restent inchangés.
+
+## Contrôle Lenovo en arrière-plan et cadence
+
+La section Lenovo de LightSync affiche un état vert lorsque Windows accorde le contrôle, un avertissement lorsque la priorité est perdue, et les FPS réellement envoyés (limités au minimum matériel et à 60 FPS). Un thread dédié transmet la dernière image sans attendre les connexions Yeelight ou la découverte LAN. Les handles Windows sont conservés entre recherches ; ils sont libérés au sommeil, à la désactivation et à la fermeture. Le clavier ne reçoit pas un second lissage LAN par-dessus le lissage Ambient.
+
+Windows choisit le contrôleur en arrière-plan selon sa priorité. Si OpenRGB est derrière Toolkit ou Windows Lighting, cliquer hors de sa fenêtre peut lui retirer le clavier. Mettre OpenRGB LightSync en premier dans les paramètres Windows pour le clavier Lenovo. Sur le matériel VID_048D/PID_C193, le script `Configure-KeyboardPriority.ps1` permet aussi cette correction, sous le compte Windows concerné. Il ne change que la liste Providers de ce clavier, conserve l'ordre relatif des autres applications et sauvegarde la clé avant modification. Cette clé Windows est un détail interne observé sur cette version de Windows ; privilégier l'interface Windows si elle évolue.
+
+`powershell -ExecutionPolicy Bypass -File .\Configure-KeyboardPriority.ps1`
+
+Pour défaire ce changement, utiliser le chemin de sauvegarde affiché :
+`powershell -ExecutionPolicy Bypass -File .\Configure-KeyboardPriority.ps1 -Restore 'C:\...\Lenovo-priority-AAAA.reg'`
+
+La désinstallation des binaires n'écrase pas automatiquement les préférences Windows de priorité ; restaurer cette sauvegarde séparément si souhaité. Les contrôleurs Razer et leur priorité ne sont pas modifiés par ce script.

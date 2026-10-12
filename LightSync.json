@@ -2,9 +2,9 @@
   "Id": "org.openrgb.lightsync",
   "Name": "LightSync",
   "VendorId": "lightsync",
-  "Version": "0.1.0",
-  "VersionStr": "0.1.0",
-  "Commit": "9430859",
+  "Version": "0.1.1",
+  "VersionStr": "0.1.1",
+  "Commit": "native-lightsync-0.1.1",
   "Description": "Govee, Yeelight and Lenovo Windows Dynamic Lighting transport",
   "OpenRGBPluginAPIVersion": 5
 }

@@ -2,7 +2,6 @@
 #include <QString>
 #include <QPointF>
 #include <vector>
-#include <functional>
 #include <memory>
 #include "RGBControllerInterface.h"
 class LampArrayBackend

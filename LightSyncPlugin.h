@@ -39,6 +39,7 @@ private:
     QWidget* widget=nullptr;
     QTableWidget* table=nullptr;
     QLabel* diagnostics=nullptr;
+    QLabel* keyboardStatus=nullptr;
     QLabel* messageLabel=nullptr;
     QString directory;
     LightSyncSettings settings;
