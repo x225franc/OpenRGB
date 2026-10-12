@@ -11,6 +11,8 @@
    </rect>
   </property>
   <layout class="QGridLayout" name="gridLayout" columnstretch="0,0">
+   <item row="11" column="0" colspan="2"><widget class="QCheckBox" name="real_ambilight"><property name="text"><string>Real Ambilight mode (bottom edge)</string></property><property name="toolTip"><string>Map every matrix row to the bottom edge of the screen, as in LightSync.</string></property></widget></item>
+   <item row="12" column="0" colspan="2"><widget class="QCheckBox" name="ultrawide_mode"><property name="text"><string>Ultrawide monitor mode (center 16:9)</string></property><property name="toolTip"><string>Analyze the central 16:9 region of a wider screen.</string></property></widget></item>
    <item row="10" column="0" colspan="2"><widget class="QCheckBox" name="keep_during_screensaver"><property name="text"><string>Keep the effect during screensaver</string></property><property name="toolTip"><string>When disabled, freeze the last colors and pause capture during the Windows screensaver.</string></property></widget></item>
    <item row="0" column="0"><widget class="QLabel" name="saturation_label"><property name="text"><string>Saturation</string></property></widget></item>
    <item row="0" column="1"><layout class="QHBoxLayout" name="saturation_layout">

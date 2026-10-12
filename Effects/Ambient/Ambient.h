@@ -86,6 +86,7 @@ private:
 
     int screen_index = -1;
     std::atomic<AmbientMode> mode{SCALED_AVERAGE};
+    std::atomic<bool> real_ambilight{false}, ultrawide_mode{false};
 
     void UpdateSelection();
     void SetDynamicStrings();

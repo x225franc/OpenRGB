@@ -38,6 +38,8 @@ Ambient::Ambient(QWidget *parent) :
     connect(ui->saturation_value, QOverload<int>::of(&QSpinBox::valueChanged),
             ui->saturation, &QSlider::setValue);
 
+    connect(ui->real_ambilight, &QCheckBox::toggled, this, [this](bool enabled) { real_ambilight = enabled; });
+    connect(ui->ultrawide_mode, &QCheckBox::toggled, this, [this](bool enabled) { ultrawide_mode = enabled; });
     SetDynamicStrings();
     EffectDetails.EffectClassName   = ClassName();
     EffectDetails.HasCustomSettings = true;
@@ -266,6 +268,12 @@ void Ambient::AcceptFrame(const QImage& input)
         const QRect clipped = region.intersected(input.rect());
         frame.pixels = clipped.isEmpty() ? QImage() : input.copy(clipped);
     }
+    if(ultrawide_mode && !frame.pixels.isNull())
+    {
+        const int center_width = std::min(frame.pixels.width(), frame.pixels.height() * 16 / 9);
+        if(center_width > 0 && center_width < frame.pixels.width())
+            frame.pixels = frame.pixels.copy((frame.pixels.width()-center_width)/2, 0, center_width, frame.pixels.height());
+    }
     // Qt/Linux capturers have no early reduction; use bounded analysis there as well.
     const int limit = int(analysis_width.load());
     if(limit > 0 && frame.pixels.width() > limit) frame.pixels = frame.pixels.scaledToWidth(limit, Qt::FastTransformation);
@@ -408,6 +416,7 @@ void Ambient::RenderFrame(const std::vector<ControllerZone*>& zones, bool previe
         auto sample = [&](unsigned int x, unsigned int y, unsigned int w, unsigned int h)
         {
             if(black) return RGBColor(0);
+            if(real_ambilight) y = h - 1;
             // Same nearest-neighbour spatial mapping as Qt's old fast scaling; no per-zone image allocations.
             const int sx = std::min(frame.pixels.width()-1, int((uint64_t(2*x+1) * frame.pixels.width()) / (2*w)));
             const int sy = std::min(frame.pixels.height()-1, int((uint64_t(2*y+1) * frame.pixels.height()) / (2*h)));
@@ -443,6 +452,8 @@ void Ambient::RenderFrame(const std::vector<ControllerZone*>& zones, bool previe
 
 void Ambient::LoadCustomSettings(json settings)
 {
+    ui->real_ambilight->setChecked(settings.value("real_ambilight", false));
+    ui->ultrawide_mode->setChecked(settings.value("ultrawide_mode", false));
     ui->saturation->setValue(settings.value("saturation", 100));
     ui->keep_during_screensaver->setChecked(settings.value("keep_effect_during_screensaver", false));
     if(settings.contains("left"))           ui->left->setValue(settings["left"]);
@@ -493,6 +504,8 @@ json Ambient::SaveCustomSettings()
     settings["top"]             = top.load();
     settings["height"]          = height.load();
     settings["width"]           = width.load();
+    settings["real_ambilight"] = real_ambilight.load();
+    settings["ultrawide_mode"] = ultrawide_mode.load();
     settings["mode"]            = mode.load();
     settings["screen_index"]    = screen_index;
     settings["smoothness"]      = smoothness.load();

@@ -146,6 +146,23 @@ public:
         ambient.StepEffect(zones);
         Check(controller.colors[7] == ToRGBColor(40,0,0) && controller.colors[9] == ToRGBColor(40,100,0),
               "matrix mapping skips holes before reading/writing LED indices");
+        auto lightSyncSettings = Settings(1);
+        lightSyncSettings["real_ambilight"] = true;
+        lightSyncSettings["ultrawide_mode"] = true;
+        ambient.LoadCustomSettings(lightSyncSettings);
+        Publish(ambient, spatial);
+        ambient.StepEffect(zones);
+        Check(RGBGetGValue(controller.colors[7]) == 100 && RGBGetGValue(controller.colors[9]) == 100,
+              "Real Ambilight maps both keyboard matrix rows to the bottom screen edge");
+        Ambient lightSyncRoundtrip;
+        lightSyncRoundtrip.LoadCustomSettings(ambient.SaveCustomSettings());
+        Check(lightSyncRoundtrip.SaveCustomSettings()["real_ambilight"] == true && lightSyncRoundtrip.SaveCustomSettings()["ultrawide_mode"] == true,
+              "LightSync mapping settings survive profile roundtrip");
+        QImage wide(21,9,QImage::Format_RGB32); wide.fill(qRgb(0,0,0));
+        Publish(ambient, wide);
+        Check(ambient.latest_frame.pixels.size() == QSize(16,9), "Ultrawide analysis selects the center 16:9 region");
+        ambient.LoadCustomSettings(Settings(1));
+        Publish(ambient, spatial);
         controller.invalidate_after_snapshot = true;
         ambient.StepEffect(zones);
         Check(controller.raw_map_reads == 0 && controller.colors[9] == ToRGBColor(40,100,0),
