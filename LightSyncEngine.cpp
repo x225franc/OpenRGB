@@ -331,7 +331,7 @@ void LightSyncEngine::shutdown()
     for(auto* socket:discovery)socket->close();
     // Keep controllers stable during restart/disable. Removal only happens on real plugin unload.
     for(auto& d:devices){api->UnregisterVirtualRGBController(d->controller);api->DeleteVirtualRGBController(d->controller);d->controller=nullptr;}
-    devices.clear();log("LightSync stopped; LAN sessions released");logfile.close();emit shutdownComplete();
+    devices.clear();delete lamps;lamps=nullptr;log("LightSync stopped; LAN sessions released");logfile.close();emit shutdownComplete();
 }
 
 
