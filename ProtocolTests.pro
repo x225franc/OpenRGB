@@ -1,0 +1,11 @@
+QT += core gui widgets network
+TEMPLATE = app
+CONFIG += console c++20
+CONFIG -= app_bundle debug_and_release
+TARGET = LightSyncProtocolTests
+INCLUDEPATH += ../.. ../../RGBController ../../dependencies/json
+HEADERS += LightSyncEngine.h LampArrayBackend.h
+SOURCES += ProtocolTests.cpp LightSyncEngine.cpp LampArrayBackend.cpp
+DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
+LIBS += -lwindowsapp
+QMAKE_CXXFLAGS += /permissive- /bigobj
