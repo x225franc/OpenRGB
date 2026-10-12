@@ -15,3 +15,4 @@ win32 {
 
 
 
+RESOURCES += resources.qrc

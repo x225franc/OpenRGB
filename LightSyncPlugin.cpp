@@ -20,7 +20,7 @@ LightSyncPlugin::~LightSyncPlugin(){Unload();}
 OpenRGBPluginInfo LightSyncPlugin::GetPluginInfo()
 {
     OpenRGBPluginInfo info{};info.Name="LightSync";info.Label="LightSync";info.Description="Native LAN lighting and Lenovo Windows Dynamic Lighting";
-    info.Version="0.1.1";info.Location=OPENRGB_PLUGIN_LOCATION_TOP;info.ProtocolVersion=OPENRGB_PLUGIN_API_VERSION;return info;
+    info.Icon.load(":/LightSync/icon.ico");info.URL="https://github.com/x225franc/OpenRGB/tree/plugins/lightsync";info.Version="0.1.1";info.Location=OPENRGB_PLUGIN_LOCATION_TOP;info.ProtocolVersion=OPENRGB_PLUGIN_API_VERSION;return info;
 }
 void LightSyncPlugin::load(nlohmann::json j)
 {

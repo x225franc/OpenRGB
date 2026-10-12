@@ -23,7 +23,7 @@ int main(int argc,char** argv)
   check(plugin.load(),"Native plugin DLL loads with installed Qt ABI");
   auto* iface=qobject_cast<OpenRGBPluginInterface*>(plugin.instance());
   check(iface&&iface->GetPluginAPIVersion()==5&&iface->GetPluginInfo().Label=="LightSync","Plugin exports OpenRGB API 5 and LightSync tab");
-  plugin.unload();return 0;
+  check(!iface->GetPluginInfo().Icon.isNull(),"Standalone LightSync icon is embedded and decodes correctly");plugin.unload();return 0;
  }catch(std::exception const& e){std::cerr<<"FAIL "<<e.what()<<std::endl;return 1;}
 }
 
