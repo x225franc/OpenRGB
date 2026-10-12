@@ -19,6 +19,11 @@
     <item><widget class="QTooltipedSlider" name="saturation"><property name="maximum"><number>200</number></property><property name="value"><number>100</number></property><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="toolTip"><string>0%: grayscale; 100%: original colors; 200%: stronger colors.</string></property></widget></item>
     <item><widget class="QSpinBox" name="saturation_value"><property name="maximum"><number>200</number></property><property name="value"><number>100</number></property><property name="suffix"><string>%</string></property></widget></item>
    </layout></item>
+   <item row="13" column="0"><widget class="QLabel" name="black_boost_label"><property name="text"><string>Black boost</string></property></widget></item>
+   <item row="13" column="1"><layout class="QHBoxLayout" name="black_boost_layout">
+    <item><widget class="QTooltipedSlider" name="black_boost"><property name="maximum"><number>25</number></property><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="toolTip"><string>Lift dark colors toward gray. 0% preserves the original image; white remains unchanged. Applied before effect brightness.</string></property></widget></item>
+    <item><widget class="QSpinBox" name="black_boost_value"><property name="maximum"><number>25</number></property><property name="suffix"><string>%</string></property></widget></item>
+   </layout></item>
    <item row="2" column="0">
     <widget class="QLabel" name="mode_label">
      <property name="text">

@@ -35,6 +35,12 @@ Ambient::Ambient(QWidget *parent) :
         ambient_saturation = value;
         ui->saturation_value->setValue(value);
     });
+    connect(ui->black_boost, &QSlider::valueChanged, this, [this](int value)
+    {
+        ambient_black_boost = value;
+        ui->black_boost_value->setValue(value);
+    });
+    connect(ui->black_boost_value, QOverload<int>::of(&QSpinBox::valueChanged), ui->black_boost, &QSlider::setValue);
     connect(ui->saturation_value, QOverload<int>::of(&QSpinBox::valueChanged),
             ui->saturation, &QSlider::setValue);
 
@@ -362,6 +368,7 @@ void Ambient::RenderFrame(const std::vector<ControllerZone*>& zones, bool previe
     const unsigned int smoothing = smoothness.load();
     const int brightness = ambient_brightness.load(), temperature = ambient_temperature.load(), tint = ambient_tint.load();
     const unsigned int saturation = ambient_saturation.load();
+    const unsigned int black_boost = ambient_black_boost.load();
     const unsigned int threshold = preview ? 0 : color_threshold.load();
     // Equivalent to the old coefficient at 60 FPS, but based on actual elapsed time.
     const double tau = smoothing ? -1.0 / (60.0 * std::log(smoothing * 0.01)) : 0;
@@ -401,6 +408,14 @@ void Ambient::RenderFrame(const std::vector<ControllerZone*>& zones, bool previe
                 QColor hsv(RGBGetRValue(color), RGBGetGValue(color), RGBGetBValue(color));
                 hsv.setHsv(hsv.hsvHue(), std::min(255, int(std::lround(hsv.hsvSaturation() * saturation / 100.0))), hsv.value());
                 color = ToRGBColor(hsv.red(), hsv.green(), hsv.blue());
+            }
+            // Lift the black point before brightness. White stays white, and an
+            // unavailable capture must remain off rather than becoming gray.
+            if(black_boost && !black)
+            {
+                const int floor = int(std::lround(255.0 * black_boost / 100.0));
+                auto lift = [floor](int channel) { return floor + (channel * (255 - floor) + 127) / 255; };
+                color = ToRGBColor(lift(RGBGetRValue(color)), lift(RGBGetGValue(color)), lift(RGBGetBValue(color)));
             }
             const RGBColor adjusted = ColorUtils::apply_adjustments(color, (zone->self_brightness / 100.f) * (brightness / 100.f), temperature, tint);
             const RGBColor previous = zone->GetLED(index); // Includes zone/segment offset.
@@ -455,6 +470,7 @@ void Ambient::LoadCustomSettings(json settings)
     ui->real_ambilight->setChecked(settings.value("real_ambilight", false));
     ui->ultrawide_mode->setChecked(settings.value("ultrawide_mode", false));
     ui->saturation->setValue(settings.value("saturation", 100));
+    ui->black_boost->setValue(settings.value("black_boost", 0));
     ui->keep_during_screensaver->setChecked(settings.value("keep_effect_during_screensaver", false));
     if(settings.contains("left"))           ui->left->setValue(settings["left"]);
     if(settings.contains("top"))            ui->top->setValue(settings["top"]);
@@ -513,6 +529,7 @@ json Ambient::SaveCustomSettings()
     settings["restore_token"]   = restore_token.toStdString();
     settings["crop_stream"]     = crop_stream.load();
     settings["saturation"]      = ambient_saturation.load();
+    settings["black_boost"]     = ambient_black_boost.load();
     settings["keep_effect_during_screensaver"] = ui->keep_during_screensaver->isChecked();
 
     settings["performance"] = {

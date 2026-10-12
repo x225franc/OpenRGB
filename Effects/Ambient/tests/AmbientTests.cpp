@@ -64,6 +64,34 @@ public:
             freeze.StepEffect({&zone});
             Check(device.colors[7] == ToRGBColor(180,90,45), "capture resume restores Ambient updates");
         }
+        {
+            Ambient lift;
+            MockController device;
+            ControllerZone zone(&device, 0, false, 100, true, false);
+            auto settings = Settings();
+            lift.LoadCustomSettings(settings);
+            Check(lift.SaveCustomSettings()["black_boost"] == 0, "legacy black boost defaults to zero");
+            settings["black_boost"] = 10;
+            lift.LoadCustomSettings(settings);
+            QImage frame(4,2,QImage::Format_RGB32);
+            frame.fill(Qt::black);
+            Publish(lift, frame);
+            lift.StepEffect({&zone});
+            Check(device.colors[7] == ToRGBColor(26,26,26) && device.colors[0] == 0, "black boost lifts mapped black only");
+            frame.fill(Qt::white);
+            Publish(lift, frame);
+            lift.StepEffect({&zone});
+            Check(device.colors[7] == ToRGBColor(255,255,255), "black boost preserves white");
+            lift.SetBrightness(0);
+            lift.StepEffect({&zone});
+            Check(device.colors[7] == 0, "zero brightness remains off with black boost");
+            Ambient restored;
+            restored.LoadCustomSettings(lift.SaveCustomSettings());
+            Check(restored.SaveCustomSettings()["black_boost"] == 10, "black boost survives profile roundtrip");
+            settings["black_boost"] = 100;
+            restored.LoadCustomSettings(settings);
+            Check(restored.SaveCustomSettings()["black_boost"] == 25, "black boost clamps profile values");
+        }
         Ambient ambient;
         MockController controller;
         ControllerZone zone(&controller, 0, false, 100, true, false);
