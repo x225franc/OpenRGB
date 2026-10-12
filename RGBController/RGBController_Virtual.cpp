@@ -21,7 +21,8 @@ RGBController_Virtual::RGBController_Virtual(RGBController_Setup* setup)
 
 RGBController_Virtual::~RGBController_Virtual()
 {
-
+    // Finish device callbacks while the plugin's callback target is still alive.
+    Shutdown();
 }
 
 void RGBController_Virtual::SetupLEDs(RGBController_Setup* setup)
@@ -184,3 +185,4 @@ void RGBController_Virtual::DeviceUpdateDeviceSpecificZoneConfiguration(int zone
         AccessMutex.lock();
     }
 }
+
