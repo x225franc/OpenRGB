@@ -84,6 +84,13 @@ VirtualController::VirtualController()
 
 VirtualController::~VirtualController()
 {
+    // Drain device callbacks before their target and the plugin code disappear.
+    // Delete outside added_zones_mutex: Shutdown joins the device thread.
+    Register(false, false);
+    Clear();
+    OpenRGBVisualMapPlugin::api->DeleteVirtualRGBController(virtual_controller);
+    virtual_controller = nullptr;
+
     /*-----------------------------------------------------*\
     | Remove this instance from the tracking list           |
     \*-----------------------------------------------------*/

@@ -28,6 +28,8 @@ int VisualMapRegression::Run(int argc,char** argv) {
   QTemporaryDir dir; FakeHost api; api.directory=dir.path().toStdWString();
   FakeController physical; physical.state.name="Test light"; physical.state.vendor="Test"; physical.state.serial="123"; physical.state.location="HID: test";
   api.devices.push_back(&physical); OpenRGBVisualMapPlugin::api=&api; ZoneManager::Get()->UpdateControllerZones();
+  { VirtualController controller; Check(api.owned.size()==1,"Virtual controller not created"); }
+  Check(api.owned.empty(),"Destroyed map left a host controller and callback target alive");
   VirtualControllerTab tab;
   auto* zone=tab.controller_zones.at(0); tab.virtual_controller->Add(zone); tab.AddActiveZone(zone);
   zone->settings.x=12.25; zone->settings.y=7.5; zone->settings.scale=2.0; zone->settings.reverse=true;

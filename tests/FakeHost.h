@@ -132,7 +132,7 @@ public:
     std::vector<std::unique_ptr<FakeController>> owned;
     void LogEntry(const char* filename, int line, unsigned int level, const char* fmt, ...) override {  }
     RGBControllerInterface* CreateVirtualRGBController(RGBController_Setup* setup) override { auto* c = new FakeController(); c->Update(setup); owned.emplace_back(c); return c; }
-    void DeleteVirtualRGBController(RGBControllerInterface* rgb_controller) override {  }
+    void DeleteVirtualRGBController(RGBControllerInterface* rgb_controller) override { owned.erase(std::remove_if(owned.begin(), owned.end(), [rgb_controller](const std::unique_ptr<FakeController>& c) { return c.get() == rgb_controller; }), owned.end()); }
     void RegisterVirtualRGBController(RGBControllerInterface* rgb_controller) override {  }
     void RegisterVirtualRGBControllerInThread(RGBControllerInterface* rgb_controller) override {  }
     void UnregisterVirtualRGBController(RGBControllerInterface* rgb_controller) override {  }
