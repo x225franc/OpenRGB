@@ -1,1 +1,1 @@
-<RCC><qresource prefix="/LightSync"><file alias="icon.ico">images/LightSync.ico</file></qresource></RCC>
+<RCC><qresource prefix="/LightSync"><file alias="icon.png">images/LightSync.png</file></qresource></RCC>
