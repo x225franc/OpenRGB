@@ -15,6 +15,7 @@
 #include <algorithm>
 #include "LivePreviewController.h"
 #include "ColorUtils.h"
+#include "SpatialBlending.h"
 #include "OpenRGBEffectSettings.h"
 #include "QtScreenCapturer.h"
 
@@ -40,6 +41,12 @@ Ambient::Ambient(QWidget *parent) :
         ambient_black_boost = value;
         ui->black_boost_value->setValue(value);
     });
+    connect(ui->blending, &QSlider::valueChanged, this, [this](int value)
+    {
+        ambient_blending = value;
+        ui->blending_value->setValue(value);
+    });
+    connect(ui->blending_value, QOverload<int>::of(&QSpinBox::valueChanged), ui->blending, &QSlider::setValue);
     connect(ui->black_boost_value, QOverload<int>::of(&QSpinBox::valueChanged), ui->black_boost, &QSlider::setValue);
     connect(ui->saturation_value, QOverload<int>::of(&QSpinBox::valueChanged),
             ui->saturation, &QSlider::setValue);
@@ -296,6 +303,8 @@ void Ambient::AcceptFrame(const QImage& input)
         }
         const uint64_t count = uint64_t(frame.pixels.width()) * frame.pixels.height();
         frame.average = ToRGBColor(r/count, g/count, b/count);
+        if(ambient_blending && mode == SCREEN_COPY)
+            frame.neighborhood = AmbientSpatialNeighborhood(frame.pixels);
     }
     {
         std::lock_guard<std::mutex> guard(lock);
@@ -369,6 +378,7 @@ void Ambient::RenderFrame(const std::vector<ControllerZone*>& zones, bool previe
     const int brightness = ambient_brightness.load(), temperature = ambient_temperature.load(), tint = ambient_tint.load();
     const unsigned int saturation = ambient_saturation.load();
     const unsigned int black_boost = ambient_black_boost.load();
+    const unsigned int blending = ambient_blending.load();
     const unsigned int threshold = preview ? 0 : color_threshold.load();
     // Equivalent to the old coefficient at 60 FPS, but based on actual elapsed time.
     const double tau = smoothing ? -1.0 / (60.0 * std::log(smoothing * 0.01)) : 0;
@@ -436,6 +446,14 @@ void Ambient::RenderFrame(const std::vector<ControllerZone*>& zones, bool previe
             const int sx = std::min(frame.pixels.width()-1, int((uint64_t(2*x+1) * frame.pixels.width()) / (2*w)));
             const int sy = std::min(frame.pixels.height()-1, int((uint64_t(2*y+1) * frame.pixels.height()) / (2*h)));
             const QRgb pixel = reinterpret_cast<const QRgb*>(frame.pixels.constScanLine(sy))[sx];
+            if(blending && !frame.neighborhood.isNull())
+            {
+                const int bx = std::min(frame.neighborhood.width()-1, int((uint64_t(2*x+1)*frame.neighborhood.width())/(2*w)));
+                const int by = std::min(frame.neighborhood.height()-1, int((uint64_t(2*y+1)*frame.neighborhood.height())/(2*h)));
+                const QRgb nearby = reinterpret_cast<const QRgb*>(frame.neighborhood.constScanLine(by))[bx];
+                auto mix = [blending](int original, int average) { return (original*(100-blending)+average*blending+50)/100; };
+                return ToRGBColor(mix(qRed(pixel),qRed(nearby)), mix(qGreen(pixel),qGreen(nearby)), mix(qBlue(pixel),qBlue(nearby)));
+            }
             return ToRGBColor(qRed(pixel), qGreen(pixel), qBlue(pixel));
         };
         if(effect_mode == SCALED_AVERAGE)
@@ -471,6 +489,7 @@ void Ambient::LoadCustomSettings(json settings)
     ui->ultrawide_mode->setChecked(settings.value("ultrawide_mode", false));
     ui->saturation->setValue(settings.value("saturation", 100));
     ui->black_boost->setValue(settings.value("black_boost", 0));
+    ui->blending->setValue(settings.value("blending", 0));
     ui->keep_during_screensaver->setChecked(settings.value("keep_effect_during_screensaver", false));
     if(settings.contains("left"))           ui->left->setValue(settings["left"]);
     if(settings.contains("top"))            ui->top->setValue(settings["top"]);
@@ -530,6 +549,7 @@ json Ambient::SaveCustomSettings()
     settings["crop_stream"]     = crop_stream.load();
     settings["saturation"]      = ambient_saturation.load();
     settings["black_boost"]     = ambient_black_boost.load();
+    settings["blending"]        = ambient_blending.load();
     settings["keep_effect_during_screensaver"] = ui->keep_during_screensaver->isChecked();
 
     settings["performance"] = {

@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <thread>
 #include "Ambient.h"
+#include "SpatialBlending.h"
 #include "MockController.h"
 #include "OpenRGBPluginInterface.h"
 
@@ -91,6 +92,36 @@ public:
             settings["black_boost"] = 100;
             restored.LoadCustomSettings(settings);
             Check(restored.SaveCustomSettings()["black_boost"] == 25, "black boost clamps profile values");
+        }
+        {
+            QImage single(1,1,QImage::Format_RGB32); single.fill(qRgb(60,70,80));
+            Check(AmbientSpatialNeighborhood(single).pixel(0,0) == single.pixel(0,0), "blending handles one-pixel captures without edge darkening");
+            QImage large(1280,720,QImage::Format_RGB32); large.fill(qRgb(80,100,120));
+            const QImage bounded = AmbientSpatialNeighborhood(large);
+            Check(bounded.size() == QSize(640,360) && bounded.pixel(639,359) == qRgb(80,100,120), "spatial processing is bounded and preserves image borders");
+            Ambient blend;
+            MockController device;
+            ControllerZone zone(&device, 0, false, 100, true, false);
+            auto settings = Settings(1);
+            blend.LoadCustomSettings(settings);
+            QImage frame(4,2,QImage::Format_RGB32);
+            for(int y=0;y<2;++y) for(int x=0;x<4;++x) frame.setPixel(x,y,x<2 ? qRgb(255,0,0) : qRgb(0,0,255));
+            Publish(blend,frame);
+            Check(blend.latest_frame.neighborhood.isNull(), "zero blending avoids spatial processing");
+            blend.StepEffect({&zone});
+            Check(device.colors[8] == ToRGBColor(255,0,0), "zero blending preserves nearest-neighbor sampling");
+            settings["blending"] = 100;
+            blend.LoadCustomSettings(settings); Publish(blend,frame); blend.StepEffect({&zone});
+            Check(device.colors[8] == ToRGBColor(170,0,85) && device.colors[9] == ToRGBColor(85,0,170), "full blending mixes adjacent red and blue spatially without time smoothing");
+            settings["blending"] = 50;
+            blend.LoadCustomSettings(settings); blend.StepEffect({&zone});
+            Check(device.colors[8] == ToRGBColor(213,0,43), "partial blending interpolates original and local mean");
+            Ambient restored; restored.LoadCustomSettings(blend.SaveCustomSettings());
+            Check(restored.SaveCustomSettings()["blending"] == 50, "blending survives profile roundtrip");
+            settings["blending"] = 200; restored.LoadCustomSettings(settings);
+            Check(restored.SaveCustomSettings()["blending"] == 100, "blending clamps out-of-range saved settings");
+            frame.fill(qRgb(80,100,120)); Publish(blend,frame); blend.StepEffect({&zone});
+            Check(device.colors[8] == ToRGBColor(80,100,120) && device.colors[0] == 0, "blending preserves uniform colors and untouched LEDs");
         }
         Ambient ambient;
         MockController controller;

@@ -95,7 +95,7 @@ private:
     void AcceptFrame(const QImage&);
     void RenderFrame(const std::vector<ControllerZone*>&, bool preview);
     using Clock = std::chrono::steady_clock;
-    struct Frame { QImage pixels; RGBColor average = 0; Clock::time_point captured; };
+    struct Frame { QImage pixels, neighborhood; RGBColor average = 0; Clock::time_point captured; };
     struct ZoneState
     {
         std::vector<std::array<double, 3>> smoothed;
@@ -111,7 +111,7 @@ private:
     AmbientPerformanceMetrics processing_metrics{"processing"};
     AmbientPerformanceMetrics render_metrics{"render"};
     bool syncing_performance = false;
-    std::atomic<unsigned int> effect_fps{60}, ambient_brightness{100}, ambient_saturation{100}, ambient_black_boost{0};
+    std::atomic<unsigned int> effect_fps{60}, ambient_brightness{100}, ambient_saturation{100}, ambient_black_boost{0}, ambient_blending{0};
     std::atomic<int> ambient_temperature{0}, ambient_tint{0};
     std::atomic<unsigned int> rgb_fps{60}, analysis_fps{60}, analysis_width{320};
     std::atomic<unsigned int> color_threshold{2}, preview_fps{10};
