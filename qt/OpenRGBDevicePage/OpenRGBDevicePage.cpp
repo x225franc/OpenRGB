@@ -8,6 +8,8 @@
 \*---------------------------------------------------------*/
 
 #include <QTimer>
+#include <QLabel>
+#include "Controllers/RazerController/RazerBattery.h"
 
 #include "OpenRGBDevicePage.h"
 #include "OpenRGBDeviceEditorDialog.h"
@@ -46,6 +48,34 @@ OpenRGBDevicePage::OpenRGBDevicePage(RGBController *dev, QWidget *parent) :
     | Store device pointer                                  |
     \*-----------------------------------------------------*/
     device = dev;
+    if(auto* battery = dynamic_cast<RazerBatteryProvider*>(device))
+    {
+        if(battery->GetBatteryStatus().supported)
+        {
+            auto* label = new QLabel(this);
+            label->setObjectName("RazerBatteryStatus");
+            ui->OpenRGBDevicePageUiGridLayout->addWidget(label, 2, 0, 1, 2);
+            auto update = [this, battery, label]
+            {
+                const auto value = battery->GetBatteryStatus(); // Cached only: never device IO on Qt's thread.
+                QString text = value.percent < 0 ? tr("Battery: waiting for device") : tr("Battery: %1%").arg(value.percent);
+                text += " | " + QString::fromStdString(value.transport);
+                if(value.reachable && value.charging == 1) text += " | " + tr("Charging");
+                if(value.updated != std::chrono::steady_clock::time_point{})
+                {
+                    const auto age = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now()-value.updated).count();
+                    if(!value.reachable || age > 65) text += " | " + tr("Last reading: %1 s ago").arg(qlonglong(age));
+                    if(!value.reachable) text += " | " + tr("Unavailable / sleeping");
+                }
+                label->setText(text);
+                label->setToolTip(tr("Battery is read in the background every 30 seconds. Bluetooth charging state is not exposed by its battery service."));
+            };
+            auto* timer = new QTimer(this);
+            connect(timer, &QTimer::timeout, this, update);
+            update();
+            timer->start(1000);
+        }
+    }
 
     /*-----------------------------------------------------*\
     | Register update callback with the device              |

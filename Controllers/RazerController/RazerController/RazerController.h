@@ -18,6 +18,7 @@
 #include <mutex>
 #include <hidapi.h>
 #include "RGBController.h"
+#include "../RazerBattery.h"
 #include "DeviceGuardManager.h"
 
 /*---------------------------------------------------------*\
@@ -225,6 +226,8 @@ public:
     RazerController(hid_device* dev_handle, hid_device* dev_argb_handle, const char* path, unsigned short pid, std::string dev_name, bool shared_receiver = false);
     ~RazerController();
 
+    bool                    SupportsBattery() const;
+    RazerBatteryStatus      ReadBattery();
     unsigned int            GetDeviceIndex();
     device_type             GetDeviceType();
     std::string             GetDeviceLocation();

@@ -141,10 +141,12 @@ RGBController_Razer::RGBController_Razer(RazerController* controller_ptr)
     }
 
     SetupZones();
+    if(controller->SupportsBattery()) battery.Start([this]{ return controller->ReadBattery(); });
 }
 
 RGBController_Razer::~RGBController_Razer()
 {
+    battery.Stop();
     Shutdown();
 
     delete controller;

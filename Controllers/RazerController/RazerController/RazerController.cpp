@@ -1936,6 +1936,32 @@ void RazerController::razer_set_mode_wave(unsigned char direction)
  * Called only while transport_mutex is held; no worker or stale frame queue.
  * The receiver handle stays owned for a cable removal fallback.
  */
+bool RazerController::SupportsBattery() const
+{
+    return dev_pid == RAZER_BLACKWIDOW_V3_MINI_WIRED_PID || dev_pid == RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID
+        || dev_pid == RAZER_BASILISK_V3_PRO_35K_PG_WIRED_PID || dev_pid == RAZER_BASILISK_V3_PRO_35K_PG_WIRELESS_PID;
+}
+
+RazerBatteryStatus RazerController::ReadBattery()
+{
+    RazerBatteryStatus value;
+    value.supported = SupportsBattery();
+    if(!value.supported) return value;
+    auto request = razer_create_report(0x07, 0x80, 0x02);
+    auto response = razer_create_response();
+    if(razer_usb_query(&request, &response, 5))
+    {
+        value.percent = (unsigned(response.arguments[1])*100 + 127)/255;
+        value.reachable = true;
+        request = razer_create_report(0x07, 0x84, 0x02);
+        if(razer_usb_query(&request, &response, 5) && response.arguments[1] <= 1)
+            value.charging = response.arguments[1];
+    }
+    { std::lock_guard<std::mutex> lock(transport_mutex);
+      value.transport = usb_dev || dev_pid == RAZER_BLACKWIDOW_V3_MINI_WIRED_PID || dev_pid == RAZER_BASILISK_V3_PRO_35K_PG_WIRED_PID ? "USB" : "HyperSpeed"; }
+    return value;
+}
+
 void RazerController::RefreshSharedTransport()
 {
     if(!shared_receiver) return;

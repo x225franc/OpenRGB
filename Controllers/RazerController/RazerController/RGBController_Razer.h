@@ -27,12 +27,13 @@ enum
     RAZER_MODE_REACTIVE,
 };
 
-class RGBController_Razer : public RGBController
+class RGBController_Razer : public RGBController, public RazerBatteryProvider
 {
 public:
     RGBController_Razer(RazerController* controller_ptr);
     ~RGBController_Razer();
 
+    RazerBatteryStatus GetBatteryStatus() const override { return battery.cache.Snapshot(); }
     void        SetupZones();
 
     void        DeviceUpdateLEDs();
@@ -43,4 +44,5 @@ public:
 
 private:
     RazerController*    controller;
+    RazerBatteryMonitor battery;
 };

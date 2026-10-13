@@ -3,6 +3,7 @@
 #include "DetectionManager.h"
 #include "LogManager.h"
 #include "RGBController.h"
+#include "../RazerController/RazerBattery.h"
 #include <hidapi.h>
 #include <future>
 #include <thread>
@@ -27,6 +28,7 @@ class BluetoothWorker
     bool owns_lighting = false;
     std::vector<RazerBLE::Bytes> desired;
 public:
+    RazerBatteryCache battery;
     bool keyboard = false;
     std::vector<uint8_t> zones;
     std::vector<RazerBLE::Bytes> initial;
@@ -38,6 +40,7 @@ public:
     }
     bool Start(winrt::hstring id)
     {
+        battery.Enable("Bluetooth");
         std::promise<bool> ready;
         auto future = ready.get_future();
         thread = std::thread([this,id,ready=std::move(ready)]() mutable
@@ -57,6 +60,7 @@ public:
                 }
                 catch(std::exception const& e) { LOG_DEBUG("[Razer Bluetooth] Initial connection: %s", e.what()); ready.set_value(false); return; }
                 catch(winrt::hresult_error const& e) { LOG_DEBUG("[Razer Bluetooth] Initial connection: %s", winrt::to_string(e.message()).c_str()); ready.set_value(false); return; }
+                auto next_battery = std::chrono::steady_clock::time_point{};
                 auto sent = initial;
                 bool connected = true;
                 auto next = std::chrono::steady_clock::now();
@@ -65,6 +69,17 @@ public:
                 {
                     changed.wait_for(lock, std::chrono::seconds(2), [this]{ return stop || pending; });
                     if(stop) break;
+                    if(std::chrono::steady_clock::now() >= next_battery)
+                    {
+                        lock.unlock();
+                        RazerBatteryStatus value;
+                        value.supported = true; value.transport = "Bluetooth";
+                        try { value.percent = transport.ReadBattery(); value.reachable = value.percent >= 0; } catch(...) {}
+                        battery.Publish(value);
+                        next_battery = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+                        lock.lock();
+                        if(stop) break;
+                    }
                     if(!pending)
                     {
                         if(!owns_lighting || transport.IsConnected()) continue;
@@ -116,10 +131,11 @@ public:
     }
 };
 
-class RGBController_RazerBluetooth : public RGBController
+class RGBController_RazerBluetooth : public RGBController, public RazerBatteryProvider
 {
     std::unique_ptr<BluetoothWorker> worker;
 public:
+    RazerBatteryStatus GetBatteryStatus() const override { return worker->battery.Snapshot(); }
     explicit RGBController_RazerBluetooth(std::unique_ptr<BluetoothWorker> value) : worker(std::move(value))
     {
         name = worker->keyboard ? "Razer BlackWidow V3 Mini (Bluetooth)" : "Razer Basilisk V3 Pro 35K Phantom Green (Bluetooth)";

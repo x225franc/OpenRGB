@@ -62,6 +62,10 @@ extern "C" int hid_get_feature_report(hid_device* handle, unsigned char* data, s
     if(response.command_id.id == 0x81) { response.arguments[0] = 2; response.arguments[1] = 51; }
     if(response.command_id.id == 0x82) memcpy(response.arguments, "TEST_SERIAL", 11);
     if(response.command_id.id == 0x86) { response.arguments[0] = 4; response.data_size = 2; }
+    if(response.command_class == 0x07 && response.command_id.id == 0x80)
+        response.arguments[1] = response.transaction_id.id == 0x9F ? 255 : 215;
+    if(response.command_class == 0x07 && response.command_id.id == 0x84)
+        response.arguments[1] = usb_connected ? 1 : 0;
     if(fixture.wrong_target) response.transaction_id.id ^= 0x80;
     if(fixture.wrong_command) response.command_id.id ^= 1;
     if(fixture.empty_ack && !(response.command_id.id & 0x80)) response.data_size = 0;
@@ -106,6 +110,29 @@ int main()
             Check(keyboard.sent[0].transaction_id.id == 0x9F, "keyboard commands address 9F");
             Check(m.GetFirmwareString() == "v2.51" && mouse.sent.back().transaction_id.id == 0x1F,
                   "mouse commands address 1F independently");
+            const auto keyboard_battery = k.ReadBattery(), mouse_battery = m.ReadBattery();
+            Check(keyboard_battery.percent == 100 && keyboard_battery.reachable && keyboard_battery.charging == 0,
+                  "battery GET reads the secondary keyboard independently");
+            Check(mouse_battery.percent == 84 && mouse_battery.reachable && mouse_battery.transport == "HyperSpeed",
+                  "battery GET converts mouse raw charge to percent without a write command");
+            mouse.corrupt = true;
+            Check(!m.ReadBattery().reachable && m.ReadBattery().percent == -1, "bad battery CRC is unavailable, never a fake zero percent");
+            mouse.corrupt = false;
+            RazerBatteryCache cache;
+            cache.Enable("HyperSpeed"); cache.Publish(mouse_battery);
+            const auto last_good = cache.Snapshot();
+            cache.Publish({});
+            Check(cache.Snapshot().percent == 84 && !cache.Snapshot().reachable && cache.Snapshot().updated == last_good.updated,
+                  "failed battery polling retains last reading and its original timestamp");
+            RazerBatteryMonitor monitor;
+            std::atomic<int> polls{0};
+            monitor.Start([&]{ polls++; return mouse_battery; });
+            const auto deadline = std::chrono::steady_clock::now()+std::chrono::seconds(1);
+            while(polls == 0 && std::chrono::steady_clock::now() < deadline) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            const auto stopping = std::chrono::steady_clock::now();
+            monitor.Stop();
+            Check(polls == 1 && std::chrono::steady_clock::now()-stopping < std::chrono::milliseconds(500),
+                  "battery worker stops without waiting for its 30 second polling interval");
             for(int fault = 0; fault < 5; fault++)
             {
                 mouse.corrupt = fault == 0; mouse.wrong_target = fault == 1;

@@ -181,6 +181,26 @@ public:
         try { return device && device.ConnectionStatus() == BluetoothConnectionStatus::Connected; }
         catch(...) { return false; }
     }
+    int ReadBattery()
+    {
+        if(!IsConnected()) return -1;
+        auto services = Await(device.GetGattServicesForUuidAsync(GattServiceUuids::Battery(), BluetoothCacheMode::Cached));
+        if(services.Status() != GattCommunicationStatus::Success) return -1;
+        for(auto const& batteryService : services.Services())
+        {
+            struct CloseService { GattDeviceService service; ~CloseService() { try { service.Close(); } catch(...) {} } } close{batteryService};
+            auto chars = Await(batteryService.GetCharacteristicsForUuidAsync(GattCharacteristicUuids::BatteryLevel(), BluetoothCacheMode::Cached));
+            if(chars.Status() != GattCommunicationStatus::Success) continue;
+            for(auto const& characteristic : chars.Characteristics())
+            {
+                auto result = Await(characteristic.ReadValueAsync(BluetoothCacheMode::Uncached));
+                if(result.Status() != GattCommunicationStatus::Success) continue;
+                auto value = ReadBuffer(result.Value());
+                if(value.size() == 1 && value[0] <= 100) return value[0];
+            }
+        }
+        return -1;
+    }
     void Set(uint8_t zone, Bytes const& state)
     {
         if(state.size() != 11 || std::find(zones.begin(),zones.end(),zone) == zones.end()) throw std::runtime_error("Invalid lighting state");
