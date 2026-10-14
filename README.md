@@ -143,3 +143,30 @@ OpenRGB's native startup checkbox starts the app at Windows sign-in. It does not
 restart a crashed app at resume. Sleep should normally preserve the process.
 A separate recovery task can launch the app only if it is stopped; it is not a
 substitute for fixing the crash. No such task is installed by the plugin itself.
+
+### Optional resume recovery and Toolkit lighting deregistration
+
+Run these scripts under the Windows user who uses OpenRGB:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Configure-ResumeRecovery.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Configure-ResumeRecovery.ps1 -Remove
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Unregister-ToolkitLighting.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Unregister-ToolkitLighting.ps1 -Restore
+```
+
+Resume recovery registers the current user's interactive scheduled task
+**OpenRGB LightSync Resume Recovery**. It waits 20 seconds after the System log's
+Power-Troubleshooter resume event (ID 1), then starts the signed installed EXE
+minimized only if no OpenRGB process exists in that session. It does not wake the
+PC, need a password, or run as a Windows service. Logs are in
+`%LOCALAPPDATA%\OpenRGB-LightSync\ResumeRecovery.log`.
+Disable it in Task Scheduler or run `-Remove`.
+
+Toolkit deregistration removes only its sparse Dynamic Lighting package and its
+provider-list entries. Toolkit's installed files and external settings remain.
+The lighting registry and original package identity are backed up in
+`%LOCALAPPDATA%\OpenRGB-LightSync\ToolkitIdentityBackup`.
+`-Restore` registers the existing Toolkit LampArray MSIX again. Restore the REG
+backup only if you also want the old provider priorities; it contains the whole
+lighting registry, so it can overwrite later lighting preferences.
