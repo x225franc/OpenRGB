@@ -17,7 +17,9 @@ Remove-AppxPackage -Package $package.PackageFullName
 $keys=@('HKCU:\Software\Microsoft\Lighting\Providers')+@(Get-ChildItem 'HKCU:\Software\Microsoft\Lighting\Devices' | ForEach-Object { $_.PSPath+'\Providers' })
 foreach($path in $keys){
  if(-not(Test-Path $path)){continue}
- $key=Get-Item $path
+ $item=Get-Item $path
+ $key=[Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($item.Name.Substring('HKEY_CURRENT_USER\'.Length),$true)
+ if(-not $key){throw "Cannot open provider list for update: $path"}
  try{
   $names=@($key.GetValueNames() | Where-Object {$_ -match '^\d+$'} | Sort-Object {[int]$_})
   $values=@($names | ForEach-Object {[string]$key.GetValue($_)})
