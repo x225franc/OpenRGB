@@ -6,7 +6,7 @@ $log=Join-Path $directory 'ResumeRecovery.log'
 $mutex=New-Object Threading.Mutex($false,'Local\OpenRGBLightSync.ResumeRecovery')
 $owned=$false
 try{
- try{$owned=$mutex.WaitOne(0)}catch[Threading.AbandonedMutexException]{$owned=$true}
+ try{$owned=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$owned=$true}
  if(-not $owned){return}
  $session=[Diagnostics.Process]::GetCurrentProcess().SessionId
  if(Get-Process OpenRGB -ErrorAction SilentlyContinue | Where-Object SessionId -eq $session){Add-Content $log ((Get-Date -Format o)+' OpenRGB already running; skipped.');return}
@@ -17,3 +17,4 @@ try{
  Add-Content $log ((Get-Date -Format o)+' OpenRGB restarted after resume.')
 }catch{Add-Content $log ((Get-Date -Format o)+' Recovery error: '+$_.Exception.Message);throw}
 finally{if($owned){$mutex.ReleaseMutex()};$mutex.Dispose()}
+
