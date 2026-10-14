@@ -31,6 +31,7 @@ struct LampArrayBackend::Impl
     std::map<QString,Frame> latest;
     std::map<QString,Opened> arrays; // Only accessed by the dedicated Windows lighting thread.
     std::deque<std::function<void()>> tasks;
+    Clock::time_point recoveryStarted=Clock::now();
     std::thread worker;
     Impl():worker([this]{run();}){}
     ~Impl(){ {std::lock_guard<std::mutex> lock(mutex);stopping=true;}wake.notify_one();worker.join(); }
@@ -137,7 +138,7 @@ std::vector<LampArrayBackend::Device> LampArrayBackend::discover()
             auto array=LampArray::FromIdAsync(info.Id()).get();
             if(!array||array.LampArrayKind()!=LampArrayKind::Keyboard||array.LampCount()<=0)continue;
             if(array.HardwareVendorId()!=0x17EF&&array.HardwareVendorId()!=0x048D)continue;
-            Impl::Opened opened;opened.array=array;opened.device.id=id;opened.device.name="Lenovo Lighting";
+            Impl::Opened opened;opened.recovery.Begin(impl->recoveryStarted);opened.array=array;opened.device.id=id;opened.device.name="Lenovo Lighting";
             float minX=1e9f,minY=1e9f,maxX=-1e9f,maxY=-1e9f;
             for(int i=0;i<array.LampCount();i++)
             {
@@ -162,3 +163,4 @@ QString LampArrayBackend::send(QString id,const std::vector<RGBColor>& rgb,int b
     impl->wake.notify_one();return state;
 }
 void LampArrayBackend::release(){impl->execute([this]{impl->clear();});}
+void LampArrayBackend::resume(){impl->execute([this]{impl->clear();impl->recoveryStarted=Impl::Clock::now();});}

@@ -12,11 +12,17 @@ int main(int argc,char** argv)
  try {
   LampArrayRecovery recovery;
   const auto now=LampArrayRecovery::Clock::now();
-  check(!recovery.NeedsReopen(false,now)&&!recovery.NeedsReopen(false,now+std::chrono::seconds(9)),"Windows arbitration gets a grace period before reopening");
-  check(recovery.NeedsReopen(false,now+std::chrono::seconds(10)),"Unavailable Windows lighting session is eventually reopened");
-  recovery.Reopened(now+std::chrono::seconds(10));
-  check(!recovery.NeedsReopen(false,now+std::chrono::seconds(11)),"Session reopening is throttled instead of attempted every frame");
-  check(!recovery.NeedsReopen(true,now+std::chrono::seconds(12))&&!recovery.NeedsReopen(false,now+std::chrono::seconds(13)),"Recovered control resets the unavailable grace period");
+  check(!recovery.NeedsReopen(false,now+std::chrono::hours(1)),"Normal priority loss never starts an ownership-recovery loop");
+  recovery.Begin(now);
+  check(!recovery.NeedsReopen(false,now+std::chrono::seconds(30)),"Windows has 45 seconds to grant post-resume control");
+  check(recovery.NeedsReopen(false,now+std::chrono::seconds(45)),"Stale post-resume session is reopened after the arbitration grace period");
+  recovery.Reopened(now+std::chrono::seconds(45));
+  check(!recovery.NeedsReopen(false,now+std::chrono::seconds(46)),"Session reopening is throttled instead of attempted every frame");
+  check(!recovery.NeedsReopen(true,now+std::chrono::seconds(50))&&!recovery.NeedsReopen(false,now+std::chrono::seconds(51)),"Transient foreground-only control resets the unavailable grace period");
+  check(recovery.NeedsReopen(false,now+std::chrono::seconds(96)),"Foreground-only availability still allows recovery of background ownership");
+  check(!recovery.NeedsReopen(false,now+std::chrono::minutes(4)),"Ownership retries stop after the three-minute recovery window");
+  recovery.Begin(now+std::chrono::minutes(5));
+  check(recovery.NeedsReopen(false,now+std::chrono::seconds(345)),"A second hibernation arms a new bounded recovery window");
   recovery.Failed(now);
   check(!recovery.NeedsReopen(false,now+std::chrono::seconds(1))&&recovery.NeedsReopen(false,now+std::chrono::seconds(2)),"Invalid Windows lighting object retries after bounded backoff");
   auto packet=LightSyncEngine::GoveePacket({ToRGBColor(255,0,0),ToRGBColor(0,255,0),ToRGBColor(0,0,255)});

@@ -9,7 +9,7 @@ HEADERS += LightSyncPlugin.h LightSyncEngine.h LampArrayBackend.h
 SOURCES += LightSyncPlugin.cpp LightSyncEngine.cpp LampArrayBackend.cpp
 win32 {
  DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
- LIBS += -lwindowsapp -lpowrprof -luser32
+ LIBS += -lwindowsapp -lpowrprof -luser32 -lwtsapi32
  QMAKE_CXXFLAGS += /permissive- /bigobj
 }
 

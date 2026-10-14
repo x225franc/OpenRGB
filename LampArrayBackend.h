@@ -13,6 +13,7 @@ public:
     std::vector<Device> discover();
     QString send(QString, const std::vector<RGBColor>&, int);
     void release();
+    void resume();
 private:
     struct Impl;
     std::unique_ptr<Impl> impl;

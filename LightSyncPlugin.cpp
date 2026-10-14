@@ -15,6 +15,7 @@
 #include <QScrollArea>
 #include <windows.h>
 #include <powrprof.h>
+#include <wtsapi32.h>
 
 LightSyncPlugin::~LightSyncPlugin(){Unload();}
 OpenRGBPluginInfo LightSyncPlugin::GetPluginInfo()
@@ -51,6 +52,7 @@ void LightSyncPlugin::Load(OpenRGBPluginAPIInterface* ptr)
     QMetaObject::invokeMethod(engine,[this,initial]{engine->configure(initial);engine->start();},Qt::QueuedConnection);
     initialization.exec(QEventLoop::ExcludeUserInputEvents);
     qApp->installNativeEventFilter(this);
+    sessionNotification=WTSRegisterSessionNotification(reinterpret_cast<HWND>(widget->winId()),NOTIFY_FOR_THIS_SESSION)!=FALSE;
     powerNotification=RegisterSuspendResumeNotification(reinterpret_cast<HANDLE>(widget->winId()),DEVICE_NOTIFY_WINDOW_HANDLE);
 }
 void LightSyncPlugin::apply(bool save)
@@ -131,12 +133,14 @@ bool LightSyncPlugin::nativeEventFilter(const QByteArray&,void* event,qintptr*)
         if(msg->wParam==PBT_APMSUSPEND)QMetaObject::invokeMethod(engine,[this]{engine->suspend(true);},Qt::QueuedConnection);
         else if(msg->wParam==PBT_APMRESUMEAUTOMATIC||msg->wParam==PBT_APMRESUMESUSPEND)QMetaObject::invokeMethod(engine,[this]{engine->suspend(false);},Qt::QueuedConnection);
     }
+    else if(msg->message==WM_WTSSESSION_CHANGE&&(msg->wParam==WTS_SESSION_UNLOCK||msg->wParam==WTS_CONSOLE_CONNECT))
+        QMetaObject::invokeMethod(engine,[this]{engine->recoverKeyboard("Session unlock/connect");},Qt::QueuedConnection);
     else if(msg->message==WM_ENDSESSION&&msg->wParam)QMetaObject::invokeMethod(engine,[this]{engine->suspend(true);},Qt::BlockingQueuedConnection);
     return false;
 }
 void LightSyncPlugin::Unload()
 {
-    if(!engine)return;qApp->removeNativeEventFilter(this);if(powerNotification){UnregisterSuspendResumeNotification(powerNotification);powerNotification=nullptr;}
+    if(!engine)return;qApp->removeNativeEventFilter(this);if(sessionNotification&&widget){WTSUnRegisterSessionNotification(reinterpret_cast<HWND>(widget->winId()));sessionNotification=false;}if(powerNotification){UnregisterSuspendResumeNotification(powerNotification);powerNotification=nullptr;}
     disconnect(engine,nullptr,this,nullptr);
     QEventLoop shutdown;connect(engine,&LightSyncEngine::shutdownComplete,&shutdown,&QEventLoop::quit);
     QMetaObject::invokeMethod(engine,&LightSyncEngine::shutdown,Qt::QueuedConnection);

@@ -65,6 +65,7 @@ public slots:
     void setDeviceEnabled(QString, bool);
     void restart();
     void suspend(bool);
+    void recoverKeyboard(QString reason);
     void shutdown();
 signals:
     void inventory(QJsonArray);
@@ -90,7 +91,7 @@ private:
     QString directory;
     LightSyncSettings settings;
     QJsonArray cachedDevices;
-    qint64 lastTick = 0, lastResume = -1;
+    qint64 lastTick = 0, lastResume = -1, lastKeyboardRecovery = -1;
     QTimer* timer = nullptr;
     QTimer* heartbeat = nullptr;
     std::vector<QUdpSocket*> discovery;

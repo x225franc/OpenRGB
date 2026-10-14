@@ -132,7 +132,9 @@ reopened on resume, even when the device identifier is unchanged. Rediscovery is
 retried after 1.5, 5 and 15 seconds while keeping the existing OpenRGB controllers,
 Visual Map routes and latest requested colors. Duplicate suspend/resume messages
 are coalesced. Invalid LampArray objects retry after two seconds; an unavailable
-session gets a ten-second Windows arbitration grace period before reopening.
+session gets the same 45-second grace period and three-minute recovery window as
+LightSync standalone/Toolkit, armed at startup, restart, resume or session unlock.
+Ordinary foreground priority changes outside this window do not reopen the device.
 Recovery does not override another application's Windows lighting priority.
 
 The log records Suspend/Resume and the displayed keyboard status shows waiting,

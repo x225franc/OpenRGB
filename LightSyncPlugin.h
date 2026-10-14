@@ -46,6 +46,6 @@ private:
     QJsonArray cachedDevices;
     nlohmann::json disabled=nlohmann::json::object();
     QCheckBox *enabled=nullptr,*off=nullptr,*on=nullptr,*smooth=nullptr,*laptop=nullptr;
-    bool updating=false;
+    bool updating=false, sessionNotification=false;
     void* powerNotification=nullptr;
 };

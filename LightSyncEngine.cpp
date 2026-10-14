@@ -169,7 +169,7 @@ void LightSyncEngine::setDeviceEnabled(QString id,bool enabled)
 {
     for(auto& d:devices)if(d->id==id){d->enabled=enabled;if(!enabled)release(*d);else{d->nextAttempt=0;d->externallyOff=false;}}publish();
 }
-void LightSyncEngine::restart(){for(auto& d:devices){release(*d);d->externallyOff=false;}if(lamps)lamps->release();scan();log("Transport restarted; device identities and Visual Map routes retained");}
+void LightSyncEngine::restart(){for(auto& d:devices){release(*d);d->externallyOff=false;}if(lamps)lamps->resume();scan();log("Transport restarted; device identities and Visual Map routes retained");}
 void LightSyncEngine::suspend(bool sleep)
 {
     if(sleep && sleeping)return;
@@ -187,11 +187,23 @@ void LightSyncEngine::suspend(bool sleep)
         log("Resume: reopening Windows Dynamic Lighting; preserving device identities and latest colors");
         // Windows can invalidate LampArray objects across hibernation even when
         // the device ID stays unchanged or the suspend message was missed.
-        if(lamps)lamps->release();
+        if(lamps)lamps->resume();
+        lastKeyboardRecovery=clock.elapsed();
         scan();
         for(auto& d:devices){d->nextAttempt=clock.elapsed()+1500;if(settings.onOnResume)d->externallyOff=false;}
         for(int delay:{1500,5000,15000})QTimer::singleShot(delay,this,[this]{if(!stopped&&!sleeping)scan();});
     }
+    publish();
+}
+void LightSyncEngine::recoverKeyboard(QString reason)
+{
+    if(stopped||sleeping||!settings.enabled||!settings.laptop||!lamps)return;
+    if(lastKeyboardRecovery>=0&&clock.elapsed()-lastKeyboardRecovery<1000)return;
+    lastKeyboardRecovery=clock.elapsed();
+    log(reason+": releasing and rediscovering Lenovo Windows Dynamic Lighting");
+    lamps->resume();scan();
+    for(auto& d:devices)if(d->kind=="laptop")d->nextAttempt=clock.elapsed()+1500;
+    for(int delay:{1500,5000,15000})QTimer::singleShot(delay,this,[this]{if(!stopped&&!sleeping)scan();});
     publish();
 }
 void LightSyncEngine::command(LightSyncDevice& d,QString method,QJsonArray params)
