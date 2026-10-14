@@ -124,3 +124,22 @@ La découverte multicast n'est pas une garantie de prise en charge complète. Le
 Govee : la découverte LAN est automatique, mais le contrôle segmenté dépend du protocole du modèle. Cette version déclare 6 segments pour H6056 et 10 pour les autres Govee découverts, correspondant aux H61A0/H6061 testés. Elle ne détermine pas automatiquement le nombre réel de segments d'un modèle inconnu. Un autre appareil peut être détecté tout en nécessitant une adaptation du nombre de segments ou des paquets. Aucun support universel Govee/Yeelight n'est revendiqué.
 
 En cas d'absence : vérifier LAN Control, même réseau, isolation Wi-Fi/VLAN, pare-feu privé et absence d'un autre contrôleur. Le plugin effectue une découverte locale, pas un appairage cloud ou Bluetooth.
+
+### Sleep / hibernation recovery
+
+The Windows Dynamic Lighting session is released on suspend and explicitly
+reopened on resume, even when the device identifier is unchanged. Rediscovery is
+retried after 1.5, 5 and 15 seconds while keeping the existing OpenRGB controllers,
+Visual Map routes and latest requested colors. Duplicate suspend/resume messages
+are coalesced. Invalid LampArray objects retry after two seconds; an unavailable
+session gets a ten-second Windows arbitration grace period before reopening.
+Recovery does not override another application's Windows lighting priority.
+
+The log records Suspend/Resume and the displayed keyboard status shows waiting,
+reconnecting or controlled, plus the measured write FPS when control is granted.
+OpenRGB must keep its signed OpenRGB.LightSync identity and background priority.
+
+OpenRGB's native startup checkbox starts the app at Windows sign-in. It does not
+restart a crashed app at resume. Sleep should normally preserve the process.
+A separate recovery task can launch the app only if it is stopped; it is not a
+substitute for fixing the crash. No such task is installed by the plugin itself.

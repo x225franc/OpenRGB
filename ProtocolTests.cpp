@@ -1,4 +1,5 @@
 #include "LightSyncEngine.h"
+#include "LampArrayRecovery.h"
 #include <QCoreApplication>
 #include <QJsonDocument>
 #include <QPluginLoader>
@@ -9,6 +10,15 @@ int main(int argc,char** argv)
 {
  QCoreApplication app(argc,argv);
  try {
+  LampArrayRecovery recovery;
+  const auto now=LampArrayRecovery::Clock::now();
+  check(!recovery.NeedsReopen(false,now)&&!recovery.NeedsReopen(false,now+std::chrono::seconds(9)),"Windows arbitration gets a grace period before reopening");
+  check(recovery.NeedsReopen(false,now+std::chrono::seconds(10)),"Unavailable Windows lighting session is eventually reopened");
+  recovery.Reopened(now+std::chrono::seconds(10));
+  check(!recovery.NeedsReopen(false,now+std::chrono::seconds(11)),"Session reopening is throttled instead of attempted every frame");
+  check(!recovery.NeedsReopen(true,now+std::chrono::seconds(12))&&!recovery.NeedsReopen(false,now+std::chrono::seconds(13)),"Recovered control resets the unavailable grace period");
+  recovery.Failed(now);
+  check(!recovery.NeedsReopen(false,now+std::chrono::seconds(1))&&recovery.NeedsReopen(false,now+std::chrono::seconds(2)),"Invalid Windows lighting object retries after bounded backoff");
   auto packet=LightSyncEngine::GoveePacket({ToRGBColor(255,0,0),ToRGBColor(0,255,0),ToRGBColor(0,0,255)});
   auto data=QJsonDocument::fromJson(packet).object()["msg"].toObject()["data"].toObject()["pt"].toString().toLatin1();
   auto frame=QByteArray::fromBase64(data);

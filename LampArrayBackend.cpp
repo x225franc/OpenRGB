@@ -1,4 +1,5 @@
 #include "LampArrayBackend.h"
+#include "LampArrayRecovery.h"
 #include <map>
 #include <algorithm>
 #include <thread>
@@ -8,6 +9,7 @@
 #include <deque>
 #include <chrono>
 #include <cmath>
+#include <stdexcept>
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Devices.Enumeration.h>
@@ -20,7 +22,7 @@ struct LampArrayBackend::Impl
     using Clock=std::chrono::steady_clock;
     struct Frame { std::vector<RGBColor> colors; int brightness=100; QString status="Waiting for first frame"; };
     struct Opened {
-        LampArray array{nullptr}; Device device;
+        LampArray array{nullptr}; Device device; LampArrayRecovery recovery;
         std::vector<Windows::UI::Color> colors;std::vector<int32_t> indices;
         std::chrono::nanoseconds interval{16666667};Clock::time_point next=Clock::now(),measured=Clock::now();
         int frames=0;double fps=0;
@@ -43,6 +45,23 @@ struct LampArrayBackend::Impl
         for(auto& entry:arrays)try{entry.second.array.IsEnabled(false);}catch(...){}
         arrays.clear();std::lock_guard<std::mutex> lock(mutex);latest.clear();
     }
+    void reopen(QString id, Opened& opened)
+    {
+        try{if(opened.array)opened.array.IsEnabled(false);}catch(...){}
+        opened.array=nullptr;
+        auto operation=LampArray::FromIdAsync(hstring(id.toStdWString()));
+        if(operation.wait_for(std::chrono::seconds(5))!=Windows::Foundation::AsyncStatus::Completed)
+        {
+            operation.Cancel();throw std::runtime_error("Windows lighting reopen timed out");
+        }
+        auto array=operation.GetResults();
+        if(!array)throw std::runtime_error("Windows lighting device is not ready");
+        if(array.LampCount()!=int(opened.indices.size()))throw std::runtime_error("Lamp count changed; restart OpenRGB");
+        array.IsEnabled(true);opened.array=array;
+        opened.frames=0;opened.fps=0;opened.measured=Clock::now();
+        opened.interval=std::max(std::chrono::nanoseconds(16666667),std::chrono::nanoseconds(array.MinUpdateInterval().count()*100));
+        opened.recovery.Reopened(Clock::now());
+    }
     void run()
     {
         init_apartment(apartment_type::multi_threaded);
@@ -62,7 +81,16 @@ struct LampArrayBackend::Impl
                     QString state;
                     try
                     {
-                        bool available=opened.array.IsAvailable();
+                        if(opened.recovery.invalid && now<opened.recovery.retry)
+                        {
+                            opened.next=opened.recovery.retry;deadline=std::min(deadline,opened.next);continue;
+                        }
+                        bool available=opened.array && opened.array.IsAvailable();
+                        if(opened.recovery.NeedsReopen(available,now))
+                        {
+                            reopen(entry.first,opened);
+                            available=opened.array.IsAvailable();
+                        }
                         // Like Toolkit, keep feeding the most recent image even while Windows arbitrates ownership.
                         // Never turn an availability check into a stopped producer.
                         if(frame.colors.size()!=opened.indices.size())state="Lamp count changed; restart OpenRGB";
@@ -76,12 +104,13 @@ struct LampArrayBackend::Impl
                             opened.array.SetColorsForIndices(opened.colors,opened.indices);
                             ++opened.frames;auto elapsed=std::chrono::duration<double>(now-opened.measured).count();
                             if(elapsed>=1){opened.fps=opened.frames/elapsed;opened.frames=0;opened.measured=now;}
-                            state=(available?QString("Controlled by Windows Dynamic Lighting"):QString("Waiting for Windows background priority — place OpenRGB LightSync first"));
+                            state=(available?QString("Controlled by Windows Dynamic Lighting"):QString("Waiting for Windows background priority â€” place OpenRGB LightSync first"));
                             if(available)state+=QString(" | %1 FPS (max %2)").arg(opened.fps,0,'f',0).arg(1e9/opened.interval.count(),0,'f',0);
                         }
                     }
-                    catch(hresult_error const& e){state=QString::fromWCharArray(e.message().c_str());}
-                    catch(...){state="Windows lighting write failed; Search again or Restart";}
+                    catch(hresult_error const& e){opened.recovery.Failed(Clock::now());state="Reconnecting Windows Dynamic Lighting: "+QString::fromWCharArray(e.message().c_str());}
+                    catch(std::exception const& e){opened.recovery.Failed(Clock::now());state="Reconnecting Windows Dynamic Lighting: "+QString::fromUtf8(e.what());}
+                    catch(...){opened.recovery.Failed(Clock::now());state="Reconnecting Windows Dynamic Lighting";}
                     {std::lock_guard<std::mutex> lock(mutex);latest[entry.first].status=state;}
                     opened.next+=opened.interval;
                     // Drop missed deadlines: no catch-up burst and no stale frame queue.

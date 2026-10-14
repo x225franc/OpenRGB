@@ -90,7 +90,7 @@ private:
     QString directory;
     LightSyncSettings settings;
     QJsonArray cachedDevices;
-    qint64 lastTick = 0;
+    qint64 lastTick = 0, lastResume = -1;
     QTimer* timer = nullptr;
     QTimer* heartbeat = nullptr;
     std::vector<QUdpSocket*> discovery;

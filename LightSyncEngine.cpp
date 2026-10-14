@@ -172,9 +172,26 @@ void LightSyncEngine::setDeviceEnabled(QString id,bool enabled)
 void LightSyncEngine::restart(){for(auto& d:devices){release(*d);d->externallyOff=false;}if(lamps)lamps->release();scan();log("Transport restarted; device identities and Visual Map routes retained");}
 void LightSyncEngine::suspend(bool sleep)
 {
+    if(sleep && sleeping)return;
+    if(!sleep && !sleeping && lastResume>=0 && clock.elapsed()-lastResume<2000)return;
     sleeping=sleep;
-    if(sleep){for(auto& d:devices){if(settings.offOnSuspend&&d->kind!="laptop")power(*d,false);release(*d);}if(lamps)lamps->release();}
-    else{scan();for(auto& d:devices){d->nextAttempt=clock.elapsed()+1500;if(settings.onOnResume)d->externallyOff=false;}}
+    if(sleep)
+    {
+        log("Suspend: releasing LAN and Windows Dynamic Lighting sessions");
+        for(auto& d:devices){if(settings.offOnSuspend&&d->kind!="laptop")power(*d,false);release(*d);}
+        if(lamps)lamps->release();
+    }
+    else
+    {
+        lastResume=clock.elapsed();
+        log("Resume: reopening Windows Dynamic Lighting; preserving device identities and latest colors");
+        // Windows can invalidate LampArray objects across hibernation even when
+        // the device ID stays unchanged or the suspend message was missed.
+        if(lamps)lamps->release();
+        scan();
+        for(auto& d:devices){d->nextAttempt=clock.elapsed()+1500;if(settings.onOnResume)d->externallyOff=false;}
+        for(int delay:{1500,5000,15000})QTimer::singleShot(delay,this,[this]{if(!stopped&&!sleeping)scan();});
+    }
     publish();
 }
 void LightSyncEngine::command(LightSyncDevice& d,QString method,QJsonArray params)
