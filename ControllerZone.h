@@ -71,4 +71,6 @@ public:
     bool                        has_direct;
     bool                        is_segment;
     int                         segment_idx;
+private:
+    nlohmann::json identity; // Snapshot survives removal of the backing virtual controller.
 };

@@ -123,6 +123,18 @@ public:
             frame.fill(qRgb(80,100,120)); Publish(blend,frame); blend.StepEffect({&zone});
             Check(device.colors[8] == ToRGBColor(80,100,120) && device.colors[0] == 0, "blending preserves uniform colors and untouched LEDs");
         }
+        {
+            auto former = std::make_unique<MockController>();
+            ControllerZone detached(former.get(), 0, false, 100, true, false);
+            const auto descriptor = detached.to_json();
+            former.reset(); // Exactly the plugin unload/reload lifetime ordering.
+            detached.reverse = true; detached.self_brightness = 47;
+            auto saved = detached.to_json();
+            Check(saved["name"] == descriptor["name"] && saved["location"] == descriptor["location"],
+                  "zone identity survives destruction of the virtual controller during suspend");
+            Check(saved["reverse"] == true && saved["self_brightness"] == 47,
+                  "detached zone serialization retains current effect settings");
+        }
         Ambient ambient;
         MockController controller;
         ControllerZone zone(&controller, 0, false, 100, true, false);

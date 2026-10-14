@@ -150,6 +150,9 @@ void OpenRGBEffectsPlugin::Unload()
     \*-----------------------------------------------------*/
     unloading = true;
     ui->StopAll();
+    // Suspend unloads can destroy Visual Map/LightSync controllers before the next Load.
+    // Restore assignments from the saved profile, never from those stale pointers.
+    EffectManager::Get()->ClearAssignments();
     // Drain callbacks before this QObject is destroyed and other plugins remove devices.
     for(RGBControllerInterface* controller : api->GetRGBControllers())
         controller->UnregisterUpdateCallback(this);

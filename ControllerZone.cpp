@@ -27,6 +27,9 @@ ControllerZone::ControllerZone
     this->has_direct        = has_direct;
     this->is_segment        = is_segment;
     this->segment_idx       = segment_idx;
+    identity = {{"name", controller->GetName()}, {"location", controller->GetLocation()},
+                {"serial", controller->GetSerial()}, {"description", controller->GetDescription()},
+                {"version", controller->GetVersion()}, {"vendor", controller->GetVendor()}};
 }
 
 std::vector<RGBColor> ControllerZone::colors()
@@ -191,17 +194,12 @@ unsigned int ControllerZone::start_idx()
 
 nlohmann::json ControllerZone::to_json()
 {
-    nlohmann::json controller_zone_json;
+    nlohmann::json controller_zone_json = identity;
 
     controller_zone_json["zone_idx"]        = zone_idx;
     controller_zone_json["reverse"]         = reverse;
     controller_zone_json["self_brightness"] = self_brightness;
-    controller_zone_json["name"]            = controller->GetName();
-    controller_zone_json["location"]        = controller->GetLocation();
-    controller_zone_json["serial"]          = controller->GetSerial();
-    controller_zone_json["description"]     = controller->GetDescription();
-    controller_zone_json["version"]         = controller->GetVersion();
-    controller_zone_json["vendor"]          = controller->GetVendor();
+    // Do not call a controller that another plugin may already have destroyed.
     controller_zone_json["is_segment"]      = is_segment;
     controller_zone_json["segment_idx"]     = segment_idx;
 
