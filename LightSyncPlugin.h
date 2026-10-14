@@ -37,6 +37,7 @@ private:
     LightSyncEngine* engine=nullptr;
     QThread worker;
     QWidget* widget=nullptr;
+    QWidget* notificationWindow=nullptr;
     QTableWidget* table=nullptr;
     QLabel* diagnostics=nullptr;
     QLabel* keyboardStatus=nullptr;

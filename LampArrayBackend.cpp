@@ -105,7 +105,7 @@ struct LampArrayBackend::Impl
                             opened.array.SetColorsForIndices(opened.colors,opened.indices);
                             ++opened.frames;auto elapsed=std::chrono::duration<double>(now-opened.measured).count();
                             if(elapsed>=1){opened.fps=opened.frames/elapsed;opened.frames=0;opened.measured=now;}
-                            state=(available?QString("Controlled by Windows Dynamic Lighting"):QString("Waiting for Windows background priority â€” place OpenRGB LightSync first"));
+                            state=(available?QString("Controlled by Windows Dynamic Lighting"):QString("Waiting for Windows background priority - place OpenRGB LightSync first"));
                             if(available)state+=QString(" | %1 FPS (max %2)").arg(opened.fps,0,'f',0).arg(1e9/opened.interval.count(),0,'f',0);
                         }
                     }

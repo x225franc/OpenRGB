@@ -172,3 +172,8 @@ The lighting registry and original package identity are backed up in
 `-Restore` registers the existing Toolkit LampArray MSIX again. Restore the REG
 backup only if you also want the old provider priorities; it contains the whole
 lighting registry, so it can overwrite later lighting preferences.
+
+Windows power/session notifications use a separate, permanently hidden Qt
+window. They are not registered against the plugin tab's HWND: OpenRGB reparents
+that tab after Load(), which can replace the HWND and invalidate registration.
+This matches the stable SystemEvents notification window used by the C# versions.

@@ -52,8 +52,12 @@ void LightSyncPlugin::Load(OpenRGBPluginAPIInterface* ptr)
     QMetaObject::invokeMethod(engine,[this,initial]{engine->configure(initial);engine->start();},Qt::QueuedConnection);
     initialization.exec(QEventLoop::ExcludeUserInputEvents);
     qApp->installNativeEventFilter(this);
-    sessionNotification=WTSRegisterSessionNotification(reinterpret_cast<HWND>(widget->winId()),NOTIFY_FOR_THIS_SESSION)!=FALSE;
-    powerNotification=RegisterSuspendResumeNotification(reinterpret_cast<HANDLE>(widget->winId()),DEVICE_NOTIFY_WINDOW_HANDLE);
+    // The tab widget is reparented by OpenRGB after Load(), which can replace
+    // its HWND. A separate hidden Qt window keeps notification registration stable.
+    notificationWindow=new QWidget(nullptr,Qt::Tool);
+    notificationWindow->setWindowTitle("LightSync Windows notifications");
+    sessionNotification=WTSRegisterSessionNotification(reinterpret_cast<HWND>(notificationWindow->winId()),NOTIFY_FOR_THIS_SESSION)!=FALSE;
+    powerNotification=RegisterSuspendResumeNotification(reinterpret_cast<HANDLE>(notificationWindow->winId()),DEVICE_NOTIFY_WINDOW_HANDLE);
 }
 void LightSyncPlugin::apply(bool save)
 {
@@ -140,10 +144,11 @@ bool LightSyncPlugin::nativeEventFilter(const QByteArray&,void* event,qintptr*)
 }
 void LightSyncPlugin::Unload()
 {
-    if(!engine)return;qApp->removeNativeEventFilter(this);if(sessionNotification&&widget){WTSUnRegisterSessionNotification(reinterpret_cast<HWND>(widget->winId()));sessionNotification=false;}if(powerNotification){UnregisterSuspendResumeNotification(powerNotification);powerNotification=nullptr;}
+    if(!engine)return;qApp->removeNativeEventFilter(this);if(sessionNotification&&notificationWindow){WTSUnRegisterSessionNotification(reinterpret_cast<HWND>(notificationWindow->winId()));sessionNotification=false;}if(powerNotification){UnregisterSuspendResumeNotification(powerNotification);powerNotification=nullptr;}
     disconnect(engine,nullptr,this,nullptr);
     QEventLoop shutdown;connect(engine,&LightSyncEngine::shutdownComplete,&shutdown,&QEventLoop::quit);
     QMetaObject::invokeMethod(engine,&LightSyncEngine::shutdown,Qt::QueuedConnection);
     shutdown.exec(QEventLoop::ExcludeUserInputEvents);worker.quit();worker.wait();engine=nullptr;
+    delete notificationWindow;notificationWindow=nullptr;
     delete widget;widget=nullptr;api=nullptr;
 }
