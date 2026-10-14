@@ -177,3 +177,7 @@ Windows power/session notifications use a separate, permanently hidden Qt
 window. They are not registered against the plugin tab's HWND: OpenRGB reparents
 that tab after Load(), which can replace the HWND and invalidate registration.
 This matches the stable SystemEvents notification window used by the C# versions.
+
+For a simple double-click control, use `scripts\Enable-ResumeRecovery.cmd` or
+`scripts\Disable-ResumeRecovery.cmd` after installation. The equivalent Windows
+Task Scheduler entry is **OpenRGB LightSync Resume Recovery**.
