@@ -206,7 +206,9 @@ void ModernNavigation::refresh()
     for(int i = 0; i < pages.size(); ++i)
     {
         auto item = list->item(i);
-        item->setHidden(!entries[i].visible || !item->text().contains(query, Qt::CaseInsensitive));
+        item->setHidden(!entries[i].visible || !item->text().contains(query, Qt::CaseInsensitive)
+            || (primary && panel->property("pinnedSettings").toBool()
+                && pages[i] && pages[i]->objectName() == "TabSettings"));
         if(pages[i] == tabs->currentWidget())
             selected = i;
     }

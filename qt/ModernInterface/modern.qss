@@ -41,8 +41,8 @@ QPushButton:focus, QToolButton:focus { border-color: @ACCENT@; }
 QPushButton:disabled, QToolButton:disabled { background: #2c2c34; color: #797987; border-color: #373740; }
 QPushButton:checked, QToolButton:checked { background: @ACCENT_SURFACE@; border-color: @ACCENT@; }
 QPushButton[primary="true"], QToolButton[primary="true"] { background: @ACCENT@; color: @ACCENT_TEXT@; border-color: @ACCENT@; font-weight: 600; }
-QPushButton#AppearanceButton { text-align: left; background: transparent; border-color: transparent; padding-left: 12px; }
-QPushButton#AppearanceButton:hover { background: rgba(255,255,255,10); }
+QPushButton#SettingsButton { text-align: left; background: transparent; border-color: transparent; padding-left: 12px; }
+QPushButton#SettingsButton:hover { background: rgba(255,255,255,10); }
 QToolButton::menu-button { width: 18px; border: none; }
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox { background: #303039; border: 1px solid #41414c; border-bottom: 1px solid #676775; border-radius: 5px; padding: 7px 10px; min-height: 18px; selection-background-color: @ACCENT@; selection-color: @ACCENT_TEXT@; }
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus { border-bottom: 2px solid @ACCENT@; }
@@ -136,3 +136,6 @@ TabHeader QToolButton { min-height: 14px; padding: 2px; }
 
 QToolButton#NavigationToggle { background: transparent; border-color: transparent; }
 QToolButton#NavigationToggle:hover { background: rgba(255,255,255,12); border-color: rgba(255,255,255,18); }
+
+QPushButton#SettingsButton:checked { background: @ACCENT_SURFACE@; border-color: @ACCENT@; }
+QPushButton#SettingsButton[compact="true"] { text-align: center; padding: 0; }

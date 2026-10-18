@@ -50,7 +50,7 @@ private:
     QString navigationMode = "auto";
     QLabel* sidebarTagline;
     QWidget* statusCard;
-    QPushButton* appearanceButton;
+    QPushButton* settingsButton;
     bool compact = false;
     void updateResponsiveLayout();
     QString material;
@@ -59,7 +59,6 @@ private:
     bool accentRefreshQueued = false;
     std::unique_ptr<ModernWindowsAccentSubscription> accentSubscription;
     void updateHeader();
-    void appearance();
     void applyBackdrop(QWidget* target = nullptr);
     void saveAppearance();
     void adaptPluginPage(QWidget* page);

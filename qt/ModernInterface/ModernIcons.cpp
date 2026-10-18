@@ -50,13 +50,16 @@ QIcon ModernInterface::icon(const QString& name, const QColor& color)
     }
     else if(key.contains("settings") || key.contains("appearance"))
     {
-        p.drawLine(5, 3, 5, 21);
-        p.drawLine(12, 3, 12, 21);
-        p.drawLine(19, 3, 19, 21);
-        p.setBrush(QColor("#26262d"));
-        p.drawEllipse(QPointF(5, 8), 2.5, 2.5);
-        p.drawEllipse(QPointF(12, 16), 2.5, 2.5);
-        p.drawEllipse(QPointF(19, 10), 2.5, 2.5);
+        QPainterPath gear;
+        gear.moveTo(8, 3);
+        gear.lineTo(16, 3);
+        gear.lineTo(21, 12);
+        gear.lineTo(16, 21);
+        gear.lineTo(8, 21);
+        gear.lineTo(3, 12);
+        gear.closeSubpath();
+        p.drawPath(gear);
+        p.drawEllipse(QPointF(12, 12), 3.5, 3.5);
     }
     else if(key.contains("sdk") || key.contains("server") || key.contains("client"))
     {

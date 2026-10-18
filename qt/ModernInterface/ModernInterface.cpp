@@ -211,12 +211,26 @@ ModernInterface::ModernInterface(QMainWindow* mainWindow, QTabWidget* main, QTab
     sidebarTagline->setObjectName("SidebarEyebrow");
     side->addWidget(sidebarTagline);
     primary = new ModernNavigation(mainTabs, sidebar, true);
+    primary->widget()->setProperty("pinnedSettings", true);
+    primary->refresh();
     side->addWidget(primary->widget(), 1);
-    appearanceButton = new QPushButton(ModernInterface::icon("appearance"), tr("Appearance"), sidebar);
-    appearanceButton->setObjectName("AppearanceButton");
-    appearanceButton->setCursor(Qt::PointingHandCursor);
-    connect(appearanceButton, &QPushButton::clicked, this, &ModernInterface::appearance);
-    side->addWidget(appearanceButton);
+    settingsButton = new QPushButton(ModernInterface::icon("settings"), tr("Settings"), sidebar);
+    settingsButton->setObjectName("SettingsButton");
+    settingsButton->setCursor(Qt::PointingHandCursor);
+    settingsButton->setCheckable(true);
+    settingsButton->setIconSize(QSize(20, 20));
+    settingsButton->setFixedHeight(44);
+    settingsButton->setToolTip(tr("Settings"));
+    settingsButton->setAccessibleName(tr("Settings"));
+    auto settingsPage = QPointer<QWidget>();
+    for(int i = 0; i < mainTabs->count(); ++i)
+        if(mainTabs->widget(i)->objectName() == "TabSettings")
+            settingsPage = mainTabs->widget(i);
+    connect(settingsButton, &QPushButton::clicked, this, [this, settingsPage]
+        { if(settingsPage) mainTabs->setCurrentWidget(settingsPage); });
+    connect(mainTabs, &QTabWidget::currentChanged, this, [this, settingsPage]
+        { settingsButton->setChecked(settingsPage && mainTabs->currentWidget() == settingsPage); });
+    side->addWidget(settingsButton);
     statusCard = new QFrame(sidebar);
     statusCard->setObjectName("SidebarStatus");
     auto statusLayout = new QVBoxLayout(statusCard);
@@ -518,9 +532,12 @@ void ModernInterface::updateResponsiveLayout()
     navigationToggle->setFixedSize(compact ? 52 : 38, 40);
     sidebarTagline->setVisible(!compact);
     statusCard->setVisible(!compact);
-    appearanceButton->setText(compact ? QString() : tr("Appearance"));
-    appearanceButton->setToolTip(tr("Appearance"));
-    appearanceButton->setAccessibleName(tr("Appearance"));
+    settingsButton->setProperty("compact", compact);
+    settingsButton->style()->unpolish(settingsButton);
+    settingsButton->style()->polish(settingsButton);
+    settingsButton->setText(compact ? QString() : tr("Settings"));
+    settingsButton->setToolTip(tr("Settings"));
+    settingsButton->setAccessibleName(tr("Settings"));
 }
 void ModernInterface::saveAppearance()
 {
@@ -531,57 +548,4 @@ void ModernInterface::saveAppearance()
     settings["navigation"] = navigationMode.toStdString();
     manager->SetSettings("ModernInterface", settings);
     manager->SaveSettings();
-}
-void ModernInterface::appearance()
-{
-    QDialog dialog(window);
-    dialog.setAttribute(Qt::WA_TranslucentBackground, true);
-    dialog.setObjectName("AppearanceDialog");
-    dialog.setWindowTitle(tr("Appearance"));
-    dialog.setMinimumWidth(430);
-    auto layout = new QVBoxLayout(&dialog);
-    layout->setContentsMargins(24, 24, 24, 24);
-    layout->setSpacing(18);
-    auto heading = new QLabel(tr("Make yourself at home"), &dialog);
-    heading->setObjectName("DialogHeading");
-    layout->addWidget(heading);
-    auto note = new QLabel(tr("A quiet, dark workspace with a little colour."), &dialog);
-    note->setProperty("muted", true);
-    note->setWordWrap(true);
-    layout->addWidget(note);
-    auto form = new QFormLayout;
-    form->setSpacing(16);
-    QComboBox surface, colour;
-    surface.addItem(tr("Acrylic"), "acrylic");
-    surface.addItem(tr("Mica"), "mica");
-    surface.addItem(tr("Opaque"), "opaque");
-    surface.setCurrentIndex(qMax(0, surface.findData(material)));
-    colour.addItem(tr("Windows (automatic)"), "windows");
-    colour.addItem(tr("Rose"), "rose");
-    colour.addItem(tr("Blue"), "blue");
-    colour.addItem(tr("Mint"), "mint");
-    colour.addItem(tr("Violet"), "violet");
-    colour.setCurrentIndex(qMax(0, colour.findData(accent)));
-    form->addRow(tr("Window material"), &surface);
-    form->addRow(tr("Accent colour"), &colour);
-    layout->addLayout(form);
-    auto hint = new QLabel(
-        tr("Windows controls transparency. Acrylic and Mica fall back to a solid surface when unavailable."),
-        &dialog);
-    hint->setWordWrap(true);
-    hint->setProperty("muted", true);
-    layout->addWidget(hint);
-    auto buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, &dialog);
-    connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
-    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-    layout->addWidget(buttons);
-    if(dialog.exec() == QDialog::Accepted)
-    {
-        material = surface.currentData().toString();
-        accent = colour.currentData().toString();
-        saveAppearance();
-        appliedAccent = accentColor();
-        applyTheme(qApp);
-        applyBackdrop();
-    }
 }
