@@ -40,11 +40,11 @@ QPushButton:pressed, QToolButton:pressed { background: #2d2d36; }
 QPushButton:focus, QToolButton:focus { border-color: @ACCENT@; }
 QPushButton:disabled, QToolButton:disabled { background: #2c2c34; color: #797987; border-color: #373740; }
 QPushButton:checked, QToolButton:checked { background: @ACCENT_SURFACE@; border-color: @ACCENT@; }
-QPushButton[primary="true"], QToolButton[primary="true"] { background: @ACCENT@; color: #281c27; border-color: @ACCENT@; font-weight: 600; }
+QPushButton[primary="true"], QToolButton[primary="true"] { background: @ACCENT@; color: @ACCENT_TEXT@; border-color: @ACCENT@; font-weight: 600; }
 QPushButton#AppearanceButton { text-align: left; background: transparent; border-color: transparent; padding-left: 12px; }
 QPushButton#AppearanceButton:hover { background: rgba(255,255,255,10); }
 QToolButton::menu-button { width: 18px; border: none; }
-QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox { background: #303039; border: 1px solid #41414c; border-bottom: 1px solid #676775; border-radius: 5px; padding: 7px 10px; min-height: 18px; selection-background-color: @ACCENT@; selection-color: #201722; }
+QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox { background: #303039; border: 1px solid #41414c; border-bottom: 1px solid #676775; border-radius: 5px; padding: 7px 10px; min-height: 18px; selection-background-color: @ACCENT@; selection-color: @ACCENT_TEXT@; }
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus { border-bottom: 2px solid @ACCENT@; }
 QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, QComboBox:disabled { color: #797987; border-color: #373740; background: #292931; }
 QComboBox { padding-right: 28px; }
@@ -55,7 +55,7 @@ QAbstractSpinBox::up-button, QAbstractSpinBox::down-button { width: 19px; border
 QCheckBox, QRadioButton { spacing: 9px; background: transparent; padding: 4px 0; }
 QCheckBox::indicator { width: 17px; height: 17px; border-radius: 4px; border: 1px solid #90909e; background: #24242c; }
 QCheckBox::indicator:hover { border-color: @ACCENT@; }
-QCheckBox::indicator:checked { background: @ACCENT@; border-color: @ACCENT@; image: url(:/modern/check.png); }
+QCheckBox::indicator:checked { background: @ACCENT@; border-color: @ACCENT@; image: url(@CHECK_IMAGE@); }
 QCheckBox::indicator:indeterminate { background: @ACCENT@; image: url(:/modern/minus.png); }
 QCheckBox::indicator:disabled { border-color: #555560; background: #393942; }
 QRadioButton::indicator { width: 16px; height: 16px; border: 1px solid #9696a2; border-radius: 9px; background: #26262e; }
@@ -115,12 +115,12 @@ OpenRGBSettingsPage QCheckBox::indicator, QWidget[modernPlugin="LightSync"] QChe
  background: #393943; image: url(:/modern/toggle-off.png);
 }
 OpenRGBSettingsPage QCheckBox::indicator:checked, QWidget[modernPlugin="LightSync"] QCheckBox::indicator:checked {
- background: @ACCENT@; border-color: @ACCENT@; image: url(:/modern/toggle-on.png);
+ background: @ACCENT@; border-color: @ACCENT@; image: url(@TOGGLE_IMAGE@);
 }
 QDialog[backdrop="true"] { background: rgba(36,36,44,235); }
 
 QTableView::indicator { width: 16px; height: 16px; border-radius: 4px; border: 1px solid #92929f; background: #27272f; }
-QTableView::indicator:checked { background: @ACCENT@; border-color: @ACCENT@; image: url(:/modern/check.png); }
+QTableView::indicator:checked { background: @ACCENT@; border-color: @ACCENT@; image: url(@CHECK_IMAGE@); }
 QTableView::indicator:unchecked { image: none; }
 QTableWidget { padding: 3px; }
 QTabWidget#LightSyncSections::pane { background: transparent; border: none; }

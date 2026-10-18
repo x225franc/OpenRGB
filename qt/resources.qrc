@@ -12,5 +12,7 @@
         <file alias="up.png">ModernInterface/up.png</file>
         <file alias="toggle-off.png">ModernInterface/toggle-off.png</file>
         <file alias="toggle-on.png">ModernInterface/toggle-on.png</file>
+        <file alias="check-white.png">ModernInterface/check-white.png</file>
+        <file alias="toggle-on-white.png">ModernInterface/toggle-on-white.png</file>
     </qresource>
 </RCC>

@@ -31,6 +31,9 @@ private slots:
         QString style = QString::fromUtf8(file.readAll());
         style.replace("@ACCENT@", "#ed96cc");
         style.replace("@ACCENT_SURFACE@", "#473a49");
+        style.replace("@ACCENT_TEXT@", "#181820");
+        style.replace("@CHECK_IMAGE@", ":/modern/check.png");
+        style.replace("@TOGGLE_IMAGE@", ":/modern/toggle-on.png");
         qApp->setStyleSheet(style);
     }
     void primaryOrderingAndSelection()

@@ -2,6 +2,7 @@
 #include "ModernInterface.h"
 #include "ModernPageLayout.h"
 #include "ModernPluginLayout.h"
+#include "ModernWindowsAccent.h"
 #include "ResourceManager.h"
 #include "SettingsManager.h"
 #include <QApplication>
@@ -36,6 +37,7 @@
 #include <QShortcut>
 #include <QAbstractItemView>
 #include <algorithm>
+#include <cmath>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <dwmapi.h>
@@ -48,7 +50,9 @@ QString accentColor()
     const std::string value
         = settings.is_object() && settings.contains("accent") && settings["accent"].is_string()
         ? settings["accent"].get<std::string>()
-        : "rose";
+        : "windows";
+    if(value == "windows")
+        return modernWindowsAccent().name();
     if(value == "blue")
         return "#8bb9ff";
     if(value == "mint")
@@ -56,6 +60,17 @@ QString accentColor()
     if(value == "violet")
         return "#bba5ff";
     return "#ed96cc";
+}
+QColor accentForeground(const QColor& color)
+{
+    auto linear = [](double channel)
+    {
+        channel /= 255.0;
+        return channel <= 0.04045 ? channel / 12.92 : std::pow((channel + 0.055) / 1.055, 2.4);
+    };
+    const double luminance
+        = 0.2126 * linear(color.red()) + 0.7152 * linear(color.green()) + 0.0722 * linear(color.blue());
+    return QColor((luminance + 0.05) / 0.05 >= 1.05 / (luminance + 0.05) ? "#181820" : "#ffffff");
 }
 void wrapNavigation(QTabWidget* tabs, ModernNavigation* navigation)
 {
@@ -76,8 +91,8 @@ void ModernInterface::applyTheme(QApplication* app)
     json schema;
     schema["material"] = { { "type", "string" }, { "title", "Window material" }, { "default", "acrylic" },
         { "enum", { "acrylic", "mica", "opaque" } }, { "order", 0 } };
-    schema["accent"] = { { "type", "string" }, { "title", "Accent colour" }, { "default", "rose" },
-        { "enum", { "rose", "blue", "mint", "violet" } }, { "order", 1 } };
+    schema["accent"] = { { "type", "string" }, { "title", "Accent colour" }, { "default", "windows" },
+        { "enum", { "windows", "rose", "blue", "mint", "violet" } }, { "order", 1 } };
     schema["navigation"] = { { "type", "string" }, { "title", "Navigation" }, { "default", "auto" },
         { "enum", { "auto", "expanded", "collapsed" } }, { "order", 2 } };
     // Register the complete appearance schema, including the persistent sidebar choice.
@@ -97,7 +112,10 @@ void ModernInterface::applyTheme(QApplication* app)
     palette.setColor(QPalette::Button, QColor("#34343e"));
     palette.setColor(QPalette::ButtonText, QColor("#f1f1f6"));
     palette.setColor(QPalette::Highlight, QColor(accentColor()));
-    palette.setColor(QPalette::HighlightedText, QColor("#201722"));
+    palette.setColor(QPalette::HighlightedText, accentForeground(QColor(accentColor())));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
+    palette.setColor(QPalette::Accent, QColor(accentColor()));
+#endif
     palette.setColor(QPalette::Link, QColor(accentColor()));
     palette.setColor(QPalette::ToolTipBase, QColor("#35353e"));
     palette.setColor(QPalette::ToolTipText, QColor("#f1f1f6"));
@@ -109,6 +127,11 @@ void ModernInterface::applyTheme(QApplication* app)
     {
         QString style = QString::fromUtf8(stylesheet.readAll());
         style.replace("@ACCENT@", accentColor());
+        const QColor foreground = accentForeground(QColor(accentColor()));
+        style.replace("@ACCENT_TEXT@", foreground.name());
+        const bool white = foreground == QColor("#ffffff");
+        style.replace("@CHECK_IMAGE@", white ? ":/modern/check-white.png" : ":/modern/check.png");
+        style.replace("@TOGGLE_IMAGE@", white ? ":/modern/toggle-on-white.png" : ":/modern/toggle-on.png");
         const QColor base("#2a2a32"), accent(accentColor());
         const QColor surface((base.red() * 85 + accent.red() * 15) / 100,
             (base.green() * 85 + accent.green() * 15) / 100, (base.blue() * 85 + accent.blue() * 15) / 100);
@@ -130,8 +153,9 @@ ModernInterface::ModernInterface(QMainWindow* mainWindow, QTabWidget* main, QTab
     if(!settings.is_object())
         settings = json::object();
     material = QString::fromStdString(settings.value("material", std::string("acrylic")));
-    accent = QString::fromStdString(settings.value("accent", std::string("rose")));
+    accent = QString::fromStdString(settings.value("accent", std::string("windows")));
     navigationMode = QString::fromStdString(settings.value("navigation", std::string("auto")));
+    appliedAccent = accentColor();
     QWidget* oldCentral = window->takeCentralWidget();
     if(auto holder = oldCentral->findChild<QHBoxLayout*>("MainButtonsLayout"))
         holder->removeWidget(commands);
@@ -253,6 +277,7 @@ ModernInterface::ModernInterface(QMainWindow* mainWindow, QTabWidget* main, QTab
     connect(deviceNavigation, &ModernNavigation::changed, this, [this] { updateHeader(); });
     window->installEventFilter(this);
     qApp->installEventFilter(this);
+    qApp->installNativeEventFilter(this);
     auto shortcut = new QShortcut(QKeySequence("Ctrl+1"), window);
     QPointer<QWidget> devicesPage = mainTabs->widget(0);
     connect(shortcut, &QShortcut::activated, this,
@@ -265,6 +290,37 @@ ModernInterface::ModernInterface(QMainWindow* mainWindow, QTabWidget* main, QTab
     updateResponsiveLayout();
     QTimer::singleShot(0, this, [this] { applyBackdrop(); });
 }
+ModernInterface::~ModernInterface()
+{
+    qApp->removeNativeEventFilter(this);
+    accentSubscription.reset();
+}
+bool ModernInterface::nativeEventFilter(const QByteArray&, void* message, qintptr*)
+{
+#ifdef Q_OS_WIN
+    const auto native = static_cast<MSG*>(message);
+    if(accent == "windows" && !accentRefreshQueued
+        && (native->message == ModernAccentChangedMessage || native->message == WM_DWMCOLORIZATIONCOLORCHANGED
+            || native->message == WM_SETTINGCHANGE || native->message == WM_THEMECHANGED))
+    {
+        accentRefreshQueued = true;
+        QTimer::singleShot(100, this,
+            [this]
+            {
+                accentRefreshQueued = false;
+                const QString color = accentColor();
+                if(color != appliedAccent)
+                {
+                    appliedAccent = color;
+                    applyTheme(qApp);
+                }
+            });
+    }
+#else
+    Q_UNUSED(message);
+#endif
+    return false;
+}
 void ModernInterface::refresh()
 {
     const auto settings = ResourceManager::get()->GetSettingsManager()->GetSettings("ModernInterface");
@@ -272,13 +328,14 @@ void ModernInterface::refresh()
     {
         const auto requestedMaterial
             = QString::fromStdString(settings.value("material", std::string("acrylic")));
-        const auto requestedAccent = QString::fromStdString(settings.value("accent", std::string("rose")));
+        const auto requestedAccent = QString::fromStdString(settings.value("accent", std::string("windows")));
         navigationMode = QString::fromStdString(settings.value("navigation", std::string("auto")));
         updateResponsiveLayout();
         if(requestedMaterial != material || requestedAccent != accent)
         {
             material = requestedMaterial;
             accent = requestedAccent;
+            appliedAccent = accentColor();
             applyTheme(qApp);
             applyBackdrop();
         }
@@ -390,6 +447,16 @@ void ModernInterface::applyBackdrop(QWidget* target)
     QWidget* surface = target ? target : window;
 #ifdef Q_OS_WIN
     HWND handle = reinterpret_cast<HWND>(surface->winId());
+    if(surface == window && !accentSubscription)
+    {
+        try
+        {
+            accentSubscription = std::make_unique<ModernWindowsAccentSubscription>(surface->winId());
+        }
+        catch(...)
+        {
+        } // Native Windows theme messages remain a fallback.
+    }
     const BOOL dark = TRUE;
     const int rounded = 2;
     DwmSetWindowAttribute(handle, 20, &dark, sizeof(dark));
@@ -493,6 +560,7 @@ void ModernInterface::appearance()
     surface.addItem(tr("Mica"), "mica");
     surface.addItem(tr("Opaque"), "opaque");
     surface.setCurrentIndex(qMax(0, surface.findData(material)));
+    colour.addItem(tr("Windows (automatic)"), "windows");
     colour.addItem(tr("Rose"), "rose");
     colour.addItem(tr("Blue"), "blue");
     colour.addItem(tr("Mint"), "mint");
@@ -516,6 +584,7 @@ void ModernInterface::appearance()
         material = surface.currentData().toString();
         accent = colour.currentData().toString();
         saveAppearance();
+        appliedAccent = accentColor();
         applyTheme(qApp);
         applyBackdrop();
     }
