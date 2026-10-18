@@ -535,6 +535,7 @@ void ModernInterface::updateResponsiveLayout()
     settingsButton->setProperty("compact", compact);
     settingsButton->style()->unpolish(settingsButton);
     settingsButton->style()->polish(settingsButton);
+    settingsButton->setFixedHeight(44);
     settingsButton->setText(compact ? QString() : tr("Settings"));
     settingsButton->setToolTip(tr("Settings"));
     settingsButton->setAccessibleName(tr("Settings"));
