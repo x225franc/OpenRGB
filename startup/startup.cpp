@@ -15,6 +15,7 @@
 #include <QApplication>
 
 #include "OpenRGBDialog.h"
+#include "ModernInterface.h"
 
 #ifdef __APPLE__
 #include "macutils.h"
@@ -87,6 +88,7 @@ int startup(int argc, char* argv[], unsigned int ret_flags)
         | Create Qt application                             |
         \*-------------------------------------------------*/
         QApplication a(argc, argv);
+        ModernInterface::applyTheme(&a);
         QGuiApplication::setDesktopFileName("org.openrgb.OpenRGB");
         LOG_TRACE("[startup] QApplication created");
 

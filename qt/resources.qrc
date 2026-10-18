@@ -4,4 +4,13 @@
         <file>fonts/OpenRGB.ttf</file>
         <file>OpenRGBMonochrome.png</file>
     </qresource>
+    <qresource prefix="/modern">
+        <file alias="modern.qss">ModernInterface/modern.qss</file>
+        <file alias="check.png">ModernInterface/check.png</file>
+        <file alias="minus.png">ModernInterface/minus.png</file>
+        <file alias="down.png">ModernInterface/down.png</file>
+        <file alias="up.png">ModernInterface/up.png</file>
+        <file alias="toggle-off.png">ModernInterface/toggle-off.png</file>
+        <file alias="toggle-on.png">ModernInterface/toggle-on.png</file>
+    </qresource>
 </RCC>

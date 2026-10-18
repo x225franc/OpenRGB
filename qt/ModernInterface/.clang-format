@@ -1,0 +1,9 @@
+BasedOnStyle: WebKit
+BreakBeforeBraces: Allman
+IndentWidth: 4
+ColumnLimit: 110
+PointerAlignment: Left
+SortIncludes: Never
+AllowShortFunctionsOnASingleLine: Empty
+SpaceBeforeParens: Never
+NamespaceIndentation: None

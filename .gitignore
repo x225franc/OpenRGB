@@ -122,3 +122,6 @@ compile_commands.json
 
 # Generated i18n files
 *.qm
+
+# Isolated modern preview runtime and personal configuration
+/app/

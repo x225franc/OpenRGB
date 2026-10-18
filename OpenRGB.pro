@@ -72,7 +72,7 @@ unix {
     GIT_BRANCH          = $$system(sh scripts/git-get-branch.sh)
 }
 else {
-    GIT_BRANCH          = $$system(powershell -ExecutionPolicy Bypass -File scripts/git-get-branch.ps1)
+    GIT_BRANCH          = $$system(powershell -NoProfile -ExecutionPolicy Bypass -File scripts/git-get-branch.ps1)
 }
 
 DEFINES +=                                                                                      \
@@ -845,3 +845,6 @@ message("HID Hotplug: Enabled")
 } else {
 message("HID Hotplug: Disabled")
 }
+
+# Native Windows materials; falls back to opaque on unsupported systems.
+win32:LIBS += -ldwmapi

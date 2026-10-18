@@ -9,6 +9,8 @@
 
 #include <QTimer>
 #include <QLabel>
+#include <QVBoxLayout>
+#include <QPushButton>
 #include "Controllers/RazerController/RazerBattery.h"
 
 #include "OpenRGBDevicePage.h"
@@ -43,6 +45,26 @@ OpenRGBDevicePage::OpenRGBDevicePage(RGBController *dev, QWidget *parent) :
     ui(new Ui::OpenRGBDevicePage)
 {
     ui->setupUi(this);
+    // Keep all original controls and signals. Only their containing surfaces
+    // change, so direct/per-zone updates and hardware mode semantics are intact.
+    auto content = new QWidget(this);
+    content->setObjectName("DeviceContent");
+    auto existing = ui->OpenRGBDevicePageUiGridLayout;
+    content->setLayout(existing);
+    auto column = new QVBoxLayout(this);
+    column->setContentsMargins(0, 0, 0, 0); column->setSpacing(14);
+    auto heading = new QLabel(QString::fromStdString(dev->GetDisplayName()), this);
+    heading->setObjectName("DeviceHeading"); heading->setWordWrap(true);
+    heading->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    column->addWidget(heading); column->addWidget(content, 1);
+    existing->setContentsMargins(0, 0, 0, 0); existing->setSpacing(14);
+    ui->ControlsGridLayout->setContentsMargins(18, 18, 18, 18);
+    ui->ControlsGridLayout->setVerticalSpacing(14);
+    ui->ColorGridLayout->setContentsMargins(16, 16, 16, 16);
+    ui->ColorFrame->setMaximumWidth(320);
+    ui->ControlsFrame->setObjectName("DeviceControlsCard");
+    ui->ApplyColorsButton->setProperty("primary", true);
+
 
     /*-----------------------------------------------------*\
     | Store device pointer                                  |

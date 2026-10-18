@@ -17,7 +17,7 @@
 #include "SinowealthKeyboard16Controller.h" // Disabled
 #include "SinowealthKeyboard90Controller.h"
 #include "SinowealthGMOWController.h"
-#include "GenesisXenon200Controller.cpp"
+#include "GenesisXenon200Controller.h"
 #include "RGBController.h"
 #include "RGBController_Sinowealth.h"
 #include "RGBController_Sinowealth1007.h"

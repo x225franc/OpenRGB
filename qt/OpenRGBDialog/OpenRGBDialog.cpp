@@ -25,6 +25,7 @@
 #include "TabLabel.h"
 #include "OpenRGBZoneInitializationDialog.h"
 #include "OpenRGBFont.h"
+#include "ModernInterface.h"
 
 #include "ui_OpenRGBDialog.h"
 
@@ -148,6 +149,8 @@ bool OpenRGBDialog::IsMinimizeOnClose()
 OpenRGBDialog::OpenRGBDialog(QWidget *parent) : QMainWindow(parent), ui(new Ui::OpenRGBDialog)
 {
     ui->setupUi(this);
+    const QSize available = screen() ? screen()->availableGeometry().size() - QSize(40, 70) : QSize(1440, 920);
+    resize(QSize(1440, 920).boundedTo(available));
 
 #ifdef __APPLE__
     /*-----------------------------------------------------*\
@@ -267,6 +270,11 @@ OpenRGBDialog::OpenRGBDialog(QWidget *parent) : QMainWindow(parent), ui(new Ui::
     ui_settings_schema["geometry"]["properties"]["height"]["title"]                 = QT_TRANSLATE_NOOP("Settings", "Height");
     ui_settings_schema["geometry"]["properties"]["height"]["type"]                  = "integer";
     ui_settings_schema["geometry"]["properties"]["height"]["order"]                 = 5;
+
+    // The modern interface always uses left navigation; these legacy tab-bar
+    // preferences would otherwise appear as controls with no visible effect.
+    ui_settings_schema.erase("compact_tabs");
+    ui_settings_schema.erase("tabs_on_top");
 
     ResourceManager::get()->GetSettingsManager()->RegisterSettingsSchemaComplete("UserInterface", QT_TRANSLATE_NOOP("Settings", "User Interface"), ui_settings_schema, 0, true, false);
 
@@ -470,6 +478,9 @@ OpenRGBDialog::OpenRGBDialog(QWidget *parent) : QMainWindow(parent), ui(new Ui::
     | Process Settings                                      |
     \*-----------------------------------------------------*/
     onSettingsUpdated();
+
+    modern_interface = new ModernInterface(this, ui->MainTabBar, ui->DevicesTabBar,
+        ui->SettingsTabBar, ui->InformationTabBar, ui->MainButtonsFrame);
 
     /*-----------------------------------------------------*\
     | Show tray icon after settings are updated so that     |
@@ -791,6 +802,7 @@ void OpenRGBDialog::AddPlugin(OpenRGBPluginEntry* plugin)
         QWidget* NewPluginTab = plugin->plugin->GetWidget();
 
         plugin->widget = NewPluginTab;
+        NewPluginTab->setProperty("modernPlugin", QString::fromStdString(plugin->info.Label));
 
         OpenRGBPluginContainer* NewPluginContainer = new OpenRGBPluginContainer(NewPluginTab, this);
 
@@ -804,6 +816,7 @@ void OpenRGBDialog::AddPlugin(OpenRGBPluginEntry* plugin)
         QWidget* NewPluginTab = plugin->plugin->GetWidget();
 
         plugin->widget = NewPluginTab;
+        NewPluginTab->setProperty("modernPlugin", QString::fromStdString(plugin->info.Label));
 
         OpenRGBPluginContainer* NewPluginContainer = new OpenRGBPluginContainer(NewPluginTab, this);
 
@@ -819,6 +832,7 @@ void OpenRGBDialog::AddPlugin(OpenRGBPluginEntry* plugin)
         QWidget* NewPluginTab = plugin->plugin->GetWidget();
 
         plugin->widget = NewPluginTab;
+        NewPluginTab->setProperty("modernPlugin", QString::fromStdString(plugin->info.Label));
 
         OpenRGBPluginContainer* NewPluginContainer = new OpenRGBPluginContainer(NewPluginTab, this);
 
@@ -834,6 +848,7 @@ void OpenRGBDialog::AddPlugin(OpenRGBPluginEntry* plugin)
         QWidget* NewPluginTab = plugin->plugin->GetWidget();
 
         plugin->widget = NewPluginTab;
+        NewPluginTab->setProperty("modernPlugin", QString::fromStdString(plugin->info.Label));
 
         OpenRGBPluginContainer* NewPluginContainer = new OpenRGBPluginContainer(NewPluginTab, this);
 
@@ -1422,6 +1437,10 @@ void OpenRGBDialog::SetDialogMessage(PLogMessage msg)
 
 void OpenRGBDialog::SetLanguage(std::string locale)
 {
+    // Saving unrelated settings must not retransmit LanguageChange to every
+    // plugin: Designer retranslation clears their runtime icon captions.
+    if(current_locale == locale) return;
+    current_locale = locale;
     QApplication*           app             = static_cast<QApplication *>(QApplication::instance());
     QDirIterator            language_files(":/i18n/", QDirIterator::Subdirectories);
     bool                    loaded          = false;
@@ -1761,7 +1780,7 @@ void OpenRGBDialog::onSettingsUpdated()
     std::string     autostart_arguments     = JsonUtils::JsonGetString(autostart_settings, "custom_arguments");
     bool            autostart_enabled       = JsonUtils::JsonGetBool(autostart_settings, "enabled");
     bool            autostart_minimized     = JsonUtils::JsonGetBool(autostart_settings, "start_minimized");
-    AutoStart       auto_start("OpenRGB");
+    AutoStart       auto_start("OpenRGB Preview");
 
     if(autostart_minimized)
     {
@@ -1784,6 +1803,7 @@ void OpenRGBDialog::onSettingsUpdated()
     {
         auto_start.DisableAutoStart();
     }
+    if(modern_interface) modern_interface->refresh();
 }
 
 void OpenRGBDialog::on_SetAllDevices(unsigned char red, unsigned char green, unsigned char blue)
@@ -2248,7 +2268,8 @@ void OpenRGBDialog::TogglePluginsVisibility(int tab_idx, QTabWidget* tabBar)
     if(dynamic_cast<OpenRGBPluginContainer*>(tab) != nullptr)
     {
         ((OpenRGBPluginContainer*) tab)->Show();
-        ui->MainButtonsFrame->setVisible(false);
+        // Profiles remain accessible while editing Effects, Visual Map or LightSync.
+        ui->MainButtonsFrame->setVisible(true);
     }
 }
 

@@ -35,6 +35,8 @@
 #include "NetworkClient.h"
 #include "NetworkServer.h"
 
+class ModernInterface;
+
 namespace Ui
 {
     class OpenRGBDialog;
@@ -132,11 +134,13 @@ private:
     | User interface                                        |
     \*-----------------------------------------------------*/
     Ui::OpenRGBDialog*              ui;
+    ModernInterface*                modern_interface = nullptr;
 
     /*-----------------------------------------------------*\
     | Translator                                            |
     \*-----------------------------------------------------*/
     QTranslator                     translator;
+    std::string                     current_locale;
 
     void AddSoftwareInfoPage();
     void AddSupportedDevicesPage();

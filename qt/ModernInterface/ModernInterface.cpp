@@ -1,0 +1,452 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+#include "ModernInterface.h"
+#include "ModernPageLayout.h"
+#include "ModernPluginLayout.h"
+#include "ResourceManager.h"
+#include "SettingsManager.h"
+#include <QApplication>
+#include <QMainWindow>
+#include <QTabWidget>
+#include <QTabBar>
+#include <QStackedWidget>
+#include <QListWidget>
+#include <QLineEdit>
+#include <QLabel>
+#include <QToolButton>
+#include <QPushButton>
+#include <QComboBox>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QFormLayout>
+#include <QFrame>
+#include <QFile>
+#include <QPainter>
+#include <QPainterPath>
+#include <QSignalBlocker>
+#include <QTimer>
+#include <QScreen>
+#include <QScrollArea>
+#include <QGroupBox>
+#include <QStyleFactory>
+#include <QStyle>
+#include <QEvent>
+#include <QShortcut>
+#include <QAbstractItemView>
+#include <algorithm>
+#ifdef Q_OS_WIN
+#include <windows.h>
+#include <dwmapi.h>
+#endif
+namespace
+{
+QString accentColor()
+{
+    auto settings = ResourceManager::get()->GetSettingsManager()->GetSettings("ModernInterface");
+    const std::string value
+        = settings.is_object() && settings.contains("accent") && settings["accent"].is_string()
+        ? settings["accent"].get<std::string>()
+        : "rose";
+    if(value == "blue")
+        return "#8bb9ff";
+    if(value == "mint")
+        return "#8edcba";
+    if(value == "violet")
+        return "#bba5ff";
+    return "#ed96cc";
+}
+void wrapNavigation(QTabWidget* tabs, ModernNavigation* navigation)
+{
+    auto parentLayout = tabs->parentWidget()->layout();
+    auto wrapper = new QWidget(tabs->parentWidget());
+    wrapper->setObjectName("NavigationWorkspace");
+    delete parentLayout->replaceWidget(tabs, wrapper);
+    auto row = new QHBoxLayout(wrapper);
+    row->setContentsMargins(0, 0, 0, 0);
+    row->setSpacing(16);
+    row->addWidget(navigation->widget());
+    row->addWidget(tabs, 1);
+}
+}
+void ModernInterface::applyTheme(QApplication* app)
+{
+    // Appearance belongs to this UI, never to a remote SDK server.
+    json schema;
+    schema["material"] = { { "type", "string" }, { "title", "Window material" }, { "default", "acrylic" },
+        { "enum", { "acrylic", "mica", "opaque" } }, { "order", 0 } };
+    schema["accent"] = { { "type", "string" }, { "title", "Accent colour" }, { "default", "rose" },
+        { "enum", { "rose", "blue", "mint", "violet" } }, { "order", 1 } };
+    ResourceManager::get()->GetSettingsManager()->RegisterSettingsSchemaComplete(
+        "ModernInterface", "Appearance", schema, 1, true, false);
+    app->setStyle(QStyleFactory::create("Fusion"));
+    QFont font("Segoe UI Variable Text", 10);
+    font.setStyleStrategy(QFont::PreferAntialias);
+    app->setFont(font);
+    QPalette palette;
+    palette.setColor(QPalette::Window, QColor("#202026"));
+    palette.setColor(QPalette::WindowText, QColor("#f1f1f6"));
+    palette.setColor(QPalette::Base, QColor("#24242c"));
+    palette.setColor(QPalette::AlternateBase, QColor("#2b2b33"));
+    palette.setColor(QPalette::Text, QColor("#f1f1f6"));
+    palette.setColor(QPalette::Button, QColor("#34343e"));
+    palette.setColor(QPalette::ButtonText, QColor("#f1f1f6"));
+    palette.setColor(QPalette::Highlight, QColor(accentColor()));
+    palette.setColor(QPalette::HighlightedText, QColor("#201722"));
+    palette.setColor(QPalette::Link, QColor(accentColor()));
+    palette.setColor(QPalette::ToolTipBase, QColor("#35353e"));
+    palette.setColor(QPalette::ToolTipText, QColor("#f1f1f6"));
+    for(auto role : { QPalette::WindowText, QPalette::Text, QPalette::ButtonText })
+        palette.setColor(QPalette::Disabled, role, QColor("#82828f"));
+    app->setPalette(palette);
+    QFile stylesheet(":/modern/modern.qss");
+    if(stylesheet.open(QIODevice::ReadOnly))
+    {
+        QString style = QString::fromUtf8(stylesheet.readAll());
+        style.replace("@ACCENT@", accentColor());
+        const QColor base("#2a2a32"), accent(accentColor());
+        const QColor surface((base.red() * 85 + accent.red() * 15) / 100,
+            (base.green() * 85 + accent.green() * 15) / 100, (base.blue() * 85 + accent.blue() * 15) / 100);
+        style.replace("@ACCENT_SURFACE@", surface.name());
+        app->setStyleSheet(style);
+    }
+}
+ModernInterface::ModernInterface(QMainWindow* mainWindow, QTabWidget* main, QTabWidget* deviceTabs,
+    QTabWidget* settingTabs, QTabWidget* informationTabs, QWidget* commands)
+    : QObject(mainWindow)
+    , window(mainWindow)
+    , mainTabs(main)
+    , devices(deviceTabs)
+{
+    window->setWindowTitle("OpenRGB");
+    window->setMinimumSize(1080, 720);
+    auto settings = ResourceManager::get()->GetSettingsManager()->GetSettings("ModernInterface");
+    if(!settings.is_object())
+        settings = json::object();
+    material = QString::fromStdString(settings.value("material", std::string("acrylic")));
+    accent = QString::fromStdString(settings.value("accent", std::string("rose")));
+    QWidget* oldCentral = window->takeCentralWidget();
+    auto root = new QWidget(window);
+    root->setObjectName("ModernRoot");
+    window->setCentralWidget(root);
+    auto row = new QHBoxLayout(root);
+    row->setContentsMargins(0, 0, 0, 0);
+    row->setSpacing(0);
+    sidebar = new QWidget(root);
+    sidebar->setObjectName("AppSidebar");
+    sidebar->setFixedWidth(248);
+    auto side = new QVBoxLayout(sidebar);
+    side->setContentsMargins(18, 26, 18, 18);
+    side->setSpacing(18);
+    auto brandRow = new QHBoxLayout;
+    auto logo = new QLabel(sidebar);
+    logo->setPixmap(QIcon(":org.openrgb.OpenRGB.png").pixmap(34, 34));
+    logo->setFixedSize(38, 38);
+    brand = new QLabel("OpenRGB", sidebar);
+    brand->setObjectName("BrandName");
+    brandRow->addWidget(logo);
+    brandRow->addWidget(brand);
+    brandRow->addStretch();
+    side->addLayout(brandRow);
+    sidebarTagline = new QLabel(tr("YOUR LIGHTING, TOGETHER"), sidebar);
+    sidebarTagline->setObjectName("SidebarEyebrow");
+    side->addWidget(sidebarTagline);
+    primary = new ModernNavigation(mainTabs, sidebar, true);
+    side->addWidget(primary->widget(), 1);
+    appearanceButton = new QPushButton(ModernInterface::icon("appearance"), tr("Appearance"), sidebar);
+    appearanceButton->setObjectName("AppearanceButton");
+    appearanceButton->setCursor(Qt::PointingHandCursor);
+    connect(appearanceButton, &QPushButton::clicked, this, &ModernInterface::appearance);
+    side->addWidget(appearanceButton);
+    statusCard = new QFrame(sidebar);
+    statusCard->setObjectName("SidebarStatus");
+    auto statusLayout = new QVBoxLayout(statusCard);
+    statusLayout->setContentsMargins(14, 12, 14, 12);
+    auto statusTitle = new QLabel(tr("LIGHTING STUDIO"), statusCard);
+    statusTitle->setObjectName("SidebarEyebrow");
+    deviceCount = new QLabel(statusCard);
+    deviceCount->setObjectName("DeviceCount");
+    statusLayout->addWidget(statusTitle);
+    statusLayout->addWidget(deviceCount);
+    side->addWidget(statusCard);
+    row->addWidget(sidebar);
+    auto workspace = new QWidget(root);
+    workspace->setObjectName("AppWorkspace");
+    auto column = new QVBoxLayout(workspace);
+    column->setContentsMargins(26, 26, 26, 20);
+    column->setSpacing(20);
+    auto heading = new QWidget(workspace);
+    heading->setObjectName("PageHeading");
+    auto headingLayout = new QVBoxLayout(heading);
+    headingLayout->setContentsMargins(0, 0, 0, 0);
+    headingLayout->setSpacing(6);
+    title = new QLabel(heading);
+    title->setObjectName("PageTitle");
+    description = new QLabel(heading);
+    description->setObjectName("PageDescription");
+    description->setWordWrap(true);
+    headingLayout->addWidget(title);
+    headingLayout->addWidget(description);
+    column->addWidget(heading);
+    oldCentral->layout()->setContentsMargins(0, 0, 0, 0);
+    oldCentral->layout()->setSpacing(12);
+    auto workspaceScroll = new QScrollArea(workspace);
+    workspaceScroll->setObjectName("WorkspaceScroll");
+    workspaceScroll->setFrameShape(QFrame::NoFrame);
+    workspaceScroll->setWidgetResizable(true);
+    workspaceScroll->setWidget(oldCentral);
+    column->addWidget(workspaceScroll, 1);
+    row->addWidget(workspace, 1);
+    commands->setObjectName("ProfileCommandBar");
+    if(auto label = commands->findChild<QLabel*>("ActiveProfileLabel"))
+        label->setText(tr("Profile"));
+    if(auto save = commands->findChild<QToolButton*>("ButtonSaveProfile"))
+        save->setProperty("primary", true);
+    if(auto toggle = commands->findChild<QPushButton*>("ButtonToggleDeviceView"))
+        toggle->setText(tr("LED preview"));
+    if(auto rescan = commands->findChild<QPushButton*>("ButtonRescan"))
+        rescan->setText(tr("Search again"));
+    if(auto remove = commands->findChild<QPushButton*>("ButtonDeleteProfile"))
+        remove->setText(tr("Delete"));
+    deviceNavigation = new ModernNavigation(devices, root);
+    wrapNavigation(devices, deviceNavigation);
+    wrapNavigation(settingTabs, new ModernNavigation(settingTabs, root));
+    wrapNavigation(informationTabs, new ModernNavigation(informationTabs, root));
+    connect(mainTabs, &QTabWidget::currentChanged, this, [this] { updateHeader(); });
+    connect(primary, &ModernNavigation::changed, this, [this] { updateHeader(); });
+    connect(deviceNavigation, &ModernNavigation::changed, this, [this] { updateHeader(); });
+    window->installEventFilter(this);
+    qApp->installEventFilter(this);
+    auto shortcut = new QShortcut(QKeySequence("Ctrl+1"), window);
+    QPointer<QWidget> devicesPage = mainTabs->widget(0);
+    connect(shortcut, &QShortcut::activated, this,
+        [this, devicesPage]
+        {
+            if(devicesPage)
+                mainTabs->setCurrentWidget(devicesPage);
+        });
+    updateHeader();
+    updateResponsiveLayout();
+    QTimer::singleShot(0, this, [this] { applyBackdrop(); });
+}
+void ModernInterface::refresh()
+{
+    const auto settings = ResourceManager::get()->GetSettingsManager()->GetSettings("ModernInterface");
+    if(settings.is_object())
+    {
+        const auto requestedMaterial
+            = QString::fromStdString(settings.value("material", std::string("acrylic")));
+        const auto requestedAccent = QString::fromStdString(settings.value("accent", std::string("rose")));
+        if(requestedMaterial != material || requestedAccent != accent)
+        {
+            material = requestedMaterial;
+            accent = requestedAccent;
+            applyTheme(qApp);
+            applyBackdrop();
+        }
+    }
+    primary->refresh();
+    deviceNavigation->refresh();
+    updateHeader();
+}
+void ModernInterface::updateHeader()
+{
+    const QString label = primary->currentLabel();
+    title->setText(label);
+    QString subtitle;
+    const QString lower = label.toLower();
+    if(lower.contains("devices"))
+        subtitle = tr("Choose a device and make it yours.");
+    else if(lower.contains("effects"))
+        subtitle = tr("Bring your lighting to life, across your whole setup.");
+    else if(lower.contains("lightsync"))
+        subtitle = tr("LAN lighting and your laptop keyboard, in one place.");
+    else if(lower.contains("visual"))
+        subtitle = tr("Arrange your lights the way they sit around you.");
+    else if(lower.contains("settings"))
+        subtitle = tr("Set up OpenRGB to work your way.");
+    else if(lower.contains("sdk"))
+        subtitle = tr("Connect your lighting to other applications and computers.");
+    else
+        subtitle = tr("Your devices. Your colours. One workspace.");
+    description->setText(subtitle);
+    const int count = deviceNavigation->visibleCount();
+    deviceCount->setText(count == 1 ? tr("1 device available") : tr("%1 devices available").arg(count));
+}
+void ModernInterface::adaptPluginPage(QWidget* page)
+{
+    if(!page || page->property("modernScrollPage").toBool() || !page->layout())
+        return;
+    if(auto preview = page->findChild<QToolButton*>("preview"))
+    {
+        preview->setIcon(icon("monitor"));
+        preview->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        preview->setAccessibleName(tr("Preview effect"));
+    }
+    if(auto information = page->findChild<QToolButton*>("toggle_info"))
+    {
+        information->setIcon(icon("information"));
+        information->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        information->setAccessibleName(tr("Effect information"));
+    }
+    ModernPageLayout::MakeScrollable(page);
+}
+bool ModernInterface::eventFilter(QObject* target, QEvent* event)
+{
+    if(target == window && event->type() == QEvent::Resize)
+        updateResponsiveLayout();
+    if(event->type() == QEvent::Polish || event->type() == QEvent::Show
+        || event->type() == QEvent::DynamicPropertyChange)
+    {
+        auto widget = qobject_cast<QWidget*>(target);
+        if(widget && widget->property("modernPlugin").toString() == "LightSync"
+            && !widget->property("modernLightSyncLayout").toBool())
+        {
+            QPointer<QWidget> guarded = widget;
+            QTimer::singleShot(0, this,
+                [guarded]
+                {
+                    if(guarded)
+                        ModernPluginLayout::MakeLightSyncSections(guarded);
+                });
+        }
+        if(widget && QByteArray(widget->metaObject()->className()) == "OpenRGBEffectPage"
+            && !widget->property("modernScrollPage").toBool())
+        {
+            QPointer<QWidget> guarded = widget;
+            QTimer::singleShot(0, this,
+                [this, guarded]
+                {
+                    if(guarded)
+                        adaptPluginPage(guarded);
+                });
+        }
+    }
+    if(event->type() == QEvent::Show)
+    {
+        auto dialog = qobject_cast<QDialog*>(target);
+        if(dialog && dialog->isWindow() && !(dialog->windowFlags() & Qt::FramelessWindowHint))
+        {
+            QPointer<QWidget> guarded = dialog;
+            QTimer::singleShot(0, this,
+                [this, guarded]
+                {
+                    if(guarded)
+                        applyBackdrop(guarded);
+                });
+        }
+    }
+    if(target == window
+        && (event->type() == QEvent::Show || event->type() == QEvent::WinIdChange
+            || event->type() == QEvent::ThemeChange))
+        QTimer::singleShot(0, this, [this] { applyBackdrop(); });
+    return false;
+}
+void ModernInterface::applyBackdrop(QWidget* target)
+{
+    QWidget* surface = target ? target : window;
+#ifdef Q_OS_WIN
+    HWND handle = reinterpret_cast<HWND>(surface->winId());
+    const BOOL dark = TRUE;
+    const int rounded = 2;
+    DwmSetWindowAttribute(handle, 20, &dark, sizeof(dark));
+    DwmSetWindowAttribute(handle, 33, &rounded, sizeof(rounded));
+    HIGHCONTRASTW contrast = { sizeof(HIGHCONTRASTW), 0, nullptr };
+    SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(contrast), &contrast, 0);
+    int type = material == "opaque" || (contrast.dwFlags & HCF_HIGHCONTRASTON) ? 1
+        : material == "mica"                                                   ? 2
+                                                                               : 3;
+    const HRESULT result = DwmSetWindowAttribute(handle, 38, &type, sizeof(type));
+    const bool supported = SUCCEEDED(result) && type != 1;
+    const bool changed = surface->property("backdrop").toBool() != supported;
+    surface->setProperty("backdrop", supported);
+    if(changed)
+    {
+        surface->style()->unpolish(surface);
+        surface->style()->polish(surface);
+    }
+    QPalette palette = surface->palette();
+    palette.setColor(QPalette::Window, supported ? QColor(0, 0, 0, 0) : QColor("#202026"));
+    surface->setPalette(palette);
+    surface->setAttribute(Qt::WA_NoSystemBackground, supported);
+    const MARGINS margins = supported ? MARGINS { -1, -1, -1, -1 } : MARGINS { 0, 0, 0, 0 };
+    DwmExtendFrameIntoClientArea(handle, &margins);
+#else
+    surface->setProperty("backdrop", false);
+#endif
+    surface->update();
+}
+void ModernInterface::updateResponsiveLayout()
+{
+    const bool requested = window->width() < 1440;
+    if(requested == compact)
+        return;
+    compact = requested;
+    sidebar->setFixedWidth(compact ? 88 : 248);
+    primary->setCompact(compact);
+    brand->setVisible(!compact);
+    sidebarTagline->setVisible(!compact);
+    statusCard->setVisible(!compact);
+    appearanceButton->setText(compact ? QString() : tr("Appearance"));
+    appearanceButton->setToolTip(tr("Appearance"));
+    appearanceButton->setAccessibleName(tr("Appearance"));
+}
+void ModernInterface::saveAppearance()
+{
+    auto manager = ResourceManager::get()->GetSettingsManager();
+    auto settings = manager->GetSettings("ModernInterface");
+    settings["material"] = material.toStdString();
+    settings["accent"] = accent.toStdString();
+    manager->SetSettings("ModernInterface", settings);
+    manager->SaveSettings();
+}
+void ModernInterface::appearance()
+{
+    QDialog dialog(window);
+    dialog.setObjectName("AppearanceDialog");
+    dialog.setWindowTitle(tr("Appearance"));
+    dialog.setMinimumWidth(430);
+    auto layout = new QVBoxLayout(&dialog);
+    layout->setContentsMargins(24, 24, 24, 24);
+    layout->setSpacing(18);
+    auto heading = new QLabel(tr("Make yourself at home"), &dialog);
+    heading->setObjectName("DialogHeading");
+    layout->addWidget(heading);
+    auto note = new QLabel(tr("A quiet, dark workspace with a little colour."), &dialog);
+    note->setProperty("muted", true);
+    note->setWordWrap(true);
+    layout->addWidget(note);
+    auto form = new QFormLayout;
+    form->setSpacing(16);
+    QComboBox surface, colour;
+    surface.addItem(tr("Acrylic"), "acrylic");
+    surface.addItem(tr("Mica"), "mica");
+    surface.addItem(tr("Opaque"), "opaque");
+    surface.setCurrentIndex(qMax(0, surface.findData(material)));
+    colour.addItem(tr("Rose"), "rose");
+    colour.addItem(tr("Blue"), "blue");
+    colour.addItem(tr("Mint"), "mint");
+    colour.addItem(tr("Violet"), "violet");
+    colour.setCurrentIndex(qMax(0, colour.findData(accent)));
+    form->addRow(tr("Window material"), &surface);
+    form->addRow(tr("Accent colour"), &colour);
+    layout->addLayout(form);
+    auto hint = new QLabel(
+        tr("Windows controls transparency. Acrylic and Mica fall back to a solid surface when unavailable."),
+        &dialog);
+    hint->setWordWrap(true);
+    hint->setProperty("muted", true);
+    layout->addWidget(hint);
+    auto buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, &dialog);
+    connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+    if(dialog.exec() == QDialog::Accepted)
+    {
+        material = surface.currentData().toString();
+        accent = colour.currentData().toString();
+        saveAppearance();
+        applyTheme(qApp);
+        applyBackdrop();
+    }
+}

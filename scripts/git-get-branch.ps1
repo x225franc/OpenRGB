@@ -1,2 +1,2 @@
-$HASH = git log --pretty=%h -1
-git show-ref | select-string $HASH | select-string -NotMatch HEAD | foreach {$_ -replace '.*/(.*)','$1'}
+$branch = git symbolic-ref --quiet --short HEAD
+if ($LASTEXITCODE -eq 0) { $branch } else { git rev-parse --short HEAD }
