@@ -1,5 +1,11 @@
 ﻿param([string]$InstalledRoot=(Join-Path $PSScriptRoot '..\app'))
 $ErrorActionPreference='Stop'
+$existing=Get-AppxPackage -Name OpenRGB.LightSync
+$version=if($existing){[Version]$existing.Version}else{[Version]'1.0.0.0'}
+if($existing){
+ if($version.Revision -ge 65535){throw 'Package revision exhausted.'}
+ $version=[Version]::new($version.Major,$version.Minor,$version.Build,$version.Revision+1)
+}
 $buildRoot=Join-Path $PSScriptRoot '..\build\identity'
 $layout=Join-Path $buildRoot 'layout'
 New-Item -ItemType Directory -Path $buildRoot,(Join-Path $layout 'Images'),(Join-Path $layout 'public') -Force | Out-Null
@@ -9,16 +15,17 @@ if(-not $certificate){throw 'The existing OpenRGBLightSync signing certificate i
 Export-Certificate -Cert $certificate -FilePath (Join-Path $buildRoot 'OpenRGBLightSync.cer') | Out-Null
 $manifest='<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3" xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10" xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities" IgnorableNamespaces="uap uap3 uap10 rescap">
- <Identity Name="OpenRGB.LightSync.Preview" Publisher="CN=OpenRGBLightSync" Version="1.0.0.0" ProcessorArchitecture="x64"/>
- <Properties><DisplayName>OpenRGB Preview</DisplayName><PublisherDisplayName>OpenRGB Preview local build</PublisherDisplayName><Logo>Images\StoreLogo.png</Logo><uap10:AllowExternalContent>true</uap10:AllowExternalContent></Properties>
+ <Identity Name="OpenRGB.LightSync" Publisher="CN=OpenRGBLightSync" Version="__PACKAGE_VERSION__" ProcessorArchitecture="x64"/>
+ <Properties><DisplayName>OpenRGB LightSync</DisplayName><PublisherDisplayName>OpenRGB LightSync local build</PublisherDisplayName><Logo>Images\StoreLogo.png</Logo><uap10:AllowExternalContent>true</uap10:AllowExternalContent></Properties>
  <Dependencies><TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0"/></Dependencies>
  <Resources><Resource Language="en-US"/></Resources>
  <Applications><Application Id="App" Executable="OpenRGB.exe" uap10:TrustLevel="mediumIL" uap10:RuntimeBehavior="win32App">
- <uap:VisualElements DisplayName="OpenRGB Preview" Description="OpenRGB Windows Dynamic Lighting controller" BackgroundColor="transparent" Square150x150Logo="Images\Square150x150Logo.png" Square44x44Logo="Images\Square44x44Logo.png" AppListEntry="none"/>
- <Extensions><uap3:Extension Category="windows.appExtension"><uap3:AppExtension Name="com.microsoft.windows.lighting" Id="OpenRGBLighting" PublicFolder="public" DisplayName="OpenRGB Preview"/></uap3:Extension></Extensions>
+ <uap:VisualElements DisplayName="OpenRGB LightSync" Description="OpenRGB Windows Dynamic Lighting controller" BackgroundColor="transparent" Square150x150Logo="Images\Square150x150Logo.png" Square44x44Logo="Images\Square44x44Logo.png" AppListEntry="none"/>
+ <Extensions><uap3:Extension Category="windows.appExtension"><uap3:AppExtension Name="com.microsoft.windows.lighting" Id="OpenRGBLighting" PublicFolder="public" DisplayName="OpenRGB LightSync"/></uap3:Extension></Extensions>
  </Application></Applications>
  <Capabilities><Capability Name="internetClient"/><rescap:Capability Name="runFullTrust"/><DeviceCapability Name="humaninterfacedevice"/></Capabilities>
 </Package>'
+$manifest=$manifest.Replace('__PACKAGE_VERSION__',$version.ToString())
 Set-Content -LiteralPath (Join-Path $layout 'AppxManifest.xml') -Value $manifest -Encoding utf8
 Add-Type -AssemblyName System.Drawing
 $logo=[Drawing.Image]::FromFile((Join-Path $PSScriptRoot '..\qt\OpenRGBMonochrome.png'))
@@ -38,14 +45,14 @@ if($LASTEXITCODE -ne 0){throw 'Extracting OpenRGB application manifest failed'}
 $existing=$xml.SelectSingleNode("//*[local-name()='msix']")
 if($existing){$existing.ParentNode.RemoveChild($existing) | Out-Null}
 $identity=$xml.CreateElement('msix','urn:schemas-microsoft-com:msix.v1')
-$identity.SetAttribute('publisher','CN=OpenRGBLightSync');$identity.SetAttribute('packageName','OpenRGB.LightSync.Preview');$identity.SetAttribute('applicationId','App')
+$identity.SetAttribute('publisher','CN=OpenRGBLightSync');$identity.SetAttribute('packageName','OpenRGB.LightSync');$identity.SetAttribute('applicationId','App')
 $xml.DocumentElement.AppendChild($identity) | Out-Null
 $xml.Save($win32Manifest)
 & (Join-Path $sdk 'mt.exe') '-nologo' '-manifest' $win32Manifest "-outputresource:$exe;#1"
 if($LASTEXITCODE -ne 0){throw 'Embedding OpenRGB application identity failed'}
 & (Join-Path $sdk 'signtool.exe') sign /fd SHA256 /sha1 $certificate.Thumbprint $exe
 if($LASTEXITCODE -ne 0){throw 'Signing OpenRGB identity executable failed'}
-$package=Join-Path $buildRoot 'OpenRGB.LightSync.Preview.msix'
+$package=Join-Path $buildRoot 'OpenRGB.LightSync.msix'
 & (Join-Path $sdk 'makeappx.exe') pack /d $layout /p $package /o /nv
 if($LASTEXITCODE -ne 0){throw 'Packaging OpenRGB identity failed'}
 & (Join-Path $sdk 'signtool.exe') sign /fd SHA256 /sha1 $certificate.Thumbprint $package

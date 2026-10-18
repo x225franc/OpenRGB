@@ -70,7 +70,7 @@ QColor accentForeground(const QColor& color)
     };
     const double luminance
         = 0.2126 * linear(color.red()) + 0.7152 * linear(color.green()) + 0.0722 * linear(color.blue());
-    return QColor((luminance + 0.05) / 0.05 >= 1.05 / (luminance + 0.05) ? "#181820" : "#ffffff");
+    return QColor((luminance + 0.05) / 0.05 >= 1.05 / (luminance + 0.05) ? "#000000" : "#ffffff");
 }
 void wrapNavigation(QTabWidget* tabs, ModernNavigation* navigation)
 {

@@ -1,9 +1,14 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
+// The Windows SDK C++/WinRT projection uses the C++17 coroutine compatibility header.
+#ifndef _SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
+#define _SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
+#endif
 #include "ModernWindowsAccent.h"
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <dwmapi.h>
 #include <roapi.h>
+#include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.UI.ViewManagement.h>
 namespace
 {
