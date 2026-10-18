@@ -57,4 +57,17 @@ $package=Join-Path $buildRoot 'OpenRGB.LightSync.msix'
 if($LASTEXITCODE -ne 0){throw 'Packaging OpenRGB identity failed'}
 & (Join-Path $sdk 'signtool.exe') sign /fd SHA256 /sha1 $certificate.Thumbprint $package
 if($LASTEXITCODE -ne 0){throw 'Signing OpenRGB identity package failed'}
-[ordered]@{Exe=$exe;Package=$package;Certificate=(Join-Path $buildRoot 'OpenRGBLightSync.cer');Thumbprint=$certificate.Thumbprint;ExeHash=(Get-FileHash $exe).Hash;PackageHash=(Get-FileHash $package).Hash} | ConvertTo-Json | Set-Content (Join-Path $buildRoot 'prepared.json')
+# A second signed version allows changing ExternalLocation without uninstalling
+# the shared identity. Windows rejects moving an already-installed same version.
+if($version.Revision -ge 65535){throw 'Cannot create the alternate package revision.'}
+$alternateVersion=[Version]::new($version.Major,$version.Minor,$version.Build,$version.Revision+1)
+$alternate=Join-Path $buildRoot 'OpenRGB.LightSync.Switch.msix'
+try {
+ $alternateManifest=$manifest.Replace(('Version="'+$version.ToString()+'"'),('Version="'+$alternateVersion.ToString()+'"'))
+ Set-Content -LiteralPath (Join-Path $layout 'AppxManifest.xml') -Value $alternateManifest -Encoding utf8
+ & (Join-Path $sdk 'makeappx.exe') pack /d $layout /p $alternate /o /nv
+ if($LASTEXITCODE -ne 0){throw 'Packaging alternate identity failed'}
+ & (Join-Path $sdk 'signtool.exe') sign /fd SHA256 /sha1 $certificate.Thumbprint $alternate
+ if($LASTEXITCODE -ne 0){throw 'Signing alternate identity failed'}
+}finally{Set-Content -LiteralPath (Join-Path $layout 'AppxManifest.xml') -Value $manifest -Encoding utf8}
+[ordered]@{Exe=$exe;Package=$package;SwitchPackage=$alternate;Certificate=(Join-Path $buildRoot 'OpenRGBLightSync.cer');Thumbprint=$certificate.Thumbprint;ExeHash=(Get-FileHash $exe).Hash;PackageHash=(Get-FileHash $package).Hash} | ConvertTo-Json | Set-Content (Join-Path $buildRoot 'prepared.json')

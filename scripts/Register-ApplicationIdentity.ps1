@@ -1,5 +1,6 @@
 param(
     [string]$AppRoot=(Join-Path $PSScriptRoot '..\app'),
+    [string]$BackupRoot=(Join-Path $PSScriptRoot '..\app\identity-backups'),
     [switch]$RebindOnly,
     [switch]$Remove,
     [switch]$PrioritizeKeyboard
@@ -9,7 +10,7 @@ $name='OpenRGB.LightSync'
 if(Get-Process OpenRGB -ErrorAction SilentlyContinue){throw 'Quit OpenRGB before changing its Windows identity registration.'}
 $AppRoot=[IO.Path]::GetFullPath($AppRoot)
 $stamp=Get-Date -Format yyyyMMdd-HHmmss
-$backup=Join-Path $AppRoot ('identity-backups\'+$stamp)
+$backup=Join-Path ([IO.Path]::GetFullPath($BackupRoot)) $stamp
 New-Item -ItemType Directory -Path $backup -Force|Out-Null
 if(Test-Path 'HKCU:\Software\Microsoft\Lighting'){
     & reg.exe export 'HKCU\Software\Microsoft\Lighting' (Join-Path $backup 'Lighting.reg') /y|Out-Null
@@ -37,15 +38,28 @@ if($Remove){
 }
 $exe=Join-Path $AppRoot 'OpenRGB.exe'
 if((Get-AuthenticodeSignature -LiteralPath $exe).Status -ne 'Valid'){throw 'The executable must have a valid signature.'}
-if($RebindOnly){
-    if(-not $previous){throw 'No existing OpenRGB identity is available. Register the signed package first.'}
-    Add-AppxPackage -Register (Join-Path $previous.InstallLocation 'AppxManifest.xml') -DisableDevelopmentMode -ExternalLocation $AppRoot
-}else{
-    $package=Join-Path $AppRoot 'OpenRGB.LightSync.msix'
-    if(-not(Test-Path -LiteralPath $package)){throw 'Signed OpenRGB identity package missing.'}
-    # Updating, rather than uninstalling, keeps the package family and WDL preferences.
-    Add-AppxPackage -Path $package -ExternalLocation $AppRoot -ForceUpdateFromAnyVersion
+if($RebindOnly -and -not $previous){throw 'No existing OpenRGB identity is available. Register the signed package first.'}
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$identityDirectory=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\app'))
+$candidates=@()
+foreach($filename in @('OpenRGB.LightSync.msix','OpenRGB.LightSync.Switch.msix')){
+    $candidate=Join-Path $identityDirectory $filename
+    if(-not(Test-Path -LiteralPath $candidate)){continue}
+    $archive=[IO.Compression.ZipFile]::OpenRead($candidate)
+    try {
+        $entry=$archive.GetEntry('AppxManifest.xml')
+        if(-not $entry){throw 'Identity package manifest missing.'}
+        $reader=New-Object IO.StreamReader($entry.Open())
+        try{[xml]$xml=$reader.ReadToEnd()}finally{$reader.Dispose()}
+        if($xml.Package.Identity.Name -ne $name -or $xml.Package.Identity.Publisher -ne 'CN=OpenRGBLightSync'){throw 'Unexpected identity package.'}
+        $candidates+=@{Path=$candidate;Version=[Version]$xml.Package.Identity.Version}
+    }finally{$archive.Dispose()}
 }
+# A version change permits redirecting the external folder. ForceUpdateFromAnyVersion
+# also permits using the first signed revision again when switching back.
+$selected=@($candidates|Where-Object {-not $previous -or $_.Version -ne [Version]$previous.Version}|Select-Object -First 1)
+if(-not $selected.Count){throw 'A differently versioned signed identity package is required to retain settings while changing folders.'}
+Add-AppxPackage -Path $selected[0].Path -ExternalLocation $AppRoot -ForceUpdateFromAnyVersion
 $current=Get-AppxPackage -Name $name
 if(-not $current -or ($previous -and $current.PackageFamilyName -ne $previous.PackageFamilyName)){throw 'The original OpenRGB package family was not preserved.'}
 if($legacy){$legacy|Remove-AppxPackage}
