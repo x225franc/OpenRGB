@@ -39,6 +39,7 @@ Copy-Item -Path (Join-Path $LegacyDelivery 'scripts\*') -Destination (Join-Path 
 Copy-Item -Path (Join-Path $LegacyDelivery 'validation\*') -Destination (Join-Path $stage 'validation\historical') -Recurse
 Copy-Item -LiteralPath (Join-Path $LegacyDelivery 'BUILDINFO.json') -Destination (Join-Path $stage 'validation\historical\BUILDINFO.json')
 foreach($file in @('logo-toggle-result.json','logo-persistence-result.json','rebind-results.json','windows-accent-state.json','windows-system-accent.json','preview-close.json','modern-deployment.json','settings-footer-final-state.json','single-instance-test.json')){Copy-Item -LiteralPath (Join-Path $root ('build\'+$file)) -Destination (Join-Path $stage 'validation')}
+foreach($file in @('bluetooth-reconnect-test-results.log','bluetooth-before-results.log')){Copy-Item -LiteralPath (Join-Path $root ('build\'+$file)) -Destination (Join-Path $stage 'validation')}
 Copy-Item -LiteralPath (Join-Path $root 'build\modern-tests\results.txt') -Destination (Join-Path $stage 'validation\modern-tests.txt')
 Copy-Item -LiteralPath (Join-Path $root 'build\ui-review\exercise-result.json') -Destination (Join-Path $stage 'validation')
 Copy-Item -LiteralPath (Join-Path $root 'VALIDATION-MODERN.md') -Destination (Join-Path $stage 'validation\README.md')

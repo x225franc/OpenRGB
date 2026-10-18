@@ -1,7 +1,7 @@
 ﻿# Validation de la version moderne
 
 Version Windows x64 Release, Qt 6.8.3, API des plugins 5.
-Code du binaire : b14ef30b3a9c7e9ff3d38b96677717da02ba41d5.
+Code du binaire : a7a3a44585d45a743f0f430d5afe758782281782.
 
 - Compilation effectuée avec MSVC ; exécutable signé, signature Windows valide.
 - Tests Qt : 17 réussis, aucun échec.
@@ -20,3 +20,13 @@ Consulter Documentation/MODERN-INTERFACE.md pour le lancement, l'identité Windo
 Mise a jour navigation : un seul bouton Settings fixe en bas, icone ecrou. Apparence integree dans General Settings. Test de non-duplication et capture de la page reelle verifies.
 
 Instance unique Windows : trois relancements graphiques testes (pendant le demarrage, fenetre masquee, fenetre visible), tous termines avec code 0 et une seule instance restante. La fenetre existante est reactivee. Test avec --nodetect pour isoler le demarrage graphique du materiel ; aucun test de couleur. Fermeture normale de cette instance : code 0. Le tray accepte maintenant le clic simple et le double-clic. Les services et commandes sans interface restent hors du verrou graphique.
+
+## Reconnexion Bluetooth
+
+Le worker controle maintenant le statut et la generation de connexion meme quand une trame identique est en attente. Un abonnement Windows ConnectionStatusChanged memorise les changements entre deux passages du worker. Apres reouverture GATT, le cache des etats envoyes est invalide et toutes les zones controlees sont reappliquees. Les callbacks ne capturent pas le worker et sont desabonnes a la fermeture.
+
+Tests du worker de production avec faux transport : 13 assertions reussies, notamment reconnexion breve sans nouvelle trame, trame identique, derniere scene pendant une tentative, absence de prise de controle non demandee et arret pendant le delai de nouvelle tentative. L'ancien worker echoue au scenario de reconnexion breve ; le nouveau passe. Compilation Windows x64 effectuee. La notification GATT Windows et la reprise sur materiel reel restent a verifier par l'utilisateur.
+
+HyperSpeed/USB : revue du chemin Direct/Ambient. Il renvoie deja la trame complete et active le mode personnalise a chaque envoi, avec controle de presence et reapplication de luminosite. Aucun changement preventif ni validation materielle supplementaire sur ce transport dans cette livraison.
+
+Test manuel Bluetooth : appliquer une couleur ou un mode Bluetooth pris en charge, eteindre l'appareil dix secondes, puis le rallumer sans relancer OpenRGB ni changer le mode. La derniere scene doit revenir apres reconnexion GATT et les eventuelles nouvelles tentatives. L'appareil doit deja avoir ete decouvert en Bluetooth ; ce correctif n'ajoute pas une detection de nouveaux appareils en cours d'execution.
