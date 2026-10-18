@@ -2,7 +2,7 @@
 
 Quitter l’autre OpenRGB puis lancer **app\OpenRGB.exe** ou **Lancer-OpenRGB.cmd**.
 
-Un clic sur le logo blanc OpenRGB replie ou déplie le menu et conserve ton choix. Un clic droit rétablit le mode automatique. Le logo et l’icône OpenRGB sont blancs. **Appearance** propose Acrylic, Mica ou Opaque et suit la couleur d’accent Windows par défaut, avec actualisation à chaud.
+Un clic sur le logo blanc OpenRGB replie ou déplie le menu et conserve ton choix. Un clic droit rétablit le mode automatique. Le logo et l’icône OpenRGB sont blancs. **Settings > General Settings > Appearance** propose Acrylic, Mica ou Opaque et suit la couleur d’accent Windows par défaut, avec actualisation à chaud.
 
 Cette version conserve l’identité **OpenRGB LightSync** et les priorités WDL du clavier Lenovo. Le script Install-LightSync.ps1 permet de remplacer les binaires installes avec sauvegarde. Sa configuration dans `app\config` contient une copie des profils et de Visual Map. Les sept lumières LAN sont volontairement désactivées dans cette copie, conformément au dernier réglage demandé.
 

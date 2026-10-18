@@ -38,7 +38,7 @@ New-Item -ItemType Directory -Path (Join-Path $stage 'payload\scripts') -Force|O
 Copy-Item -Path (Join-Path $LegacyDelivery 'scripts\*') -Destination (Join-Path $stage 'payload\scripts') -Force
 Copy-Item -Path (Join-Path $LegacyDelivery 'validation\*') -Destination (Join-Path $stage 'validation\historical') -Recurse
 Copy-Item -LiteralPath (Join-Path $LegacyDelivery 'BUILDINFO.json') -Destination (Join-Path $stage 'validation\historical\BUILDINFO.json')
-foreach($file in @('logo-toggle-result.json','logo-persistence-result.json','rebind-results.json','windows-accent-state.json','windows-system-accent.json','preview-close.json','modern-deployment.json')){Copy-Item -LiteralPath (Join-Path $root ('build\'+$file)) -Destination (Join-Path $stage 'validation')}
+foreach($file in @('logo-toggle-result.json','logo-persistence-result.json','rebind-results.json','windows-accent-state.json','windows-system-accent.json','preview-close.json','modern-deployment.json','settings-footer-final-state.json')){Copy-Item -LiteralPath (Join-Path $root ('build\'+$file)) -Destination (Join-Path $stage 'validation')}
 Copy-Item -LiteralPath (Join-Path $root 'build\modern-tests\results.txt') -Destination (Join-Path $stage 'validation\modern-tests.txt')
 Copy-Item -LiteralPath (Join-Path $root 'build\ui-review\exercise-result.json') -Destination (Join-Path $stage 'validation')
 Copy-Item -LiteralPath (Join-Path $root 'VALIDATION-MODERN.md') -Destination (Join-Path $stage 'validation\README.md')

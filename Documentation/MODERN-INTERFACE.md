@@ -92,3 +92,5 @@ Les vérifications réellement effectuées figurent dans `VALIDATION-MODERN.md`.
 `payload` contient la nouvelle version à installer. `validation/historical` conserve les mesures de la livraison du 14 octobre ; elles ne valident pas à elles seules la nouvelle interface. `installation-backup` contient la sauvegarde du remplacement effectué sur ce PC.
 
 Pour restaurer les anciens binaires depuis cette archive : fermer OpenRGB puis exécuter en administrateur `./Uninstall-LightSync.ps1 -Backup "./installation-backup"`. Le chemin cible est celui enregistré lors du déploiement. Ne pas utiliser cette sauvegarde personnelle sur un autre PC. Pour une nouvelle installation, utiliser `Install-LightSync.ps1`.
+
+Le bouton Settings unique est fixe tout en bas de la barre laterale. Il ouvre les parametres ; les options d’apparence sont directement dans General Settings > Appearance. Le raccourci d’apparence separe a ete supprime.
