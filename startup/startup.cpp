@@ -143,7 +143,9 @@ int startup(int argc, char* argv[], unsigned int ret_flags)
             else dlg.show();
             dlg.raise();
             dlg.activateWindow();
-            SetForegroundWindow(reinterpret_cast<HWND>(dlg.winId()));
+            const HWND window = reinterpret_cast<HWND>(dlg.winId());
+            ShowWindow(window, IsIconic(window) ? SW_RESTORE : SW_SHOW);
+            SetForegroundWindow(window);
         });
 #endif
 
