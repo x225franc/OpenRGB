@@ -36,6 +36,8 @@ private:
     QLabel* title;
     QLabel* description;
     QLabel* deviceCount;
+    QWidget* commandBar;
+    void updateCommandBar();
     QWidget* sidebar;
     QLabel* brand;
     QLabel* sidebarTagline;

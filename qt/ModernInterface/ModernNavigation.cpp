@@ -51,8 +51,14 @@ QString pageLabel(QTabWidget* tabs, int index)
         label = tabs->widget(index)->windowTitle();
     return label;
 }
-int rank(const QString& label)
+int rank(const QString& label, const QString& identity)
 {
+    if(identity == "TabDevices")
+        return 0;
+    if(identity == "TabSettings")
+        return 90;
+    if(identity == "TabInformation")
+        return 100;
     const QString lower = label.toLower();
     if(lower == "devices")
         return 0;
@@ -170,8 +176,8 @@ void ModernNavigation::refresh()
             button->installEventFilter(this);
     }
     if(primary)
-        std::stable_sort(entries.begin(), entries.end(),
-            [](const Entry& a, const Entry& b) { return rank(a.label) < rank(b.label); });
+        std::stable_sort(entries.begin(), entries.end(), [](const Entry& a, const Entry& b)
+            { return rank(a.label, a.page->objectName()) < rank(b.label, b.page->objectName()); });
     bool same = entries.size() == pages.size();
     for(int i = 0; same && i < entries.size(); ++i)
     {

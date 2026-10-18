@@ -7,8 +7,36 @@
 #include <QGroupBox>
 #include <QPushButton>
 #include <QLabel>
+#include <QToolButton>
+#include <QComboBox>
 namespace ModernPluginLayout
 {
+inline bool MakeCommandBar(QWidget* root)
+{
+    if(!root || root->property("modernCommandLayout").toBool())
+        return false;
+    auto label = root->findChild<QLabel*>("ActiveProfileLabel");
+    auto profiles = root->findChild<QComboBox*>("ProfileBox");
+    auto save = root->findChild<QToolButton*>("ButtonSaveProfile");
+    auto remove = root->findChild<QPushButton*>("ButtonDeleteProfile");
+    auto preview = root->findChild<QPushButton*>("ButtonToggleDeviceView");
+    auto scan = root->findChild<QPushButton*>("ButtonRescan");
+    if(!label || !profiles || !save || !remove || !preview || !scan)
+        return false;
+    root->setProperty("modernCommandLayout", true);
+    delete root->layout();
+    auto layout = new QHBoxLayout(root);
+    layout->setContentsMargins(12, 10, 12, 10);
+    layout->setSpacing(8);
+    layout->addWidget(label);
+    layout->addWidget(profiles, 1);
+    layout->addWidget(save);
+    layout->addWidget(remove);
+    layout->addSpacing(12);
+    layout->addWidget(preview);
+    layout->addWidget(scan);
+    return true;
+}
 // Layout-only adaptation of the native LightSync panel. All original widgets,
 // signal connections and findChild paths remain alive below the plugin root.
 inline bool MakeLightSyncSections(QWidget* root)

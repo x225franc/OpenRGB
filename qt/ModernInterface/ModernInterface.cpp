@@ -117,6 +117,7 @@ ModernInterface::ModernInterface(QMainWindow* mainWindow, QTabWidget* main, QTab
     , window(mainWindow)
     , mainTabs(main)
     , devices(deviceTabs)
+    , commandBar(commands)
 {
     window->setWindowTitle("OpenRGB");
     window->setMinimumSize(1080, 720);
@@ -126,6 +127,8 @@ ModernInterface::ModernInterface(QMainWindow* mainWindow, QTabWidget* main, QTab
     material = QString::fromStdString(settings.value("material", std::string("acrylic")));
     accent = QString::fromStdString(settings.value("accent", std::string("rose")));
     QWidget* oldCentral = window->takeCentralWidget();
+    if(auto holder = oldCentral->findChild<QHBoxLayout*>("MainButtonsLayout"))
+        holder->removeWidget(commands);
     auto root = new QWidget(window);
     root->setObjectName("ModernRoot");
     window->setCentralWidget(root);
@@ -194,20 +197,17 @@ ModernInterface::ModernInterface(QMainWindow* mainWindow, QTabWidget* main, QTab
     workspaceScroll->setObjectName("WorkspaceScroll");
     workspaceScroll->setFrameShape(QFrame::NoFrame);
     workspaceScroll->setWidgetResizable(true);
+    // Hidden tab pages can report a larger minimum than the visible page.
+    // Do not let that stretch every page; retain a bounded overflow fallback.
+    oldCentral->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+    oldCentral->setMinimumWidth(1060);
     workspaceScroll->setWidget(oldCentral);
     column->addWidget(workspaceScroll, 1);
+    column->addWidget(commands);
     row->addWidget(workspace, 1);
     commands->setObjectName("ProfileCommandBar");
-    if(auto label = commands->findChild<QLabel*>("ActiveProfileLabel"))
-        label->setText(tr("Profile"));
-    if(auto save = commands->findChild<QToolButton*>("ButtonSaveProfile"))
-        save->setProperty("primary", true);
-    if(auto toggle = commands->findChild<QPushButton*>("ButtonToggleDeviceView"))
-        toggle->setText(tr("LED preview"));
-    if(auto rescan = commands->findChild<QPushButton*>("ButtonRescan"))
-        rescan->setText(tr("Search again"));
-    if(auto remove = commands->findChild<QPushButton*>("ButtonDeleteProfile"))
-        remove->setText(tr("Delete"));
+    ModernPluginLayout::MakeCommandBar(commands);
+    updateCommandBar();
     deviceNavigation = new ModernNavigation(devices, root);
     wrapNavigation(devices, deviceNavigation);
     wrapNavigation(settingTabs, new ModernNavigation(settingTabs, root));
@@ -293,6 +293,8 @@ void ModernInterface::adaptPluginPage(QWidget* page)
 }
 bool ModernInterface::eventFilter(QObject* target, QEvent* event)
 {
+    if(target == window && event->type() == QEvent::LanguageChange)
+        QTimer::singleShot(0, this, [this] { updateCommandBar(); });
     if(target == window && event->type() == QEvent::Resize)
         updateResponsiveLayout();
     if(event->type() == QEvent::Polish || event->type() == QEvent::Show
@@ -368,13 +370,33 @@ void ModernInterface::applyBackdrop(QWidget* target)
     QPalette palette = surface->palette();
     palette.setColor(QPalette::Window, supported ? QColor(0, 0, 0, 0) : QColor("#202026"));
     surface->setPalette(palette);
-    surface->setAttribute(Qt::WA_NoSystemBackground, supported);
+    surface->setAttribute(Qt::WA_NoSystemBackground, false);
+    surface->setAttribute(Qt::WA_StyledBackground, true);
     const MARGINS margins = supported ? MARGINS { -1, -1, -1, -1 } : MARGINS { 0, 0, 0, 0 };
     DwmExtendFrameIntoClientArea(handle, &margins);
 #else
     surface->setProperty("backdrop", false);
 #endif
     surface->update();
+}
+void ModernInterface::updateCommandBar()
+{
+    if(auto label = commandBar->findChild<QLabel*>("ActiveProfileLabel"))
+        label->setText(tr("Profile"));
+    if(auto preview = commandBar->findChild<QPushButton*>("ButtonToggleDeviceView"))
+        preview->setText(tr("LED preview"));
+    if(auto scan = commandBar->findChild<QPushButton*>("ButtonRescan"))
+        scan->setText(tr("Search again"));
+    if(auto remove = commandBar->findChild<QPushButton*>("ButtonDeleteProfile"))
+        remove->setText(tr("Delete"));
+    if(auto save = commandBar->findChild<QToolButton*>("ButtonSaveProfile"))
+    {
+        save->setProperty("primary", true);
+        save->style()->unpolish(save);
+        save->style()->polish(save);
+    }
+    commandBar->style()->unpolish(commandBar);
+    commandBar->style()->polish(commandBar);
 }
 void ModernInterface::updateResponsiveLayout()
 {

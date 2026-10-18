@@ -14,6 +14,7 @@
 #include <QScrollBar>
 #include <QLabel>
 #include <QFile>
+#include <QAction>
 #include <QFontDatabase>
 #include <QStyleFactory>
 class ModernNavigationTests : public QObject
@@ -262,6 +263,56 @@ private slots:
         nav.setCompact(false);
         QCOMPARE(nav.widget()->width(), 212);
         QCOMPARE(list->currentRow(), 1);
+    }
+    void profileBarRetainsConnectedActions()
+    {
+        QWidget root;
+        auto layout = new QGridLayout(&root);
+        auto label = new QLabel("Active Profile:", &root);
+        label->setObjectName("ActiveProfileLabel");
+        auto profiles = new QComboBox(&root);
+        profiles->setObjectName("ProfileBox");
+        profiles->addItem("Ambilight");
+        auto save = new QToolButton(&root);
+        save->setObjectName("ButtonSaveProfile");
+        auto action = new QAction("Save Profile", &root);
+        save->setDefaultAction(action);
+        layout->addWidget(label, 0, 0);
+        layout->addWidget(profiles, 0, 1);
+        layout->addWidget(save, 0, 2);
+        for(const QString& name :
+            { QString("ButtonDeleteProfile"), QString("ButtonToggleDeviceView"), QString("ButtonRescan") })
+        {
+            auto button = new QPushButton(name, &root);
+            button->setObjectName(name);
+            layout->addWidget(button);
+        }
+        QSignalSpy triggered(action, &QAction::triggered);
+        QVERIFY(ModernPluginLayout::MakeCommandBar(&root));
+        QVERIFY(!ModernPluginLayout::MakeCommandBar(&root));
+        QCOMPARE(root.findChild<QToolButton*>("ButtonSaveProfile"), save);
+        QCOMPARE(profiles->currentText(), QString("Ambilight"));
+        save->click();
+        QCOMPARE(triggered.count(), 1);
+    }
+    void translatedCorePageOrdering()
+    {
+        QWidget host;
+        QTabWidget tabs;
+        for(auto entry : { QPair<QString, QString> { "TabSettings", "Parametres" },
+                { "TabInformation", "Informations" }, { "TabDevices", "Peripheriques" } })
+        {
+            auto page = new QWidget;
+            page->setObjectName(entry.first);
+            tabs.addTab(page, entry.second);
+        }
+        tabs.addTab(new QWidget, "Effects");
+        ModernNavigation nav(&tabs, &host, true);
+        auto list = nav.widget()->findChild<QListWidget*>();
+        QCOMPARE(list->item(0)->text(), QString("Peripheriques"));
+        QCOMPARE(list->item(1)->text(), QString("Effects"));
+        QCOMPARE(list->item(2)->text(), QString("Parametres"));
+        QCOMPARE(list->item(3)->text(), QString("Informations"));
     }
     void repeatedPluginReload()
     {

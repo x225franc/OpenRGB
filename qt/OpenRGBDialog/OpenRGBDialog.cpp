@@ -1439,7 +1439,8 @@ void OpenRGBDialog::SetLanguage(std::string locale)
 {
     // Saving unrelated settings must not retransmit LanguageChange to every
     // plugin: Designer retranslation clears their runtime icon captions.
-    if(current_locale == locale) return;
+    if(language_initialized && current_locale == locale) return;
+    language_initialized = true;
     current_locale = locale;
     QApplication*           app             = static_cast<QApplication *>(QApplication::instance());
     QDirIterator            language_files(":/i18n/", QDirIterator::Subdirectories);

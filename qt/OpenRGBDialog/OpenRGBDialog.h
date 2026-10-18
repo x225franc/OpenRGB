@@ -141,6 +141,7 @@ private:
     \*-----------------------------------------------------*/
     QTranslator                     translator;
     std::string                     current_locale;
+    bool                            language_initialized = false;
 
     void AddSoftwareInfoPage();
     void AddSupportedDevicesPage();

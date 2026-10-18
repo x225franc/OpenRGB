@@ -31,7 +31,7 @@ QTabBar::tab:hover { background: #373740; }
 QDialog { background: #24242c; }
 QFrame[frameShape="6"], QFrame[frameShape="5"] { border: 1px solid #383842; border-radius: 9px; background: #282830; }
 QFrame#ColorFrame, QFrame#LEDFrame, QFrame#DeviceFrame, QFrame#ModeFrame { background: #282830; border: 1px solid #383842; border-radius: 10px; }
-QFrame#ProfileCommandBar { background: #282830; border: 1px solid #383842; border-radius: 10px; padding: 10px; }
+QFrame#ProfileCommandBar { background: #282830; border: 1px solid #383842; border-radius: 10px; }
 QGroupBox { background: #282830; border: 1px solid #383842; border-radius: 10px; margin-top: 18px; padding: 16px 12px 12px 12px; font-weight: 600; }
 QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; padding: 0 8px; color: #eeeef5; }
 QPushButton, QToolButton { background: #35353f; border: 1px solid #454550; border-bottom-color: #292932; border-radius: 6px; padding: 7px 13px; min-height: 18px; }
