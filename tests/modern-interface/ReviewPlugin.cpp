@@ -22,6 +22,7 @@
 #include <QJsonArray>
 #include <QDateTime>
 #include <QScreen>
+#include <QWindow>
 OpenRGBPluginInfo ReviewPlugin::GetPluginInfo()
 {
     OpenRGBPluginInfo info { };
@@ -29,7 +30,7 @@ OpenRGBPluginInfo ReviewPlugin::GetPluginInfo()
     info.Version = "1.0";
     info.Description = "Development-only interface validation driver";
     info.Label = "UI Review";
-    info.Location = OPENRGB_PLUGIN_LOCATION_TOP;
+    info.Location = OPENRGB_PLUGIN_LOCATION_INFORMATION;
     return info;
 }
 void ReviewPlugin::Load(OpenRGBPluginAPIInterface*)
@@ -209,7 +210,8 @@ QJsonObject ReviewPlugin::execute(const QJsonObject& c)
             }
         return { { "ok", true }, { "widgets", widgets }, { "width", window->width() },
             { "height", window->height() }, { "visible", window->isVisible() },
-            { "backdrop", window->property("backdrop").toBool() } };
+            { "backdrop", window->property("backdrop").toBool() },
+            { "alphaBuffer", window->windowHandle() ? window->windowHandle()->format().alphaBufferSize() : -1 } };
     }
     return { { "ok", true } };
 }

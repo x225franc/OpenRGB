@@ -148,6 +148,9 @@ bool OpenRGBDialog::IsMinimizeOnClose()
 
 OpenRGBDialog::OpenRGBDialog(QWidget *parent) : QMainWindow(parent), ui(new Ui::OpenRGBDialog)
 {
+    // Request an alpha raster surface before native child widgets create the HWND.
+    // DWM provides the backdrop while the normal Windows frame remains intact.
+    setAttribute(Qt::WA_TranslucentBackground, true);
     ui->setupUi(this);
     const QSize available = screen() ? screen()->availableGeometry().size() - QSize(40, 70) : QSize(1440, 920);
     resize(QSize(1440, 920).boundedTo(available));

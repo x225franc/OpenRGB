@@ -8,7 +8,7 @@ Cette branche conserve Qt 6 et l’API 5 des plugins. Elle remplace la navigatio
 2. Ouvrir `new_version/app/OpenRGB.exe` (ou `Lancer-OpenRGB.cmd`).
 3. Utiliser **Appearance**, en bas à gauche, pour choisir Acrylic, Mica ou Opaque et l’accent Rose, Blue, Mint ou Violet.
 
-Le dossier `app/config` est une copie indépendante de la configuration installée, incluant les profils et Visual Map. Les modifications dans cette préversion ne sont pas répercutées automatiquement sur l’installation actuelle. La barre des profils reste disponible dans les pages des plugins. LightSync s�pare d�sormais les vues **Devices** et **Settings**. Les longues pages d�effets d�filent sans comprimer les r�glages. En dessous de 1440 pixels logiques de largeur, le menu principal devient une barre d�ic�nes avec infobulles ; un d�filement de secours conserve l�acc�s aux plugins trop larges.
+Le dossier `app/config` est une copie indépendante de la configuration installée, incluant les profils et Visual Map. Les modifications dans cette préversion ne sont pas répercutées automatiquement sur l’installation actuelle. La barre des profils reste disponible dans les pages des plugins. LightSync sépare désormais les vues **Devices** et **Settings**. Les longues pages d’effets défilent sans comprimer les réglages. En dessous de 1440 pixels logiques de largeur, le menu principal devient une barre d’icônes avec infobulles ; un défilement de secours conserve l’accès aux plugins trop larges.
 
 Le démarrage automatique de la préversion est désactivé. Son raccourci, s’il est activé dans Settings, se nomme **OpenRGB Preview** pour préserver le raccourci existant **OpenRGB**. Ne pas activer les deux simultanément.
 
@@ -54,3 +54,11 @@ La navigation conserve les QTabWidget et la propriété des pages par OpenRGB, e
 Une correction minimale de compilation remplace l’inclusion erronée de GenesisXenon200Controller.cpp par son en-tête, pour éviter des symboles en double lors d’un build propre.
 
 Les mesures et contrôles réellement effectués sont consignés dans `VALIDATION-MODERN.md` à la racine de la livraison.
+
+### Surface Windows et rendu alpha
+
+La fenetre principale et le dialogue Appearance demandent une surface raster Qt avec canal alpha avant la creation du HWND. Le cadre Windows natif est conserve. Les autres dialogues gardent le theme sombre et les attributs DWM compatibles, sans modifier les dialogues systeme natifs ni les selecteurs plein ecran.
+
+Sources Qt 6.8.3 :
+- https://raw.githubusercontent.com/qt/qtbase/v6.8.3/src/plugins/platforms/windows/qwindowswindow.cpp
+- https://raw.githubusercontent.com/qt/qtbase/v6.8.3/src/plugins/platforms/windows/qwindowsbackingstore.cpp

@@ -327,7 +327,10 @@ bool ModernInterface::eventFilter(QObject* target, QEvent* event)
     if(event->type() == QEvent::Show)
     {
         auto dialog = qobject_cast<QDialog*>(target);
-        if(dialog && dialog->isWindow() && !(dialog->windowFlags() & Qt::FramelessWindowHint))
+        if(dialog && dialog->isWindow() && !(dialog->windowFlags() & Qt::FramelessWindowHint)
+            && QByteArray(dialog->metaObject()->className()) != "QFileDialog"
+            && QByteArray(dialog->metaObject()->className()) != "QColorDialog"
+            && QByteArray(dialog->metaObject()->className()) != "QFontDialog")
         {
             QPointer<QWidget> guarded = dialog;
             QTimer::singleShot(0, this,
@@ -425,6 +428,7 @@ void ModernInterface::saveAppearance()
 void ModernInterface::appearance()
 {
     QDialog dialog(window);
+    dialog.setAttribute(Qt::WA_TranslucentBackground, true);
     dialog.setObjectName("AppearanceDialog");
     dialog.setWindowTitle(tr("Appearance"));
     dialog.setMinimumWidth(430);
