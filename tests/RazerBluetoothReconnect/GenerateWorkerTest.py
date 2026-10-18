@@ -31,8 +31,8 @@ using Bytes=std::vector<uint8_t>;
 struct Apartment {};
 struct Fake {
  std::atomic<bool> online{true};std::atomic<uint64_t> generation{0};
- std::mutex mutex;std::condition_variable changed;int closes=0;std::vector<Bytes> writes;std::vector<Bytes> actual{{0},{0}};
- void reset(){std::lock_guard<std::mutex> l(mutex);writes.clear();actual={{0},{0}};closes=0;online=true;generation=0;}
+ std::mutex mutex;std::condition_variable changed;int closes=0,reads=0;std::vector<Bytes> writes;std::vector<Bytes> actual{{0},{0}};
+ void reset(){std::lock_guard<std::mutex> l(mutex);writes.clear();actual={{0},{0}};closes=0;reads=0;online=true;generation=0;}
  bool waitWrites(size_t n){std::unique_lock<std::mutex> l(mutex);return changed.wait_for(l,8s,[&]{return writes.size()>=n;});}
  bool waitClose(){std::unique_lock<std::mutex> l(mutex);return changed.wait_for(l,3s,[&]{return closes>0;});}
 } fake;
@@ -43,7 +43,7 @@ struct Transport {
  bool IsConnected(){return fake.online;}
  uint64_t ConnectionGeneration(){return fake.generation;}
  int ReadBattery(){return -1;}
- bool MatchesLighting(uint8_t zone,Bytes const& b){if(!fake.online)throw std::runtime_error("offline");std::lock_guard<std::mutex> l(fake.mutex);return fake.actual[zone==1?0:1]==b;}
+ bool MatchesLighting(uint8_t zone,Bytes const& b){if(!fake.online)throw std::runtime_error("offline");std::lock_guard<std::mutex> l(fake.mutex);++fake.reads;fake.changed.notify_all();return fake.actual[zone==1?0:1]==b;}
  void Set(uint8_t zone,Bytes const& b){if(!fake.online)throw std::runtime_error("offline");std::lock_guard<std::mutex> l(fake.mutex);fake.writes.push_back(b);fake.actual[zone==1?0:1]=b;fake.changed.notify_all();}
 };
 }
@@ -59,7 +59,7 @@ int main(){try {
  check(f.waitWrites(4),"brief reconnect restores unchanged state without new frame");
  f.generation+=2;worker.Submit({{7},{8}});
  check(f.waitWrites(6),"identical pending frame still restores after reconnect");
- {std::lock_guard<std::mutex> l(f.mutex);f.actual={{0},{0}};}
+ {std::unique_lock<std::mutex> l(f.mutex);const auto before=f.reads;check(f.changed.wait_for(l,8s,[&]{return f.reads>=before+2;}),"mouse state read back at low frequency");check(f.writes.size()==6,"matching hardware state does not resend colors");f.actual={{0},{0}};}
  check(f.waitWrites(8),"silent mouse lighting reset restored without disconnect event");
  f.online=false;f.generation++;worker.Submit({{9},{9}});
  check(f.waitClose(),"offline connection closes for retry");

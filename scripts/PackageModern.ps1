@@ -30,7 +30,7 @@ foreach($folder in @('platforms','imageformats','styles','plugins','config','ide
 }
 $backups=@(Get-ChildItem -LiteralPath $app -Filter 'identity-backup-*.reg' -File)
 if($backups.Count){New-Item -ItemType Directory -Path (Join-Path $stage 'app\identity-backups') -Force|Out-Null;$backups|Copy-Item -Destination (Join-Path $stage 'app\identity-backups')}
-foreach($file in @('LISEZ-MOI.md','Lancer-OpenRGB.cmd','VALIDATION-MODERN.md','LICENSE')){Copy-Item -LiteralPath (Join-Path $root $file) -Destination $stage}
+foreach($file in @('LISEZ-MOI.md','Lancer-OpenRGB.cmd','VALIDATION-MODERN.md','SECOND-PC-TEST.md','LICENSE')){Copy-Item -LiteralPath (Join-Path $root $file) -Destination $stage}
 Copy-Item -LiteralPath (Join-Path $root 'Documentation\MODERN-INTERFACE.md') -Destination (Join-Path $stage 'Documentation')
 foreach($file in @('Register-ApplicationIdentity.ps1','Prepare-ApplicationIdentity.ps1')){Copy-Item -LiteralPath (Join-Path $root ('scripts\'+$file)) -Destination (Join-Path $stage 'scripts')}
 Copy-Item -LiteralPath (Join-Path $root 'qt\OpenRGBMonochrome.png') -Destination (Join-Path $stage 'qt')
@@ -47,7 +47,7 @@ Copy-Item -Path (Join-Path $LegacyDelivery 'scripts\*') -Destination (Join-Path 
 Copy-Item -Path (Join-Path $LegacyDelivery 'validation\*') -Destination (Join-Path $stage 'validation\historical') -Recurse
 Copy-Item -LiteralPath (Join-Path $LegacyDelivery 'BUILDINFO.json') -Destination (Join-Path $stage 'validation\historical\BUILDINFO.json')
 foreach($file in @('logo-toggle-result.json','logo-persistence-result.json','rebind-results.json','windows-accent-state.json','windows-system-accent.json','preview-close.json','modern-deployment.json','settings-footer-final-state.json','single-instance-test.json')){Copy-Item -LiteralPath (Join-Path $root ('build\'+$file)) -Destination (Join-Path $stage 'validation')}
-foreach($file in @('bluetooth-reconnect-test-results.log','bluetooth-before-results.log','bluetooth-mouse-test.log')){Copy-Item -LiteralPath (Join-Path $root ('build\'+$file)) -Destination (Join-Path $stage 'validation')}
+foreach($file in @('bluetooth-reconnect-test-results.log','bluetooth-before-results.log','bluetooth-mouse-test.log','mouse-candidate.json')){Copy-Item -LiteralPath (Join-Path $root ('build\'+$file)) -Destination (Join-Path $stage 'validation')}
 Copy-Item -LiteralPath (Join-Path $root 'build\modern-tests\results.txt') -Destination (Join-Path $stage 'validation\modern-tests.txt')
 Copy-Item -LiteralPath (Join-Path $root 'build\ui-review\exercise-result.json') -Destination (Join-Path $stage 'validation')
 Copy-Item -LiteralPath (Join-Path $root 'VALIDATION-MODERN.md') -Destination (Join-Path $stage 'validation\README.md')

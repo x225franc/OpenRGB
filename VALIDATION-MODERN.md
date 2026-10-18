@@ -1,7 +1,7 @@
 ﻿# Validation de la version moderne
 
 Version Windows x64 Release, Qt 6.8.3, API des plugins 5.
-Code du binaire : a7a3a44585d45a743f0f430d5afe758782281782.
+Code du binaire : fd67e6f98d703d986ad2d4257164a034f95a30a0.
 
 - Compilation effectuée avec MSVC ; exécutable signé, signature Windows valide.
 - Tests Qt : 17 réussis, aucun échec.
@@ -30,3 +30,9 @@ Tests du worker de production avec faux transport : 13 assertions reussies, nota
 HyperSpeed/USB : revue du chemin Direct/Ambient. Il renvoie deja la trame complete et active le mode personnalise a chaque envoi, avec controle de presence et reapplication de luminosite. Aucun changement preventif ni validation materielle supplementaire sur ce transport dans cette livraison.
 
 Test manuel Bluetooth : appliquer une couleur ou un mode Bluetooth pris en charge, eteindre l'appareil dix secondes, puis le rallumer sans relancer OpenRGB ni changer le mode. La derniere scene doit revenir apres reconnexion GATT et les eventuelles nouvelles tentatives. L'appareil doit deja avoir ete decouvert en Bluetooth ; ce correctif n'ajoute pas une detection de nouveaux appareils en cours d'execution.
+
+## Version candidate pour la souris du second PC
+
+Retour utilisateur : le clavier reprend mais pas la souris. Les observations sont faites sur un autre PC, sans logs locaux accessibles. La cause sur ce PC distant n'est pas confirmee. Cette version ajoute une verification de l'etat lumineux reel des deux zones de souris toutes les cinq secondes minimum, hors du thread graphique. Aucun renvoi si les couleurs et la luminosite correspondent. En cas de perte d'etat sans evenement Windows, reappliquer la derniere scene demandee. Les tentatives en echec sont journalisees avec limitation de frequence.
+
+16 assertions du worker avec transport simule passent, dont lecture reguliere sans renvois inutiles et perte silencieuse d'etat sans deconnexion. Compilation x64 et signature valide. Cette version n'a pas ete testee sur la souris du second PC et n'a pas remplace l'installation locale. Les sauvegardes d'installation et les validations historiques incluses correspondent aux deploiements precedents.
