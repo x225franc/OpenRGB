@@ -94,3 +94,7 @@ Les vérifications réellement effectuées figurent dans `VALIDATION-MODERN.md`.
 Pour restaurer les anciens binaires depuis cette archive : fermer OpenRGB puis exécuter en administrateur `./Uninstall-LightSync.ps1 -Backup "./installation-backup"`. Le chemin cible est celui enregistré lors du déploiement. Ne pas utiliser cette sauvegarde personnelle sur un autre PC. Pour une nouvelle installation, utiliser `Install-LightSync.ps1`.
 
 Le bouton Settings unique est fixe tout en bas de la barre laterale. Il ouvre les parametres ; les options d’apparence sont directement dans General Settings > Appearance. Le raccourci d’apparence separe a ete supprime.
+
+## Instance unique sous Windows
+
+Un nouveau lancement graphique dans la meme session utilisateur affiche la fenetre de l’instance existante et quitte avant toute detection materielle supplementaire. Cela fonctionne aussi pendant le premier demarrage. Un clic simple ou double sur l’icone du tray affiche la fenetre. Les services et commandes sans interface conservent leur fonctionnement. Les options d’un second lancement graphique ne sont pas retransmises : il sert a afficher l’instance deja ouverte.
