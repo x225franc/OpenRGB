@@ -248,7 +248,7 @@
         <string/>
        </property>
        <property name="pixmap">
-        <pixmap resource="../resources.qrc">:/org.openrgb.OpenRGB.png</pixmap>
+        <pixmap resource="../resources.qrc">:/OpenRGBMonochrome.png</pixmap>
        </property>
        <property name="scaledContents">
         <bool>false</bool>

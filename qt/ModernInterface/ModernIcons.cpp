@@ -11,7 +11,13 @@ QIcon ModernInterface::icon(const QString& name, const QColor& color)
     p.setRenderHint(QPainter::Antialiasing);
     p.setPen(QPen(color, 1.55, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     const QString key = name.toLower();
-    if(key.contains("visual") || key.contains("map"))
+    if(key == "menu")
+    {
+        p.drawLine(4, 6, 20, 6);
+        p.drawLine(4, 12, 20, 12);
+        p.drawLine(4, 18, 20, 18);
+    }
+    else if(key.contains("visual") || key.contains("map"))
     {
         p.drawRoundedRect(QRectF(3, 3, 18, 18), 3, 3);
         p.drawLine(9, 3, 9, 21);

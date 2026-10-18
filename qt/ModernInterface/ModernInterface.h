@@ -13,6 +13,7 @@ class QLineEdit;
 class QLabel;
 class QEvent;
 class QPushButton;
+class QToolButton;
 #include "ModernNavigation.h"
 class ModernInterface : public QObject
 {
@@ -40,6 +41,9 @@ private:
     void updateCommandBar();
     QWidget* sidebar;
     QLabel* brand;
+    QLabel* brandLogo;
+    QToolButton* navigationToggle;
+    QString navigationMode = "auto";
     QLabel* sidebarTagline;
     QWidget* statusCard;
     QPushButton* appearanceButton;

@@ -16,6 +16,7 @@
 #include <QPushButton>
 #include <QComboBox>
 #include <QDialog>
+#include <QMenu>
 #include <QDialogButtonBox>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -77,8 +78,12 @@ void ModernInterface::applyTheme(QApplication* app)
         { "enum", { "acrylic", "mica", "opaque" } }, { "order", 0 } };
     schema["accent"] = { { "type", "string" }, { "title", "Accent colour" }, { "default", "rose" },
         { "enum", { "rose", "blue", "mint", "violet" } }, { "order", 1 } };
+    schema["navigation"] = { { "type", "string" }, { "title", "Navigation" }, { "default", "auto" },
+        { "enum", { "auto", "expanded", "collapsed" } }, { "order", 2 } };
+    // Register the complete appearance schema, including the persistent sidebar choice.
     ResourceManager::get()->GetSettingsManager()->RegisterSettingsSchemaComplete(
         "ModernInterface", "Appearance", schema, 1, true, false);
+    app->setWindowIcon(QIcon(":OpenRGBMonochrome.png"));
     app->setStyle(QStyleFactory::create("Fusion"));
     QFont font("Segoe UI Variable Text", 10);
     font.setStyleStrategy(QFont::PreferAntialias);
@@ -126,6 +131,7 @@ ModernInterface::ModernInterface(QMainWindow* mainWindow, QTabWidget* main, QTab
         settings = json::object();
     material = QString::fromStdString(settings.value("material", std::string("acrylic")));
     accent = QString::fromStdString(settings.value("accent", std::string("rose")));
+    navigationMode = QString::fromStdString(settings.value("navigation", std::string("auto")));
     QWidget* oldCentral = window->takeCentralWidget();
     if(auto holder = oldCentral->findChild<QHBoxLayout*>("MainButtonsLayout"))
         holder->removeWidget(commands);
@@ -142,12 +148,42 @@ ModernInterface::ModernInterface(QMainWindow* mainWindow, QTabWidget* main, QTab
     side->setContentsMargins(18, 26, 18, 18);
     side->setSpacing(18);
     auto brandRow = new QHBoxLayout;
-    auto logo = new QLabel(sidebar);
-    logo->setPixmap(QIcon(":org.openrgb.OpenRGB.png").pixmap(34, 34));
-    logo->setFixedSize(38, 38);
+    navigationToggle = new QToolButton(sidebar);
+    navigationToggle->setObjectName("NavigationToggle");
+    navigationToggle->setIcon(icon("menu"));
+    navigationToggle->setIconSize(QSize(20, 20));
+    navigationToggle->setFixedSize(32, 32);
+    navigationToggle->setCheckable(true);
+    navigationToggle->setCursor(Qt::PointingHandCursor);
+    navigationToggle->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(navigationToggle, &QToolButton::clicked, this,
+        [this]
+        {
+            navigationMode = compact ? "expanded" : "collapsed";
+            saveAppearance();
+            updateResponsiveLayout();
+        });
+    connect(navigationToggle, &QToolButton::customContextMenuRequested, this,
+        [this](const QPoint& point)
+        {
+            QMenu menu(navigationToggle);
+            auto automatic = menu.addAction(tr("Automatic width"));
+            automatic->setCheckable(true);
+            automatic->setChecked(navigationMode == "auto");
+            if(menu.exec(navigationToggle->mapToGlobal(point)) == automatic)
+            {
+                navigationMode = "auto";
+                saveAppearance();
+                updateResponsiveLayout();
+            }
+        });
+    brandLogo = new QLabel(sidebar);
+    brandLogo->setPixmap(QIcon(":OpenRGBMonochrome.png").pixmap(28, 28));
+    brandLogo->setFixedSize(32, 32);
     brand = new QLabel("OpenRGB", sidebar);
     brand->setObjectName("BrandName");
-    brandRow->addWidget(logo);
+    brandRow->addWidget(navigationToggle);
+    brandRow->addWidget(brandLogo);
     brandRow->addWidget(brand);
     brandRow->addStretch();
     side->addLayout(brandRow);
@@ -237,6 +273,8 @@ void ModernInterface::refresh()
         const auto requestedMaterial
             = QString::fromStdString(settings.value("material", std::string("acrylic")));
         const auto requestedAccent = QString::fromStdString(settings.value("accent", std::string("rose")));
+        navigationMode = QString::fromStdString(settings.value("navigation", std::string("auto")));
+        updateResponsiveLayout();
         if(requestedMaterial != material || requestedAccent != accent)
         {
             material = requestedMaterial;
@@ -403,13 +441,18 @@ void ModernInterface::updateCommandBar()
 }
 void ModernInterface::updateResponsiveLayout()
 {
-    const bool requested = window->width() < 1440;
+    const bool requested
+        = navigationMode == "collapsed" || (navigationMode != "expanded" && window->width() < 1440);
+    navigationToggle->setChecked(!requested);
+    navigationToggle->setToolTip(requested ? tr("Expand navigation") : tr("Collapse navigation"));
+    navigationToggle->setAccessibleName(navigationToggle->toolTip());
     if(requested == compact)
         return;
     compact = requested;
     sidebar->setFixedWidth(compact ? 88 : 248);
     primary->setCompact(compact);
     brand->setVisible(!compact);
+    brandLogo->setVisible(!compact);
     sidebarTagline->setVisible(!compact);
     statusCard->setVisible(!compact);
     appearanceButton->setText(compact ? QString() : tr("Appearance"));
@@ -422,6 +465,7 @@ void ModernInterface::saveAppearance()
     auto settings = manager->GetSettings("ModernInterface");
     settings["material"] = material.toStdString();
     settings["accent"] = accent.toStdString();
+    settings["navigation"] = navigationMode.toStdString();
     manager->SetSettings("ModernInterface", settings);
     manager->SaveSettings();
 }

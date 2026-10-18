@@ -166,7 +166,7 @@ OpenRGBDialog::OpenRGBDialog(QWidget *parent) : QMainWindow(parent), ui(new Ui::
     /*-----------------------------------------------------*\
     | Set window icon                                       |
     \*-----------------------------------------------------*/
-    QIcon logo(":org.openrgb.OpenRGB.png");
+    QIcon logo(":OpenRGBMonochrome.png");
     setWindowIcon(logo);
 
     /*-----------------------------------------------------*\
@@ -209,6 +209,7 @@ OpenRGBDialog::OpenRGBDialog(QWidget *parent) : QMainWindow(parent), ui(new Ui::
     ui_settings_schema["monochrome_tray_icon"]["title"]                             = QT_TRANSLATE_NOOP("Settings", "Monochrome Tray Icon");
     ui_settings_schema["monochrome_tray_icon"]["description"]                       = QT_TRANSLATE_NOOP("Settings", "Use a monochrome icon in the system tray instead of a full color icon");
     ui_settings_schema["monochrome_tray_icon"]["type"]                              = "bool";
+    ui_settings_schema["monochrome_tray_icon"]["default"]                           = true;
     ui_settings_schema["monochrome_tray_icon"]["order"]                             = 2;
 
     ui_settings_schema["hex_format"]["title"]                                       = QT_TRANSLATE_NOOP("Settings", "Hex Format");

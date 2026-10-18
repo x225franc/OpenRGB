@@ -21,7 +21,7 @@ $manifest='<?xml version="1.0" encoding="utf-8"?>
 </Package>'
 Set-Content -LiteralPath (Join-Path $layout 'AppxManifest.xml') -Value $manifest -Encoding utf8
 Add-Type -AssemblyName System.Drawing
-$logo=[Drawing.Image]::FromFile((Join-Path $PSScriptRoot '..\qt\org.openrgb.OpenRGB.png'))
+$logo=[Drawing.Image]::FromFile((Join-Path $PSScriptRoot '..\qt\OpenRGBMonochrome.png'))
 try {
  foreach($entry in @(@{Name='StoreLogo';Size=50},@{Name='Square150x150Logo';Size=150},@{Name='Square44x44Logo';Size=44})){
   $bitmap=New-Object Drawing.Bitmap($entry.Size,$entry.Size)

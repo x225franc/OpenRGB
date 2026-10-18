@@ -10,4 +10,6 @@ cd /d "%~dp0..\build"
 qmake -nocache ..\OpenRGB.pro "CONFIG-=debug_and_release" "CONFIG+=release"
 if errorlevel 1 exit /b 1
 jom -j 6
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0VerifyModernBuild.ps1"
 exit /b %errorlevel%

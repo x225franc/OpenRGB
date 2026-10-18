@@ -421,7 +421,7 @@ win32:DEFINES +=                                                                
 win32:HID_HOTPLUG_ENABLED = "true"
 
 win32:RC_ICONS +=                                                                               \
-    qt/OpenRGB.ico
+    qt/ModernInterface/OpenRGBWhite.ico
 
 win32:DISTFILES += \
     dependencies/PawnIO/modules/SmbusPIIX4.bin                                                  \
