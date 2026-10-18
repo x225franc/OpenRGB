@@ -848,3 +848,20 @@ message("HID Hotplug: Disabled")
 
 # Native Windows materials; falls back to opaque on unsupported systems.
 win32:LIBS += -ldwmapi
+
+# This preview can live inside another OpenRGB checkout. Resolve local paths
+# before qmake generates shadow-build dependencies, so a changed class header
+# never resolves to the parent checkout with the same relative filename.
+MODERN_ABSOLUTE_INCLUDES = $$PWD $$OUT_PWD
+for(path, INCLUDEPATH): MODERN_ABSOLUTE_INCLUDES += $$absolute_path($$path, $$PWD)
+INCLUDEPATH = $$unique(MODERN_ABSOLUTE_INCLUDES)
+DEPENDPATH = $$INCLUDEPATH
+MODERN_ABSOLUTE_SOURCES =
+for(path, SOURCES): MODERN_ABSOLUTE_SOURCES += $$absolute_path($$path, $$PWD)
+SOURCES = $$MODERN_ABSOLUTE_SOURCES
+MODERN_ABSOLUTE_HEADERS =
+for(path, HEADERS): MODERN_ABSOLUTE_HEADERS += $$absolute_path($$path, $$PWD)
+HEADERS = $$MODERN_ABSOLUTE_HEADERS
+MODERN_ABSOLUTE_FORMS =
+for(path, FORMS): MODERN_ABSOLUTE_FORMS += $$absolute_path($$path, $$PWD)
+FORMS = $$MODERN_ABSOLUTE_FORMS

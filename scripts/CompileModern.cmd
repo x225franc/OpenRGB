@@ -7,7 +7,7 @@ if errorlevel 1 exit /b 1
 set "PATH=%QT_ROOT%\bin;%~dp0..\..\Plugin\build-tools\jom;%PATH%"
 if not exist "%~dp0..\build" mkdir "%~dp0..\build"
 cd /d "%~dp0..\build"
-qmake ..\OpenRGB.pro "CONFIG-=debug_and_release" "CONFIG+=release"
+qmake -nocache ..\OpenRGB.pro "CONFIG-=debug_and_release" "CONFIG+=release"
 if errorlevel 1 exit /b 1
 jom -j 6
 exit /b %errorlevel%
