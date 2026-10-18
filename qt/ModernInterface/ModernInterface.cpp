@@ -174,9 +174,9 @@ ModernInterface::ModernInterface(QMainWindow* mainWindow, QTabWidget* main, QTab
     auto brandRow = new QHBoxLayout;
     navigationToggle = new QToolButton(sidebar);
     navigationToggle->setObjectName("NavigationToggle");
-    navigationToggle->setIcon(icon("menu"));
-    navigationToggle->setIconSize(QSize(20, 20));
-    navigationToggle->setFixedSize(32, 32);
+    navigationToggle->setIcon(QIcon(":OpenRGBMonochrome.png"));
+    navigationToggle->setIconSize(QSize(36, 36));
+    navigationToggle->setFixedSize(38, 40);
     navigationToggle->setCheckable(true);
     navigationToggle->setCursor(Qt::PointingHandCursor);
     navigationToggle->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -201,13 +201,9 @@ ModernInterface::ModernInterface(QMainWindow* mainWindow, QTabWidget* main, QTab
                 updateResponsiveLayout();
             }
         });
-    brandLogo = new QLabel(sidebar);
-    brandLogo->setPixmap(QIcon(":OpenRGBMonochrome.png").pixmap(28, 28));
-    brandLogo->setFixedSize(32, 32);
     brand = new QLabel("OpenRGB", sidebar);
     brand->setObjectName("BrandName");
     brandRow->addWidget(navigationToggle);
-    brandRow->addWidget(brandLogo);
     brandRow->addWidget(brand);
     brandRow->addStretch();
     side->addLayout(brandRow);
@@ -519,7 +515,7 @@ void ModernInterface::updateResponsiveLayout()
     sidebar->setFixedWidth(compact ? 88 : 248);
     primary->setCompact(compact);
     brand->setVisible(!compact);
-    brandLogo->setVisible(!compact);
+    navigationToggle->setFixedSize(compact ? 52 : 38, 40);
     sidebarTagline->setVisible(!compact);
     statusCard->setVisible(!compact);
     appearanceButton->setText(compact ? QString() : tr("Appearance"));

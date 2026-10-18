@@ -46,7 +46,6 @@ private:
     void updateCommandBar();
     QWidget* sidebar;
     QLabel* brand;
-    QLabel* brandLogo;
     QToolButton* navigationToggle;
     QString navigationMode = "auto";
     QLabel* sidebarTagline;
