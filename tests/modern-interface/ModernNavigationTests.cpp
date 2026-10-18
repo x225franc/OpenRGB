@@ -36,6 +36,28 @@ private slots:
         style.replace("@TOGGLE_IMAGE@", ":/modern/toggle-on.png");
         qApp->setStyleSheet(style);
     }
+    void pinnedSettingsHasNoDuplicateEntry()
+    {
+        QWidget host;
+        QTabWidget tabs;
+        auto devices = new QWidget;
+        devices->setObjectName("TabDevices");
+        auto settings = new QWidget;
+        settings->setObjectName("TabSettings");
+        tabs.addTab(devices, "Devices");
+        tabs.addTab(settings, "Settings");
+        ModernNavigation nav(&tabs, &host, true);
+        nav.widget()->setProperty("pinnedSettings", true);
+        nav.refresh();
+        auto list = nav.widget()->findChild<QListWidget*>();
+        QVERIFY(!list->item(0)->isHidden());
+        QVERIFY(list->item(1)->isHidden());
+        tabs.setCurrentWidget(settings);
+        QCOMPARE(nav.currentLabel(), QString("Settings"));
+        nav.setCompact(true);
+        nav.refresh();
+        QVERIFY(list->item(1)->isHidden());
+    }
     void primaryOrderingAndSelection()
     {
         QWidget host;

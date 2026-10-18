@@ -227,10 +227,9 @@ ModernInterface::ModernInterface(QMainWindow* mainWindow, QTabWidget* main, QTab
         if(mainTabs->widget(i)->objectName() == "TabSettings")
             settingsPage = mainTabs->widget(i);
     connect(settingsButton, &QPushButton::clicked, this, [this, settingsPage]
-        { if(settingsPage) mainTabs->setCurrentWidget(settingsPage); });
+        { if(settingsPage) { mainTabs->setCurrentWidget(settingsPage); settingsButton->setChecked(true); } });
     connect(mainTabs, &QTabWidget::currentChanged, this, [this, settingsPage]
         { settingsButton->setChecked(settingsPage && mainTabs->currentWidget() == settingsPage); });
-    side->addWidget(settingsButton);
     statusCard = new QFrame(sidebar);
     statusCard->setObjectName("SidebarStatus");
     auto statusLayout = new QVBoxLayout(statusCard);
@@ -242,6 +241,7 @@ ModernInterface::ModernInterface(QMainWindow* mainWindow, QTabWidget* main, QTab
     statusLayout->addWidget(statusTitle);
     statusLayout->addWidget(deviceCount);
     side->addWidget(statusCard);
+    side->addWidget(settingsButton);
     row->addWidget(sidebar);
     auto workspace = new QWidget(root);
     workspace->setObjectName("AppWorkspace");
