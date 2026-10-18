@@ -13,6 +13,11 @@
 #include "startup.h"
 
 #include <QApplication>
+#ifdef _WIN32
+#include <windows.h>
+#include <QWinEventNotifier>
+extern HANDLE OpenRGBGuiActivationEvent();
+#endif
 
 #include "OpenRGBDialog.h"
 #include "ModernInterface.h"
@@ -130,6 +135,17 @@ int startup(int argc, char* argv[], unsigned int ret_flags)
         {
             dlg.show();
         }
+
+#ifdef _WIN32
+        QWinEventNotifier activation(OpenRGBGuiActivationEvent(), &dlg);
+        QObject::connect(&activation, &QWinEventNotifier::activated, &dlg, [&dlg] {
+            if(dlg.isMinimized()) dlg.showNormal();
+            else dlg.show();
+            dlg.raise();
+            dlg.activateWindow();
+            SetForegroundWindow(reinterpret_cast<HWND>(dlg.winId()));
+        });
+#endif
 
         LOG_TRACE("[main] Ready to exec() the dialog");
 

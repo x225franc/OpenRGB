@@ -1931,21 +1931,12 @@ void OpenRGBDialog::onShowDialogMessage()
 
 void OpenRGBDialog::on_ReShow(QSystemTrayIcon::ActivationReason reason)
 {
-    if (reason == QSystemTrayIcon::DoubleClick)
+    if(reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick)
     {
-        if (isHidden())
-        {
-            show();
-            if(isMinimized())
-            {
-                bool maximize = isMaximized();
-                showNormal();
-                if(maximize)
-                {
-                    showMaximized();
-                }
-            }
-        }
+        if(isMinimized()) showNormal();
+        else show();
+        raise();
+        activateWindow();
     }
 }
 

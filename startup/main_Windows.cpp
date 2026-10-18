@@ -16,6 +16,8 @@
 #include <stdlib.h>
 #include <windows.h>
 #include <thread>
+#include <memory>
+#include <string>
 
 #include <QApplication>
 
@@ -39,6 +41,13 @@ static SERVICE_TABLE_ENTRY   service_dispatch_table[]   = { { service_name, Serv
 static DWORD                 service_checkpoint         = 1;
 static SERVICE_STATUS_HANDLE service_status_handle;
 static SERVICE_STATUS        service_status;
+
+// Local namespace isolates desktop sessions; the user name isolates accounts.
+static HANDLE gui_activation_event = nullptr;
+HANDLE OpenRGBGuiActivationEvent()
+{
+    return gui_activation_event;
+}
 
 static bool                  started_as_service;
 static volatile bool         service_stop_requested;
@@ -544,6 +553,9 @@ static void WaitWhileServerOnline(NetworkServer* srv)
 static int common_main(int argc, char* argv[])
 {
     unsigned int ret_flags;
+    using Handle = std::unique_ptr<void, decltype(&CloseHandle)>;
+    Handle gui_mutex(nullptr, &CloseHandle);
+    Handle activation_event(nullptr, &CloseHandle);
 
     if(started_as_service)
     {
@@ -610,6 +622,42 @@ static int common_main(int argc, char* argv[])
             // Match the supplied launcher: never hand portable control to another local instance.
             ret_flags |= RET_FLAG_NO_AUTO_CONNECT;
         }
+    }
+
+    // Claim the GUI before hardware detection, including concurrent launches.
+    // Headless commands and Windows services retain their existing behavior.
+    if(!started_as_service && (ret_flags & RET_FLAG_START_GUI))
+    {
+        WCHAR user[257] = {};
+        DWORD length = 257;
+        if(!GetUserNameW(user, &length))
+            return EXIT_FAILURE;
+        const std::wstring base = std::wstring(L"Local\\OpenRGB.GUI.") + user;
+        gui_mutex.reset(CreateMutexW(nullptr, FALSE, (base + L".Lock").c_str()));
+        const bool existing = GetLastError() == ERROR_ALREADY_EXISTS;
+        if(!gui_mutex)
+            return EXIT_FAILURE;
+        activation_event.reset(CreateEventW(nullptr, FALSE, FALSE, (base + L".Activate").c_str()));
+        if(!activation_event)
+            return EXIT_FAILURE;
+        if(existing)
+        {
+            // Grant foreground activation only to an existing OpenRGB window.
+            EnumWindows([](HWND window, LPARAM) -> BOOL {
+                WCHAR title[256] = {};
+                GetWindowTextW(window, title, 256);
+                if(std::wstring(title) == L"OpenRGB")
+                {
+                    DWORD pid = 0;
+                    GetWindowThreadProcessId(window, &pid);
+                    AllowSetForegroundWindow(pid);
+                }
+                return TRUE;
+            }, 0);
+            SetEvent(activation_event.get());
+            return EXIT_SUCCESS;
+        }
+        gui_activation_event = activation_event.get();
     }
 
     /*-----------------------------------------------------*\
