@@ -1,4 +1,5 @@
 ﻿param(
+    [switch]$OfflineSnapshot,
     [string]$LegacyDelivery=(Join-Path $PSScriptRoot '..\..\build\hibernate-delivery-20261014-933765b'),
     [string]$Destination=(Join-Path $env:USERPROFILE 'Downloads'),
     [Parameter(Mandatory=$true)][ValidatePattern('^[0-9a-fA-F]{40}$')][string]$SourceCommit
@@ -6,7 +7,14 @@
 $ErrorActionPreference='Stop'
 $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $app=Join-Path $root 'app'
-if(Get-Process OpenRGB -ErrorAction SilentlyContinue){throw 'Close OpenRGB before backing up its configuration.'}
+$running=@(Get-Process OpenRGB -ErrorAction SilentlyContinue)
+if($running.Count){
+    if(-not $OfflineSnapshot){throw 'Close OpenRGB before backing up its configuration.'}
+    foreach($process in $running){
+        if(-not $process.Path -or [IO.Path]::GetFullPath($process.Path) -eq (Join-Path $app 'OpenRGB.exe')){throw 'Cannot package a running or unverified source application.'}
+    }
+}
+
 $signature=Get-AuthenticodeSignature -LiteralPath (Join-Path $app 'OpenRGB.exe')
 if($signature.Status -ne 'Valid'){throw 'The preview executable must have a valid signature.'}
 $name='OpenRGB-Modern-Preview-x64-'+(Get-Date -Format yyyyMMdd-HHmmss)+'-'+$SourceCommit.Substring(0,8)
@@ -39,7 +47,7 @@ Copy-Item -Path (Join-Path $LegacyDelivery 'scripts\*') -Destination (Join-Path 
 Copy-Item -Path (Join-Path $LegacyDelivery 'validation\*') -Destination (Join-Path $stage 'validation\historical') -Recurse
 Copy-Item -LiteralPath (Join-Path $LegacyDelivery 'BUILDINFO.json') -Destination (Join-Path $stage 'validation\historical\BUILDINFO.json')
 foreach($file in @('logo-toggle-result.json','logo-persistence-result.json','rebind-results.json','windows-accent-state.json','windows-system-accent.json','preview-close.json','modern-deployment.json','settings-footer-final-state.json','single-instance-test.json')){Copy-Item -LiteralPath (Join-Path $root ('build\'+$file)) -Destination (Join-Path $stage 'validation')}
-foreach($file in @('bluetooth-reconnect-test-results.log','bluetooth-before-results.log')){Copy-Item -LiteralPath (Join-Path $root ('build\'+$file)) -Destination (Join-Path $stage 'validation')}
+foreach($file in @('bluetooth-reconnect-test-results.log','bluetooth-before-results.log','bluetooth-mouse-test.log')){Copy-Item -LiteralPath (Join-Path $root ('build\'+$file)) -Destination (Join-Path $stage 'validation')}
 Copy-Item -LiteralPath (Join-Path $root 'build\modern-tests\results.txt') -Destination (Join-Path $stage 'validation\modern-tests.txt')
 Copy-Item -LiteralPath (Join-Path $root 'build\ui-review\exercise-result.json') -Destination (Join-Path $stage 'validation')
 Copy-Item -LiteralPath (Join-Path $root 'VALIDATION-MODERN.md') -Destination (Join-Path $stage 'validation\README.md')

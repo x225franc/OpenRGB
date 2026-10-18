@@ -21,6 +21,8 @@ fixture = r'''
 using namespace std::chrono_literals;
 namespace winrt { using hstring=std::string; struct hresult_error {std::string message()const{return {};}}; inline std::string to_string(std::string s){return s;} }
 #define LOG_DEBUG(...) ((void)0)
+#define LOG_INFO(...) ((void)0)
+#define LOG_WARNING(...) ((void)0)
 struct RazerBatteryStatus {bool supported=false,reachable=false;int percent=-1;std::string transport;};
 struct RazerBatteryCache {void Enable(std::string){} void Publish(RazerBatteryStatus){}};
 bool WiredPresent(bool){return false;}
@@ -29,8 +31,8 @@ using Bytes=std::vector<uint8_t>;
 struct Apartment {};
 struct Fake {
  std::atomic<bool> online{true};std::atomic<uint64_t> generation{0};
- std::mutex mutex;std::condition_variable changed;int closes=0;std::vector<Bytes> writes;
- void reset(){std::lock_guard<std::mutex> l(mutex);writes.clear();closes=0;online=true;generation=0;}
+ std::mutex mutex;std::condition_variable changed;int closes=0;std::vector<Bytes> writes;std::vector<Bytes> actual{{0},{0}};
+ void reset(){std::lock_guard<std::mutex> l(mutex);writes.clear();actual={{0},{0}};closes=0;online=true;generation=0;}
  bool waitWrites(size_t n){std::unique_lock<std::mutex> l(mutex);return changed.wait_for(l,8s,[&]{return writes.size()>=n;});}
  bool waitClose(){std::unique_lock<std::mutex> l(mutex);return changed.wait_for(l,3s,[&]{return closes>0;});}
 } fake;
@@ -41,7 +43,8 @@ struct Transport {
  bool IsConnected(){return fake.online;}
  uint64_t ConnectionGeneration(){return fake.generation;}
  int ReadBattery(){return -1;}
- void Set(uint8_t,Bytes const& b){if(!fake.online)throw std::runtime_error("offline");std::lock_guard<std::mutex> l(fake.mutex);fake.writes.push_back(b);fake.changed.notify_all();}
+ bool MatchesLighting(uint8_t zone,Bytes const& b){if(!fake.online)throw std::runtime_error("offline");std::lock_guard<std::mutex> l(fake.mutex);return fake.actual[zone==1?0:1]==b;}
+ void Set(uint8_t zone,Bytes const& b){if(!fake.online)throw std::runtime_error("offline");std::lock_guard<std::mutex> l(fake.mutex);fake.writes.push_back(b);fake.actual[zone==1?0:1]=b;fake.changed.notify_all();}
 };
 }
 '''
@@ -56,10 +59,12 @@ int main(){try {
  check(f.waitWrites(4),"brief reconnect restores unchanged state without new frame");
  f.generation+=2;worker.Submit({{7},{8}});
  check(f.waitWrites(6),"identical pending frame still restores after reconnect");
+ {std::lock_guard<std::mutex> l(f.mutex);f.actual={{0},{0}};}
+ check(f.waitWrites(8),"silent mouse lighting reset restored without disconnect event");
  f.online=false;f.generation++;worker.Submit({{9},{9}});
  check(f.waitClose(),"offline connection closes for retry");
  worker.Submit({{42},{43}});f.online=true;f.generation++;
- check(f.waitWrites(8),"retry restores latest requested scene");
+ check(f.waitWrites(10),"retry restores latest requested scene");
  {std::lock_guard<std::mutex> l(f.mutex);check(f.writes[f.writes.size()-2]==RazerBLE::Bytes{42}&&f.writes.back()==RazerBLE::Bytes{43},"no stale scene overwrites newest request");}
  }
  f.reset();

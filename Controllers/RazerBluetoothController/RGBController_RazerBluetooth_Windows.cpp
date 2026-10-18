@@ -60,6 +60,8 @@ public:
                 }
                 catch(std::exception const& e) { LOG_DEBUG("[Razer Bluetooth] Initial connection: %s", e.what()); ready.set_value(false); return; }
                 catch(winrt::hresult_error const& e) { LOG_DEBUG("[Razer Bluetooth] Initial connection: %s", winrt::to_string(e.message()).c_str()); ready.set_value(false); return; }
+                auto next_readback = std::chrono::steady_clock::time_point{};
+                auto next_warning = std::chrono::steady_clock::time_point{};
                 auto next_battery = std::chrono::steady_clock::time_point{};
                 auto sent = initial;
                 bool connected = true;
@@ -89,6 +91,30 @@ public:
                         connected = false;
                         pending = true;
                     }
+                    // Some mouse wakeups do not produce a Windows disconnect edge.
+                    // Verify the device state at low frequency, outside the UI/mutex.
+                    if(owns_lighting && !keyboard && connected && !sent.empty()
+                        && std::chrono::steady_clock::now() >= next_readback)
+                    {
+                        lock.unlock();
+                        bool matches = true;
+                        try
+                        {
+                            if(WiredPresent(keyboard)) throw std::runtime_error("USB transport has priority");
+                            for(size_t i = 0; i < sent.size(); ++i)
+                                matches = transport.MatchesLighting(zones[i], sent[i]) && matches;
+                        }
+                        catch(...) { connected = false; matches = false; }
+                        next_readback = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+                        lock.lock();
+                        if(stop) break;
+                        if(!matches)
+                        {
+                            sent.clear();
+                            pending = true;
+                            LOG_INFO("[Razer Bluetooth] Mouse lighting state lost or unavailable; restoring requested scene");
+                        }
+                    }
                     if(!pending) continue;
                     if(std::chrono::steady_clock::now() < next)
                     {
@@ -111,7 +137,7 @@ public:
                             // Reapply every controlled zone, including unchanged colors,
                             // hardware effect and brightness after the new GATT session.
                             sent.clear();
-                            LOG_DEBUG("[Razer Bluetooth] Reconnected; restoring requested lighting state");
+                            LOG_INFO("[Razer Bluetooth] %s reconnected; restoring requested lighting state", keyboard ? "Keyboard" : "Mouse");
                         }
                         for(size_t i = 0; i < target.size(); ++i)
                         {
@@ -123,6 +149,16 @@ public:
                     }
                     catch(...)
                     {
+                        if(std::chrono::steady_clock::now() >= next_warning)
+                        {
+                            std::string reason = "Unknown error";
+                            try { throw; }
+                            catch(std::exception const& error) { reason = error.what(); }
+                            catch(winrt::hresult_error const& error) { reason = winrt::to_string(error.message()); }
+                            catch(...) {}
+                            LOG_WARNING("[Razer Bluetooth] %s restore failed: %s; retrying", keyboard ? "Keyboard" : "Mouse", reason.c_str());
+                            next_warning = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+                        }
                         transport.Close();
                         connected = false;
                         next = std::chrono::steady_clock::now() + std::chrono::seconds(5);

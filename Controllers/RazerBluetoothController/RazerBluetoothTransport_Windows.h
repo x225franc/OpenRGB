@@ -221,6 +221,19 @@ public:
         }
         return -1;
     }
+    bool MatchesLighting(uint8_t zone, Bytes const& state)
+    {
+        if(state.size() != 11) throw std::runtime_error("Invalid expected lighting state");
+        const auto color = Exchange({0x10,0x83,0,zone});
+        const auto brightness = Exchange({0x10,0x85,1,zone});
+        if(color.size() != 10 || brightness.size() != 1)
+            throw std::runtime_error("Invalid lighting readback");
+        if(brightness[0] != state[10]) return false;
+        // Off is represented by brightness zero; stored colors are irrelevant.
+        if(state[10] == 0) return true;
+        if(color[0] != state[0]) return false;
+        return state[0] != 1 || (color[4] == state[4] && color[5] == state[5] && color[6] == state[6]);
+    }
     void Set(uint8_t zone, Bytes const& state)
     {
         if(state.size() != 11 || std::find(zones.begin(),zones.end(),zone) == zones.end()) throw std::runtime_error("Invalid lighting state");
