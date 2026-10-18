@@ -63,6 +63,7 @@ public:
                 auto next_battery = std::chrono::steady_clock::time_point{};
                 auto sent = initial;
                 bool connected = true;
+                auto connection_generation = transport.ConnectionGeneration();
                 auto next = std::chrono::steady_clock::now();
                 std::unique_lock<std::mutex> lock(mutex);
                 while(!stop)
@@ -80,12 +81,15 @@ public:
                         lock.lock();
                         if(stop) break;
                     }
-                    if(!pending)
+                    // Check every pass, including repeated identical effect frames.
+                    // An edge counter also catches a reconnect between two polls.
+                    if(owns_lighting && (!transport.IsConnected()
+                        || transport.ConnectionGeneration() != connection_generation))
                     {
-                        if(!owns_lighting || transport.IsConnected()) continue;
-                        pending = true;
                         connected = false;
+                        pending = true;
                     }
+                    if(!pending) continue;
                     if(std::chrono::steady_clock::now() < next)
                     {
                         changed.wait_until(lock,next,[this]{ return stop; });
@@ -98,7 +102,17 @@ public:
                     {
                         // A wired controller has priority; never write BLE concurrently.
                         if(WiredPresent(keyboard)) throw std::runtime_error("USB transport has priority");
-                        if(!connected) { transport.Open(id); connected = true; sent.clear(); }
+                        if(!connected || !transport.IsConnected()
+                            || transport.ConnectionGeneration() != connection_generation)
+                        {
+                            transport.Open(id);
+                            connection_generation = transport.ConnectionGeneration();
+                            connected = true;
+                            // Reapply every controlled zone, including unchanged colors,
+                            // hardware effect and brightness after the new GATT session.
+                            sent.clear();
+                            LOG_DEBUG("[Razer Bluetooth] Reconnected; restoring requested lighting state");
+                        }
                         for(size_t i = 0; i < target.size(); ++i)
                         {
                             if(i < sent.size() && target[i] == sent[i]) continue;

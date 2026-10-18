@@ -11,6 +11,7 @@
 #include <winrt/Windows.Devices.Enumeration.h>
 #include <winrt/Windows.Storage.Streams.h>
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <chrono>
 #include <condition_variable>
@@ -59,6 +60,7 @@ struct Notifications
     std::mutex mutex;
     std::condition_variable changed;
     std::vector<Bytes> frames;
+    std::atomic<uint64_t> connection_generation{0};
 };
 
 class Transport
@@ -69,6 +71,8 @@ class Transport
     std::shared_ptr<Notifications> replies = std::make_shared<Notifications>();
     event_token token{};
     bool listening = false;
+    event_token connection_token{};
+    bool watching_connection = false;
     uint8_t request = 0x30;
 public:
     bool keyboard = false;
@@ -76,9 +80,14 @@ public:
     std::vector<Bytes> initial;
     void Close() noexcept
     {
+        if(watching_connection)
+        {
+            try { device.ConnectionStatusChanged(connection_token); } catch(...) {}
+            watching_connection = false;
+        }
         if(listening)
         {
-            notify.ValueChanged(token);
+            try { notify.ValueChanged(token); } catch(...) {}
             listening = false;
             try { Await(notify.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue::None)); } catch(...) {}
         }
@@ -93,6 +102,13 @@ public:
         Close();
         device = Await(BluetoothLEDevice::FromIdAsync(id));
         if(!device) throw std::runtime_error("Bluetooth device unavailable");
+        // Keep short disconnect/reconnect edges even between worker polls.
+        // Capture shared state, never the transport/worker lifetime.
+        auto connection_state = replies;
+        connection_token = device.ConnectionStatusChanged([connection_state](auto const&, auto const&) {
+            connection_state->connection_generation.fetch_add(1, std::memory_order_relaxed);
+        });
+        watching_connection = true;
         auto services = Await(device.GetGattServicesForUuidAsync(ServiceUUID, BluetoothCacheMode::Uncached));
         if(services.Status() != GattCommunicationStatus::Success || services.Services().Size() != 1)
             throw std::runtime_error("Vendor service unavailable");
@@ -175,6 +191,10 @@ public:
             }
             if(replies->changed.wait_until(lock,deadline) == std::cv_status::timeout) throw std::runtime_error("Vendor reply timeout");
         }
+    }
+    uint64_t ConnectionGeneration() const noexcept
+    {
+        return replies->connection_generation.load(std::memory_order_relaxed);
     }
     bool IsConnected() const noexcept
     {
