@@ -13,6 +13,8 @@
 #include <QEventLoop>
 #include <QJsonDocument>
 #include <QScrollArea>
+#include <QInputDialog>
+#include <QMessageBox>
 #include <windows.h>
 #include <powrprof.h>
 #include <wtsapi32.h>
@@ -21,7 +23,7 @@ LightSyncPlugin::~LightSyncPlugin(){Unload();}
 OpenRGBPluginInfo LightSyncPlugin::GetPluginInfo()
 {
     OpenRGBPluginInfo info{};info.Name="LightSync";info.Label="LightSync";info.Description="Native LAN lighting and Lenovo Windows Dynamic Lighting";
-    info.Icon.load(":/LightSync/icon.png");info.URL="https://github.com/x225franc/OpenRGB/tree/plugins/lightsync";info.Version="0.1.1";info.Location=OPENRGB_PLUGIN_LOCATION_TOP;info.ProtocolVersion=OPENRGB_PLUGIN_API_VERSION;return info;
+    info.Icon.load(":/LightSync/icon.png");info.URL="https://github.com/x225franc/OpenRGB/tree/plugins/lightsync";info.Version="0.1.2";info.Location=OPENRGB_PLUGIN_LOCATION_TOP;info.ProtocolVersion=OPENRGB_PLUGIN_API_VERSION;return info;
 }
 void LightSyncPlugin::load(nlohmann::json j)
 {
@@ -72,11 +74,11 @@ void LightSyncPlugin::buildUI()
     enabled=new QCheckBox("Enabled");enabled->setChecked(settings.enabled);header->addWidget(enabled);
     auto* scan=new QPushButton("Search again");auto* restart=new QPushButton("Restart");header->addWidget(scan);header->addWidget(restart);layout->addLayout(header);
     connect(enabled,&QCheckBox::toggled,this,[this](bool checked){settings.enabled=checked;apply();});
-    connect(scan,&QPushButton::clicked,this,[this]{if(engine)QMetaObject::invokeMethod(engine,&LightSyncEngine::scan,Qt::QueuedConnection);});
+    connect(scan,&QPushButton::clicked,this,[this]{if(engine)QMetaObject::invokeMethod(engine,&LightSyncEngine::searchAgain,Qt::QueuedConnection);});
     connect(restart,&QPushButton::clicked,this,[this]{if(engine)QMetaObject::invokeMethod(engine,&LightSyncEngine::restart,Qt::QueuedConnection);});
     auto* explain=new QLabel("Devices and individual LEDs appear in Devices, Effects and Visual Map. Assign effects in OpenRGB.\nSelect Lenovo Lighting directly in Ambient to map the whole screen independently of your Razer Visual Map.");explain->setWordWrap(true);layout->addWidget(explain);
     keyboardStatus=new QLabel("Lenovo Lighting: searching for keyboard");keyboardStatus->setWordWrap(true);layout->addWidget(keyboardStatus);
-    table=new QTableWidget(0,6);table->setHorizontalHeaderLabels({"Control","Device","Address","Model","LEDs","Status"});table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);table->horizontalHeader()->setSectionResizeMode(5,QHeaderView::Stretch);table->setEditTriggers(QAbstractItemView::NoEditTriggers);layout->addWidget(table,1);
+    table=new QTableWidget(0,7);table->setHorizontalHeaderLabels({"Control","Device","Address","Model","LEDs","Status","Actions"});table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);table->horizontalHeader()->setSectionResizeMode(5,QHeaderView::Stretch);table->setEditTriggers(QAbstractItemView::NoEditTriggers);layout->addWidget(table,1);
     connect(table,&QTableWidget::itemChanged,this,[this](QTableWidgetItem* item){
         if(updating||item->column()!=0)return;QString id=item->data(Qt::UserRole).toString();bool active=item->checkState()==Qt::Checked;
         disabled[id.toStdString()]=!active;api->SetSettings("LightSync",OnProfileSave());api->SaveSettings();
@@ -107,7 +109,7 @@ void LightSyncPlugin::rows(QJsonArray data)
     if(discovered!=cachedDevices){cachedDevices=discovered;api->SetSettings("LightSync",OnProfileSave());api->SaveSettings();}
     for(int i=0;i<data.size();i++)
     {
-        auto d=data[i].toObject();auto id=d["id"].toString();bool active=!disabled.value(id.toStdString(),false);
+        table->setRowHeight(i,44);auto d=data[i].toObject();auto id=d["id"].toString();bool active=!disabled.value(id.toStdString(),false);
         auto* control=new QTableWidgetItem;control->setData(Qt::UserRole,id);control->setFlags(Qt::ItemIsEnabled|Qt::ItemIsUserCheckable);control->setCheckState(active?Qt::Checked:Qt::Unchecked);table->setItem(i,0,control);
         QStringList cells={d["name"].toString(),d["ip"].toString(),d["model"].toString(),QString::number(d["leds"].toInt()),d["status"].toString()};
         for(int c=0;c<cells.size();c++)table->setItem(i,c+1,new QTableWidgetItem(cells[c]));
@@ -116,6 +118,20 @@ void LightSyncPlugin::rows(QJsonArray data)
             QString status=!settings.enabled?"Plugin disabled":!settings.laptop||!active?"Keyboard control disabled":cells.back();
             keyboardStatus->setText("Lenovo Lighting: "+status);
             QPalette palette=keyboardStatus->palette();palette.setColor(QPalette::WindowText,available?QColor(100,220,130):QColor(245,190,85));keyboardStatus->setPalette(palette);
+        }
+        if(d["model"].toString()!="Lenovo Lighting")
+        {
+            auto* actions=new QWidget;auto* buttons=new QHBoxLayout(actions);buttons->setContentsMargins(3,0,3,0);
+            auto* edit=new QPushButton("Change address");auto* forget=new QPushButton("Forget");buttons->addWidget(edit);buttons->addWidget(forget);table->setCellWidget(i,6,actions);
+            edit->setToolTip("Keep this device and its mappings, but use a new IPv4 address");
+            forget->setToolTip("Release control and remove the saved device; Search again can discover it again");
+            connect(edit,&QPushButton::clicked,this,[this,id,address=d["ip"].toString()]{
+                bool ok=false;auto value=QInputDialog::getText(widget,"Change device address","New IPv4 address",QLineEdit::Normal,address,&ok).trimmed();
+                if(!ok)return;QHostAddress host(value);
+                if(host.protocol()!=QAbstractSocket::IPv4Protocol||host.isNull()||host.isMulticast()||host.isLoopback()||host==QHostAddress(QHostAddress::Broadcast)){QMessageBox::warning(widget,"Invalid address","Enter a valid unicast IPv4 address.");return;}
+                QMetaObject::invokeMethod(engine,[this,id,value]{engine->changeAddress(id,value);},Qt::QueuedConnection);
+            });
+            connect(forget,&QPushButton::clicked,this,[this,id]{disabled.erase(id.toStdString());QMetaObject::invokeMethod(engine,[this,id]{engine->forgetDevice(id);},Qt::QueuedConnection);});
         }
         if(active&&settings.enabled&&cells.back().contains("Streaming"))controlled++;
         if(active!=d["enabled"].toBool())QMetaObject::invokeMethod(engine,[this,id,active]{engine->setDeviceEnabled(id,active);},Qt::QueuedConnection);

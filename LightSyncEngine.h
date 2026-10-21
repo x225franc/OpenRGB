@@ -1,4 +1,5 @@
 #pragma once
+#include <QSet>
 #include <QObject>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -63,6 +64,9 @@ public slots:
     void scan();
     void configure(LightSyncSettings);
     void setDeviceEnabled(QString, bool);
+    void changeAddress(QString, QString);
+    void forgetDevice(QString);
+    void searchAgain();
     void restart();
     void suspend(bool);
     void recoverKeyboard(QString reason);
@@ -73,6 +77,8 @@ signals:
     void initialized();
     void shutdownComplete();
 private:
+    friend struct LightSyncEngineTestAccess;
+    void refreshDiscovery();
     void tick();
     void receive(QUdpSocket*, QHostAddress, bool);
     void found(QJsonObject);
@@ -96,6 +102,9 @@ private:
     QTimer* heartbeat = nullptr;
     std::vector<QUdpSocket*> discovery;
     std::vector<std::shared_ptr<LightSyncDevice>> devices;
+    std::vector<std::shared_ptr<LightSyncDevice>> retired;
+    QSet<QString> forgotten;
+    QString networkSignature;
     QUdpSocket* sender = nullptr;
     QElapsedTimer clock;
     QFile logfile;

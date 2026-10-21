@@ -45,6 +45,26 @@ QJsonObject LightSyncEngine::ParseYeelight(const QByteArray& packet)
 void LightSyncEngine::start()
 {
     QDir().mkpath(directory);logfile.open(QIODevice::Append|QIODevice::Text);clock.start();sender=new QUdpSocket(this);
+    refreshDiscovery();
+    lamps=new LampArrayBackend;
+    timer=new QTimer(this);timer->setTimerType(Qt::PreciseTimer);timer->setInterval(16);connect(timer,&QTimer::timeout,this,&LightSyncEngine::tick);timer->start();
+    heartbeat=new QTimer(this);heartbeat->setInterval(20000);connect(heartbeat,&QTimer::timeout,this,&LightSyncEngine::scan);heartbeat->start();
+    for(auto item:cachedDevices)found(item.toObject());
+    cachedDevices={};emit initialized();
+    log("LightSync native transport started");scan();
+}
+void LightSyncEngine::refreshDiscovery()
+{
+    QStringList addresses;
+    for(auto iface:QNetworkInterface::allInterfaces())
+        if((iface.flags()&QNetworkInterface::IsUp)&&!(iface.flags()&QNetworkInterface::IsLoopBack))
+            for(auto entry:iface.addressEntries())
+                if(entry.ip().protocol()==QAbstractSocket::IPv4Protocol)
+                    addresses<<QString::number(iface.index())+":"+entry.ip().toString()+"/"+QString::number(entry.prefixLength());
+    addresses.sort();const auto signature=addresses.join(";");
+    if(signature==networkSignature&&!discovery.empty())return;
+    for(auto* socket:discovery){socket->disconnect(this);socket->close();socket->deleteLater();}
+    discovery.clear();networkSignature=signature;
     for(auto iface:QNetworkInterface::allInterfaces())
     {
         if(!(iface.flags()&QNetworkInterface::IsUp)||iface.flags()&QNetworkInterface::IsLoopBack)continue;
@@ -62,16 +82,12 @@ void LightSyncEngine::start()
             else y->deleteLater();
         }
     }
-    lamps=new LampArrayBackend;
-    timer=new QTimer(this);timer->setTimerType(Qt::PreciseTimer);timer->setInterval(16);connect(timer,&QTimer::timeout,this,&LightSyncEngine::tick);timer->start();
-    heartbeat=new QTimer(this);heartbeat->setInterval(20000);connect(heartbeat,&QTimer::timeout,this,&LightSyncEngine::scan);heartbeat->start();
-    for(auto item:cachedDevices)found(item.toObject());
-    cachedDevices={};emit initialized();
-    log("LightSync native transport started");scan();
 }
+void LightSyncEngine::searchAgain(){forgotten.clear();scan();}
 void LightSyncEngine::scan()
 {
     if(stopped||!settings.enabled||sleeping)return;
+    refreshDiscovery();
     log("Searching Govee, Yeelight and Lenovo Dynamic Lighting");
     for(auto* socket:discovery)
     {
@@ -117,12 +133,14 @@ void LightSyncEngine::receive(QUdpSocket* socket,QHostAddress local,bool isGovee
 void LightSyncEngine::found(QJsonObject item)
 {
     QString id=item["kind"].toString()+":"+item["id"].toString();
+    if(forgotten.contains(id))return;
     auto it=std::find_if(devices.begin(),devices.end(),[&](auto& d){return d->id==id;});
     if(it!=devices.end())
     {
         auto& d=**it;auto ip=item["ip"].toString();
-        if(d.ip!=ip){release(d);d.ip=ip;d.local=QHostAddress(item["local"].toString());d.nextAttempt=0;}
-        d.lastSeen=clock.elapsed();d.discoveryData=item;return;
+        const QHostAddress local(item["local"].toString());const int port=item["port"].toInt(55443);
+        if(d.ip!=ip||d.local!=local||d.port!=port){release(d);d.ip=ip;d.local=local;d.port=port;d.nextAttempt=0;d.externallyOff=false;d.sent.clear();d.sentRevision=0;log("Updated endpoint for "+id+": "+ip);}
+        d.lastSeen=clock.elapsed();d.discoveryData=item;publish();return;
     }
     auto d=std::make_shared<LightSyncDevice>();d->id=id;d->kind=item["kind"].toString();d->model=item["model"].toString();
     d->discoveryData=item;d->name=item["name"].toString();if(d->name.isEmpty())d->name=d->model;
@@ -168,6 +186,30 @@ void LightSyncEngine::configure(LightSyncSettings next)
 void LightSyncEngine::setDeviceEnabled(QString id,bool enabled)
 {
     for(auto& d:devices)if(d->id==id){d->enabled=enabled;if(!enabled)release(*d);else{d->nextAttempt=0;d->externallyOff=false;}}publish();
+}
+void LightSyncEngine::changeAddress(QString id,QString address)
+{
+    const QHostAddress target(address);
+    if(target.protocol()!=QAbstractSocket::IPv4Protocol||target.isNull()||target.isMulticast()||target.isLoopback()||target==QHostAddress(QHostAddress::Broadcast)){log("Invalid IPv4 address");return;}
+    for(auto& d:devices)if(d->id==id&&d->kind!="laptop")
+    {
+        QHostAddress local;int bestPrefix=-1;
+        for(auto iface:QNetworkInterface::allInterfaces())if(iface.flags()&QNetworkInterface::IsUp)
+            for(auto entry:iface.addressEntries())if(entry.ip().protocol()==QAbstractSocket::IPv4Protocol&&entry.prefixLength()>bestPrefix&&target.isInSubnet(entry.ip(),entry.prefixLength())){local=entry.ip();bestPrefix=entry.prefixLength();}
+        if(local.isNull()){log("No active local IPv4 interface reaches "+address+"; check the network address");return;}
+        auto item=d->discoveryData;item["ip"]=target.toString();item["local"]=local.toString();
+        found(item);log("Address changed; device identity and Visual Map routes retained");return;
+    }
+}
+void LightSyncEngine::forgetDevice(QString id)
+{
+    auto it=std::find_if(devices.begin(),devices.end(),[&](auto& d){return d->id==id&&d->kind!="laptop";});
+    if(it==devices.end())return;
+    auto node=*it;node->enabled=false;release(*node);
+    if(node->controller)api->UnregisterVirtualRGBController(node->controller);
+    // Effects/Visual Map may still hold references: defer destruction to unload.
+    retired.push_back(node);devices.erase(it);forgotten.insert(id);
+    log("Forgot "+id+"; Search again allows discovery again");publish();
 }
 void LightSyncEngine::restart(){for(auto& d:devices){release(*d);d->externallyOff=false;}if(lamps)lamps->resume();scan();log("Transport restarted; device identities and Visual Map routes retained");}
 void LightSyncEngine::suspend(bool sleep)
@@ -361,7 +403,8 @@ void LightSyncEngine::shutdown()
     for(auto* socket:discovery)socket->close();
     // Keep controllers stable during restart/disable. Removal only happens on real plugin unload.
     for(auto& d:devices){api->UnregisterVirtualRGBController(d->controller);api->DeleteVirtualRGBController(d->controller);d->controller=nullptr;}
-    devices.clear();delete lamps;lamps=nullptr;log("LightSync stopped; LAN sessions released");logfile.close();emit shutdownComplete();
+    for(auto& d:retired)if(d->controller){api->DeleteVirtualRGBController(d->controller);d->controller=nullptr;}
+    retired.clear();devices.clear();delete lamps;lamps=nullptr;log("LightSync stopped; LAN sessions released");logfile.close();emit shutdownComplete();
 }
 
 

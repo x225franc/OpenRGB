@@ -181,3 +181,7 @@ This matches the stable SystemEvents notification window used by the C# versions
 For a simple double-click control, use `scripts\Enable-ResumeRecovery.cmd` or
 `scripts\Disable-ResumeRecovery.cmd` after installation. The equivalent Windows
 Task Scheduler entry is **OpenRGB LightSync Resume Recovery**.
+
+## Device management after a router change
+
+Search again refreshes discovery sockets when the local IPv4 interfaces change. A reply for the same physical device ID updates its IP, port and local interface while retaining its controller, colors and mappings. Each LAN row provides Change address (manual unicast IPv4 on a connected subnet) and Forget. Forget releases the session, removes the device from saved inventory and unregisters it from OpenRGB; existing references stay backed until plugin unload. Its mappings may need to be recreated after adding it again. Automatic scans ignore forgotten IDs until explicit Search again or a new application start. Lenovo Lighting has no LAN address and cannot be forgotten here.

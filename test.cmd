@@ -8,5 +8,5 @@ qmake ..\..\ProtocolTests.pro "CONFIG+=release"
 if errorlevel 1 exit /b 1
 jom -j 4
 if errorlevel 1 exit /b 1
-LightSyncProtocolTests.exe ..\OpenRGBLightSyncPlugin.dll
+.\LightSyncProtocolTests.exe ..\OpenRGBLightSyncPlugin.dll
 exit /b %errorlevel%

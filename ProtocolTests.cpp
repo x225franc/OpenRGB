@@ -5,6 +5,14 @@
 #include <QPluginLoader>
 #include <iostream>
 #include <stdexcept>
+struct LightSyncEngineTestAccess
+{
+ static void seed(LightSyncEngine& e,std::shared_ptr<LightSyncDevice> d){e.clock.start();e.devices.push_back(d);}
+ static void found(LightSyncEngine& e,QJsonObject d){e.found(d);}
+ static size_t count(LightSyncEngine& e){return e.devices.size();}
+ static size_t retained(LightSyncEngine& e){return e.retired.size();}
+ static bool ignored(LightSyncEngine& e,QString id){return e.forgotten.contains(id);}
+};
 static void check(bool value,const char* label){if(!value)throw std::runtime_error(label);std::cout<<"PASS "<<label<<std::endl;}
 int main(int argc,char** argv)
 {
@@ -34,6 +42,23 @@ int main(int argc,char** argv)
   auto bulb=LightSyncEngine::ParseYeelight("HTTP/1.1 200 OK\r\nID: 0x123\r\nLOCATION: yeelight://192.168.0.25:55443\r\nmodel: color\r\nname: Desk\r\n");
   check(bulb["id"]=="0x123"&&bulb["ip"]=="192.168.0.25"&&bulb["port"]==55443,"Yeelight discovery parses case-insensitive headers and endpoint");
   check(LightSyncEngine::ParseYeelight("HTTP/1.1 200 OK\r\nlocation: http://example.com\r\n").isEmpty(),"Unrelated SSDP packets rejected");
+  {
+   LightSyncEngine engine(nullptr,QString());
+   auto node=std::make_shared<LightSyncDevice>();node->id="yeelight:test";node->kind="yeelight";node->ip="192.168.0.25";node->local=QHostAddress("192.168.0.2");node->revision=7;node->latest={ToRGBColor(12,34,56)};
+   LightSyncEngineTestAccess::seed(engine,node);
+   QJsonArray inventory;QObject::connect(&engine,&LightSyncEngine::inventory,[&](QJsonArray rows){inventory=rows;});
+   QJsonObject endpoint{{"kind","yeelight"},{"id","test"},{"ip","192.168.1.25"},{"local","192.168.1.2"},{"port",55544}};
+   LightSyncEngineTestAccess::found(engine,endpoint);
+   check(LightSyncEngineTestAccess::count(engine)==1&&node->ip=="192.168.1.25"&&node->port==55544&&node->local==QHostAddress("192.168.1.2"),"Router rediscovery updates IP, port and local interface without duplicating identity");
+   check(node->revision==7&&node->latest==std::vector<RGBColor>{ToRGBColor(12,34,56)},"Endpoint replacement retains assigned color scene");
+   engine.changeAddress(node->id,"239.255.255.250");check(node->ip=="192.168.1.25","Multicast destination rejected for manual device address");
+   engine.forgetDevice(node->id);
+   check(inventory.isEmpty()&&LightSyncEngineTestAccess::count(engine)==0&&LightSyncEngineTestAccess::retained(engine)==1,"Forget removes saved inventory while retaining callback storage until unload");
+   LightSyncEngineTestAccess::found(engine,endpoint);
+   check(LightSyncEngineTestAccess::count(engine)==0&&LightSyncEngineTestAccess::ignored(engine,node->id),"Background discovery cannot immediately resurrect a forgotten device");
+   LightSyncSettings disabled;disabled.enabled=false;engine.configure(disabled);engine.searchAgain();
+   check(!LightSyncEngineTestAccess::ignored(engine,node->id),"Explicit Search again permits rediscovery");
+  }
   QPluginLoader plugin(argc>1?QString::fromLocal8Bit(argv[1]):"OpenRGBLightSyncPlugin.dll");
   check(plugin.metaData()["MetaData"].toObject()["OpenRGBPluginAPIVersion"].toInt()==5 && !plugin.metaData()["MetaData"].toObject()["Id"].toString().isEmpty(),"Plugin metadata satisfies OpenRGB discovery requirements");
   check(plugin.load(),"Native plugin DLL loads with installed Qt ABI");
