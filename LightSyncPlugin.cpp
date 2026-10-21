@@ -78,7 +78,7 @@ void LightSyncPlugin::buildUI()
     connect(restart,&QPushButton::clicked,this,[this]{if(engine)QMetaObject::invokeMethod(engine,&LightSyncEngine::restart,Qt::QueuedConnection);});
     auto* explain=new QLabel("Devices and individual LEDs appear in Devices, Effects and Visual Map. Assign effects in OpenRGB.\nSelect Lenovo Lighting directly in Ambient to map the whole screen independently of your Razer Visual Map.");explain->setWordWrap(true);layout->addWidget(explain);
     keyboardStatus=new QLabel("Lenovo Lighting: searching for keyboard");keyboardStatus->setWordWrap(true);layout->addWidget(keyboardStatus);
-    table=new QTableWidget(0,7);table->setHorizontalHeaderLabels({"Control","Device","Address","Model","LEDs","Status","Actions"});table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);table->horizontalHeader()->setSectionResizeMode(5,QHeaderView::Stretch);table->setEditTriggers(QAbstractItemView::NoEditTriggers);layout->addWidget(table,1);
+    table=new QTableWidget(0,7);table->setHorizontalHeaderLabels({"Control","Device","Address","Model","LEDs","Status","Actions"});table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);table->horizontalHeader()->setSectionResizeMode(5,QHeaderView::Stretch);table->horizontalHeader()->setSectionResizeMode(6,QHeaderView::Fixed);table->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);table->setEditTriggers(QAbstractItemView::NoEditTriggers);layout->addWidget(table,1);
     connect(table,&QTableWidget::itemChanged,this,[this](QTableWidgetItem* item){
         if(updating||item->column()!=0)return;QString id=item->data(Qt::UserRole).toString();bool active=item->checkState()==Qt::Checked;
         disabled[id.toStdString()]=!active;api->SetSettings("LightSync",OnProfileSave());api->SaveSettings();
@@ -104,7 +104,7 @@ void LightSyncPlugin::buildUI()
 void LightSyncPlugin::rows(QJsonArray data)
 {
     if(!engine||!table)return;
-    updating=true;table->setRowCount(data.size());int controlled=0;
+    updating=true;table->setRowCount(data.size());int controlled=0,actionsWidth=0;
     QJsonArray discovered;for(auto row:data)discovered.append(row.toObject()["cache"]);
     if(discovered!=cachedDevices){cachedDevices=discovered;api->SetSettings("LightSync",OnProfileSave());api->SaveSettings();}
     for(int i=0;i<data.size();i++)
@@ -126,6 +126,7 @@ void LightSyncPlugin::rows(QJsonArray data)
             // Measure after parenting so the host font and stylesheet are applied.
             for(auto* button:{edit,forget}){button->ensurePolished();button->setMinimumWidth(button->sizeHint().width()+12);}
             actions->setMinimumWidth(buttons->sizeHint().width());
+            actionsWidth=std::max(actionsWidth,actions->minimumWidth()+20);
             edit->setToolTip("Keep this device and its mappings, but use a new IPv4 address");
             forget->setToolTip("Release control and remove the saved device; Search again can discover it again");
             connect(edit,&QPushButton::clicked,this,[this,id,address=d["ip"].toString()]{
@@ -139,7 +140,8 @@ void LightSyncPlugin::rows(QJsonArray data)
         if(active&&settings.enabled&&cells.back().contains("Streaming"))controlled++;
         if(active!=d["enabled"].toBool())QMetaObject::invokeMethod(engine,[this,id,active]{engine->setDeviceEnabled(id,active);},Qt::QueuedConnection);
     }
-    table->resizeColumnToContents(6);
+    // Include the cell border and a right-hand gutter, not just the child hint.
+    table->setColumnWidth(6,std::max(220,actionsWidth));
     diagnostics->setText(QString("Engine: %1 | Devices discovered: %2 | LAN devices streaming: %3").arg(settings.enabled?"running":"disabled").arg(data.size()).arg(controlled));updating=false;
 }
 void LightSyncPlugin::OnProfileLoad(nlohmann::json data)
