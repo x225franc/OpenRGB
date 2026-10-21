@@ -123,6 +123,9 @@ void LightSyncPlugin::rows(QJsonArray data)
         {
             auto* actions=new QWidget;auto* buttons=new QHBoxLayout(actions);buttons->setContentsMargins(3,0,3,0);
             auto* edit=new QPushButton("Change address");auto* forget=new QPushButton("Forget");buttons->addWidget(edit);buttons->addWidget(forget);table->setCellWidget(i,6,actions);
+            // Measure after parenting so the host font and stylesheet are applied.
+            for(auto* button:{edit,forget}){button->ensurePolished();button->setMinimumWidth(button->sizeHint().width()+12);}
+            actions->setMinimumWidth(buttons->sizeHint().width());
             edit->setToolTip("Keep this device and its mappings, but use a new IPv4 address");
             forget->setToolTip("Release control and remove the saved device; Search again can discover it again");
             connect(edit,&QPushButton::clicked,this,[this,id,address=d["ip"].toString()]{
@@ -136,6 +139,7 @@ void LightSyncPlugin::rows(QJsonArray data)
         if(active&&settings.enabled&&cells.back().contains("Streaming"))controlled++;
         if(active!=d["enabled"].toBool())QMetaObject::invokeMethod(engine,[this,id,active]{engine->setDeviceEnabled(id,active);},Qt::QueuedConnection);
     }
+    table->resizeColumnToContents(6);
     diagnostics->setText(QString("Engine: %1 | Devices discovered: %2 | LAN devices streaming: %3").arg(settings.enabled?"running":"disabled").arg(data.size()).arg(controlled));updating=false;
 }
 void LightSyncPlugin::OnProfileLoad(nlohmann::json data)
