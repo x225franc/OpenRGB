@@ -56,6 +56,7 @@ $deployment=Get-Content (Join-Path $root 'build\modern-deployment.json') -Raw|Co
 if(-not(Test-Path -LiteralPath $deployment.Backup)){throw 'Installation rollback backup missing.'}
 & robocopy.exe $deployment.Backup (Join-Path $stage 'installation-backup') /E /XD logs /XF *.dmp *.log *.log.* /R:1 /W:1 /NFL /NDL /NJH /NJS /NP|Out-Null
 if($LASTEXITCODE -gt 7){throw 'Installation backup copy failed.'}
+foreach($file in @('actions-right-gutter-1280.png','actions-right-gutter-1440.png')){Copy-Item -LiteralPath (Join-Path $root ('build\ui-review\screenshots\'+$file)) -Destination (Join-Path $stage 'validation')}
 $configuration=Join-Path $stage 'app\config\OpenRGB.json'
 # Preserve case-sensitive device keys when editing this JSON.
 # Do not round-trip it through ConvertFrom-Json in Windows PowerShell.

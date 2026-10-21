@@ -1,6 +1,6 @@
 ﻿# LightSync — changement de routeur
 
-Plugin 0.1.2, commit 8ecc0ee99beff06ef3d9b4129d5f849dde474f40.
+Plugin 0.1.2, commit a94f560f785e57379bc81b7e07c5b6973c86591c.
 
 Dans LightSync > Devices :
 
@@ -15,3 +15,5 @@ Installation sur un autre PC : fermer OpenRGB, extraire toute l'archive puis exe
 Sur le PC de travail, seule la DLL LightSync a ete remplacee apres sauvegarde. Le coeur OpenRGB et les adresses de la configuration installee ont ete conserves. Les tests ne comprennent pas de changement physique de routeur ni d'envoi de couleurs aux appareils.
 
 Correction visuelle : la largeur des boutons est calculee apres application de la police et du style du logiciel hote. La colonne Actions est ensuite ajustee pour afficher les libelles complets.
+
+La colonne Actions reserve desormais la largeur des deux boutons et une marge a droite. Rendu verifie dans OpenRGB en 1280x920 et 1440x920. Dans une fenetre 1080x720, le defilement horizontal de la zone de travail reste necessaire.
