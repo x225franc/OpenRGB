@@ -1,6 +1,6 @@
 ﻿# LightSync — changement de routeur
 
-Plugin 0.1.2, commit d647eee813c278514718b1544d24da7a6c45bc84.
+Plugin 0.1.2, commit 8ecc0ee99beff06ef3d9b4129d5f849dde474f40.
 
 Dans LightSync > Devices :
 
@@ -13,3 +13,5 @@ Pour un simple changement d'IP, preferer Change address a Forget. Le PC doit avo
 Installation sur un autre PC : fermer OpenRGB, extraire toute l'archive puis executer Install-LightSync.ps1 en administrateur. La configuration deja installee est conservee et sauvegardee. Ne pas restaurer la sauvegarde personnelle installation-backup du premier PC sur un autre PC.
 
 Sur le PC de travail, seule la DLL LightSync a ete remplacee apres sauvegarde. Le coeur OpenRGB et les adresses de la configuration installee ont ete conserves. Les tests ne comprennent pas de changement physique de routeur ni d'envoi de couleurs aux appareils.
+
+Correction visuelle : la largeur des boutons est calculee apres application de la police et du style du logiciel hote. La colonne Actions est ensuite ajustee pour afficher les libelles complets.
