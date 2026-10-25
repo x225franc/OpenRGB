@@ -1,0 +1,4 @@
+{"utc": "2026-10-25T22:14:10.504679+00:00", "type": "send", "payload": {"event": "hooked", "api": "ADL_Display_WriteAndReadSMUI2C", "address": "0x7fff486c8b90"}}
+{"utc": "2026-10-25T22:14:10.504958+00:00", "type": "send", "payload": {"event": "hooked", "api": "ADL_Display_WriteAndReadI2C", "address": "0x7fff486c8b60"}}
+{"utc": "2026-10-25T22:14:10.505072+00:00", "type": "send", "payload": {"event": "hooked", "api": "ADL2_Display_WriteAndReadI2C", "address": "0x7fff4868aa10"}}
+{"utc": "2026-10-25T22:14:10.505160+00:00", "type": "send", "payload": {"event": "ready", "pid": 16120}}

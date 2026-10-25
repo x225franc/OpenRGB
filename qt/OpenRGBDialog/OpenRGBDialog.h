@@ -64,8 +64,6 @@ public:
     void SetDialogMessage(PLogMessage msg);
     void SetLanguage(std::string locale);
 
-    bool DontShowAgain;
-
 signals:
     void ProfileListChanged();
 

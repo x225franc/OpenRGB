@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+# Regenerable binary-analysis output and machine-specific adapter inventory.
+static-*.txt
+adl-adapters.json

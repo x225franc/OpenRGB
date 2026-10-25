@@ -1858,7 +1858,9 @@ void OpenRGBDialog::on_ShowHide()
 
 void OpenRGBDialog::onShowDialogMessage()
 {
-    std::size_t hash = std::hash<std::string>{}(dialog_message.toStdString());
+    const QString message = dialog_message;
+    dialog_message.clear();
+    std::size_t hash = std::hash<std::string>{}(message.toStdString());
 
     /*-----------------------------------------------------*\
     | Load the LogManager settings and check if the hash of |
@@ -1871,16 +1873,15 @@ void OpenRGBDialog::onShowDialogMessage()
     log_manager_settings = settings_manager->GetSettings(log_manager_string);
 
     /*-----------------------------------------------------*\
-    | If in the no-show list, clear the message string and  |
-    | return without displaying message box                 |
+    | If in the no-show list, return without displaying    |
+    | a message box                                        |
     \*-----------------------------------------------------*/
-    if(log_manager_settings.contains("dialog_no_show_hashes"))
+    if(log_manager_settings.contains("dialog_no_show_hashes") && log_manager_settings["dialog_no_show_hashes"].is_array())
     {
         for(unsigned int list_idx = 0; list_idx < log_manager_settings["dialog_no_show_hashes"].size(); list_idx++)
         {
             if(log_manager_settings["dialog_no_show_hashes"][list_idx] == hash)
             {
-                dialog_message.clear();
                 return;
             }
         }
@@ -1888,23 +1889,9 @@ void OpenRGBDialog::onShowDialogMessage()
 
     QMessageBox box;
 
-    box.setInformativeText(QCoreApplication::translate("ResourceManager", dialog_message.toUtf8()));
+    box.setInformativeText(QCoreApplication::translate("ResourceManager", message.toUtf8()));
 
     QCheckBox* CheckBox_DontShowAgain = new QCheckBox("Don't show this message again");
-
-    DontShowAgain = false;
-
-    #if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
-        QObject::connect(CheckBox_DontShowAgain, &QCheckBox::checkStateChanged, [this](Qt::CheckState state)
-    #else
-        QObject::connect(CheckBox_DontShowAgain, &QCheckBox::stateChanged, [this](int state)
-    #endif
-    {
-        if(static_cast<Qt::CheckState>(state) == Qt::CheckState::Checked)
-        {
-            this->DontShowAgain = true;
-        }
-    });
 
     box.setCheckBox(CheckBox_DontShowAgain);
     box.setTextFormat(Qt::RichText);
@@ -1912,21 +1899,23 @@ void OpenRGBDialog::onShowDialogMessage()
 
     box.exec();
 
-    if(DontShowAgain)
+    if(CheckBox_DontShowAgain->isChecked())
     {
         /*-------------------------------------------------*\
         | Add hash of dialog text to no-show list in        |
         | LogManager settings                               |
         \*-------------------------------------------------*/
+        // Reload after the modal dialog to preserve settings changed meanwhile.
+        log_manager_settings = settings_manager->GetSettings(log_manager_string);
+        if(!log_manager_settings["dialog_no_show_hashes"].is_array())
+        {
+            log_manager_settings["dialog_no_show_hashes"] = json::array();
+        }
         log_manager_settings["dialog_no_show_hashes"].push_back(hash);
 
         settings_manager->SetSettings(log_manager_string, log_manager_settings);
         settings_manager->SaveSettings();
     }
-
-    DontShowAgain = false;
-
-    dialog_message.clear();
 }
 
 void OpenRGBDialog::on_ReShow(QSystemTrayIcon::ActivationReason reason)
