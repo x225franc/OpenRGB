@@ -1,7 +1,7 @@
 ﻿# Validation de la version moderne
 
 Version Windows x64 Release, Qt 6.8.3, API des plugins 5.
-Code du binaire : db8949bf611d725539efc37955f0e34ba3df990b.
+Code du binaire : 11ee0b0c3b9668d37fe9eb7e9a3aa03e7015e4c2.
 
 - Compilation effectuée avec MSVC ; exécutable signé, signature Windows valide.
 - Tests Qt : 17 réussis, aucun échec.
@@ -46,3 +46,11 @@ Correction visuelle du 21 octobre : colonne Actions de largeur explicite avec ma
 ## Actualisation batterie (25 octobre 2026)
 
 Lecture initiale puis delai de cinq minutes pour USB/HyperSpeed et Bluetooth. Bouton Refresh battery sur chaque appareil compatible ; requete asynchrone sur les workers existants et coalescence des demandes. Cache conserve si aucune reponse, capteur 500 Hz inchange. 13 controles du moniteur de batterie et 18 controles du worker Bluetooth passent. Aucun gain d autonomie mesure ; verifier la lecture materielle apres installation. Voir BATTERY-REFRESH.md.
+
+## Build du commit de l autre PC (26 octobre 2026)
+
+Source compilee : 11ee0b0c3b9668d37fe9eb7e9a3aa03e7015e4c2. Compilation Release Windows x64 avec scripts/CompileModern.cmd effectuee. VerifyModernBuild.ps1 confirme que startup.obj depend de l en-tete OpenRGBDialog.h de ce checkout et a ete reconstruit apres celui-ci. Tests Qt : 17 reussis, aucun echec. Binaire signe avec l identite OpenRGB.LightSync existante ; aucune installation locale remplacee pour ce build.
+
+Le commit corrige la sauvegarde de LogManager.dialog_no_show_hashes et le traitement de la case Don't show again. Les tests d avertissement reel et de persistance sur plusieurs redemarrages sont a effectuer sur le PC de test selon WARNING-PERSISTENCE-TEST.md. Les 17 tests Qt ne valident pas a eux seuls ce scenario.
+
+Les fichiers RX7900Reference sont une investigation et des captures du logiciel officiel. Aucun controleur natif de la RX 7900 XTX de reference n est ajoute par ce commit. Ce build ne permet pas encore de piloter son RGB depuis OpenRGB. Aucune ecriture GPU nouvelle ni test materiel de la 7900 XTX n a ete effectue ici.
