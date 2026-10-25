@@ -1,7 +1,7 @@
 ﻿# Validation de la version moderne
 
 Version Windows x64 Release, Qt 6.8.3, API des plugins 5.
-Code du binaire : fd67e6f98d703d986ad2d4257164a034f95a30a0.
+Code du binaire : db8949bf611d725539efc37955f0e34ba3df990b.
 
 - Compilation effectuée avec MSVC ; exécutable signé, signature Windows valide.
 - Tests Qt : 17 réussis, aucun échec.
@@ -42,3 +42,7 @@ Retour utilisateur : le clavier reprend mais pas la souris. Les observations son
 LightSync 0.1.2, source d647eee813c278514718b1544d24da7a6c45bc84. DLL x64 compilee et chargee avec API 5. Les 24 controles du programme de tests passent, dont six nouveaux controles : mise a jour IP/port/interface sans doublon, conservation des couleurs, rejet de multicast, oubli avec stockage differe, absence de resurrection automatique et nouvelle recherche explicite. Le changement de routeur reel et les nouvelles IP de l utilisateur restent a tester. La DLL installee a ete sauvegardee et remplacee ; aucun autre binaire local ni adresse configuree n a ete modifie.
 
 Correction visuelle du 21 octobre : colonne Actions de largeur explicite avec marge de 20 pixels. Captures reelles verifiees en 1280x920 et 1440x920 ; les deux boutons sont dans leurs cellules. A 1080x720, la zone de travail utilise son defilement horizontal existant. Test visuel avec profils et controle LAN desactives dans la copie de test, configuration restauree ensuite ; sortie normale code 0. DLL locale remplacee avec sauvegarde a94f560f785e57379bc81b7e07c5b6973c86591c.
+
+## Actualisation batterie (25 octobre 2026)
+
+Lecture initiale puis delai de cinq minutes pour USB/HyperSpeed et Bluetooth. Bouton Refresh battery sur chaque appareil compatible ; requete asynchrone sur les workers existants et coalescence des demandes. Cache conserve si aucune reponse, capteur 500 Hz inchange. 13 controles du moniteur de batterie et 18 controles du worker Bluetooth passent. Aucun gain d autonomie mesure ; verifier la lecture materielle apres installation. Voir BATTERY-REFRESH.md.

@@ -4,7 +4,7 @@ Cette version est candidate : le clavier fonctionne d'apres votre retour, mais l
 
 1. Extraire toute l'archive, sauvegarder profil et VMap, puis quitter OpenRGB.
 2. Dans PowerShell administrateur ouvert dans le dossier extrait : `./Install-LightSync.ps1`. Le script sauvegarde les fichiers remplaces et conserve la configuration installee.
-3. Lancer l'OpenRGB installe et verifier dans Information le commit `fd67e6f9`.
+3. Lancer l'OpenRGB installe et verifier dans Information le commit `db8949bf`.
 4. En Bluetooth, attribuer une couleur a la molette et une autre au contour. Verifier qu'elles sont appliquees.
 5. Eteindre dix secondes, rallumer en Bluetooth et reveiller la souris jusqu'a ce que le pointeur fonctionne. Attendre jusqu'a trente secondes sans reappliquer l'effet dans OpenRGB.
 6. Refaire en passant Bluetooth → 2,4 GHz → Bluetooth. Le dernier etat attribue a l'entree Bluetooth doit revenir.
