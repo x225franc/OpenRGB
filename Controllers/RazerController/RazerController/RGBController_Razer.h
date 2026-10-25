@@ -34,6 +34,7 @@ public:
     ~RGBController_Razer();
 
     RazerBatteryStatus GetBatteryStatus() const override { return battery.cache.Snapshot(); }
+    bool RequestBatteryRefresh() override { return battery.RequestRefresh(); }
     void        SetupZones();
 
     void        DeviceUpdateLEDs();

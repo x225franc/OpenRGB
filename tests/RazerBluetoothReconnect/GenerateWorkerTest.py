@@ -23,16 +23,15 @@ namespace winrt { using hstring=std::string; struct hresult_error {std::string m
 #define LOG_DEBUG(...) ((void)0)
 #define LOG_INFO(...) ((void)0)
 #define LOG_WARNING(...) ((void)0)
-struct RazerBatteryStatus {bool supported=false,reachable=false;int percent=-1;std::string transport;};
-struct RazerBatteryCache {void Enable(std::string){} void Publish(RazerBatteryStatus){}};
+#include "../Controllers/RazerController/RazerBattery.h"
 bool WiredPresent(bool){return false;}
 namespace RazerBLE {
 using Bytes=std::vector<uint8_t>;
 struct Apartment {};
 struct Fake {
- std::atomic<bool> online{true};std::atomic<uint64_t> generation{0};
+ std::atomic<int> batteryReads{0};std::atomic<bool> online{true};std::atomic<uint64_t> generation{0};
  std::mutex mutex;std::condition_variable changed;int closes=0,reads=0;std::vector<Bytes> writes;std::vector<Bytes> actual{{0},{0}};
- void reset(){std::lock_guard<std::mutex> l(mutex);writes.clear();actual={{0},{0}};closes=0;reads=0;online=true;generation=0;}
+ void reset(){std::lock_guard<std::mutex> l(mutex);writes.clear();actual={{0},{0}};closes=0;reads=0;batteryReads=0;online=true;generation=0;}
  bool waitWrites(size_t n){std::unique_lock<std::mutex> l(mutex);return changed.wait_for(l,8s,[&]{return writes.size()>=n;});}
  bool waitClose(){std::unique_lock<std::mutex> l(mutex);return changed.wait_for(l,3s,[&]{return closes>0;});}
 } fake;
@@ -42,7 +41,7 @@ struct Transport {
  void Close(){std::lock_guard<std::mutex> l(fake.mutex);++fake.closes;fake.changed.notify_all();}
  bool IsConnected(){return fake.online;}
  uint64_t ConnectionGeneration(){return fake.generation;}
- int ReadBattery(){return -1;}
+ int ReadBattery(){++fake.batteryReads;fake.changed.notify_all();return -1;}
  bool MatchesLighting(uint8_t zone,Bytes const& b){if(!fake.online)throw std::runtime_error("offline");std::lock_guard<std::mutex> l(fake.mutex);++fake.reads;fake.changed.notify_all();return fake.actual[zone==1?0:1]==b;}
  void Set(uint8_t zone,Bytes const& b){if(!fake.online)throw std::runtime_error("offline");std::lock_guard<std::mutex> l(fake.mutex);fake.writes.push_back(b);fake.actual[zone==1?0:1]=b;fake.changed.notify_all();}
 };
@@ -55,6 +54,8 @@ int main(){try {
  {
  BluetoothWorker worker;check(worker.Start("fake"),"worker starts");worker.Submit({{7},{8}});
  check(f.waitWrites(2),"initial state sent");
+ check(worker.RequestBatteryRefresh(),"Bluetooth manual battery request accepted");
+ {std::unique_lock<std::mutex> l(f.mutex);check(f.changed.wait_for(l,3s,[&]{return f.batteryReads>=2;}),"Bluetooth worker reads battery on explicit request");}
  f.generation+=2;
  check(f.waitWrites(4),"brief reconnect restores unchanged state without new frame");
  f.generation+=2;worker.Submit({{7},{8}});

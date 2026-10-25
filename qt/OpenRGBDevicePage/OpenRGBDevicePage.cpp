@@ -8,9 +8,10 @@
 \*---------------------------------------------------------*/
 
 #include <QTimer>
+#include <QHBoxLayout>
+#include <QPushButton>
 #include <QLabel>
 #include <QVBoxLayout>
-#include <QPushButton>
 #include "Controllers/RazerController/RazerBattery.h"
 
 #include "OpenRGBDevicePage.h"
@@ -76,8 +77,15 @@ OpenRGBDevicePage::OpenRGBDevicePage(RGBController *dev, QWidget *parent) :
         {
             auto* label = new QLabel(this);
             label->setObjectName("RazerBatteryStatus");
-            ui->OpenRGBDevicePageUiGridLayout->addWidget(label, 2, 0, 1, 2);
-            auto update = [this, battery, label]
+            auto* batteryRow = new QWidget(this);
+            auto* batteryLayout = new QHBoxLayout(batteryRow);
+            batteryLayout->setContentsMargins(0, 0, 0, 0);
+            auto* refresh = new QPushButton(tr("Refresh battery"), batteryRow);
+            refresh->setObjectName("RefreshRazerBattery");
+            refresh->setToolTip(tr("Request a fresh battery reading in the background. A sleeping device may not respond."));
+            batteryLayout->addWidget(label, 1);batteryLayout->addWidget(refresh);
+            ui->OpenRGBDevicePageUiGridLayout->addWidget(batteryRow, 2, 0, 1, 2);
+            auto update = [this, battery, label, refresh]
             {
                 const auto value = battery->GetBatteryStatus(); // Cached only: never device IO on Qt's thread.
                 QString text = value.percent < 0 ? tr("Battery: waiting for device") : tr("Battery: %1%").arg(value.percent);
@@ -89,9 +97,12 @@ OpenRGBDevicePage::OpenRGBDevicePage(RGBController *dev, QWidget *parent) :
                     if(!value.reachable || age > 65) text += " | " + tr("Last reading: %1 s ago").arg(qlonglong(age));
                     if(!value.reachable) text += " | " + tr("Unavailable / sleeping");
                 }
+                if(value.refreshing) text += " | " + tr("Updating...");
+                refresh->setEnabled(!value.refreshing);
                 label->setText(text);
-                label->setToolTip(tr("Battery is read in the background every 30 seconds. Bluetooth charging state is not exposed by its battery service."));
+                label->setToolTip(tr("Battery is read in the background every 5 minutes or on manual request. Bluetooth charging state is not exposed by its battery service."));
             };
+            connect(refresh, &QPushButton::clicked, this, [battery, update]{ battery->RequestBatteryRefresh();update(); });
             auto* timer = new QTimer(this);
             connect(timer, &QTimer::timeout, this, update);
             update();

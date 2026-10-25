@@ -8,10 +8,12 @@
 #include <thread>
 #include <utility>
 
+inline constexpr auto RazerBatteryPollInterval = std::chrono::minutes(5);
+
 // Core-only optional interface. The RGBController/plugin API layout is unchanged.
 struct RazerBatteryStatus
 {
-    bool supported = false, reachable = false;
+    bool supported = false, reachable = false, refreshing = false;
     int percent = -1, charging = -1;
     std::string transport;
     std::chrono::steady_clock::time_point updated{};
@@ -33,7 +35,9 @@ public:
         if(value.percent >= 0 && value.percent <= 100 && value.reachable)
         {
             value.updated = std::chrono::steady_clock::now();
+            const bool refreshing = status.refreshing;
             status = std::move(value);
+            status.refreshing = refreshing;
         }
         else
         {
@@ -41,6 +45,11 @@ public:
             status.charging = -1;
             if(!value.transport.empty()) status.transport = value.transport;
         }
+    }
+    void SetRefreshing(bool value)
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        status.refreshing = value;
     }
     RazerBatteryStatus Snapshot() const
     {
@@ -53,13 +62,14 @@ class RazerBatteryProvider
 public:
     virtual ~RazerBatteryProvider() = default;
     virtual RazerBatteryStatus GetBatteryStatus() const = 0;
+    virtual bool RequestBatteryRefresh() = 0;
 };
 class RazerBatteryMonitor
 {
     std::mutex mutex;
     std::condition_variable changed;
     std::thread thread;
-    bool stop = false;
+    bool stop = false, requested = false, reading = false;
 public:
     RazerBatteryCache cache;
     ~RazerBatteryMonitor() { Stop(); }
@@ -71,13 +81,21 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
             while(!stop)
             {
+                reading = true;requested = false;cache.SetRefreshing(true);
                 lock.unlock();
                 try { cache.Publish(read()); }
                 catch(...) { cache.Publish({}); }
                 lock.lock();
-                changed.wait_for(lock, std::chrono::seconds(30), [this]{ return stop; });
+                reading = false;cache.SetRefreshing(false);
+                changed.wait_for(lock, RazerBatteryPollInterval, [this]{ return stop || requested; });
             }
         });
+    }
+    bool RequestRefresh()
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        if(stop || reading || requested) return false;
+        requested = true;cache.SetRefreshing(true);changed.notify_all();return true;
     }
     void Stop()
     {

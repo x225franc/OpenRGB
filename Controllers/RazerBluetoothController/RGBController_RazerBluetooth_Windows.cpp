@@ -25,6 +25,7 @@ class BluetoothWorker
     std::thread thread;
     bool stop = false;
     bool pending = false;
+    bool battery_requested = false;
     bool owns_lighting = false;
     std::vector<RazerBLE::Bytes> desired;
 public:
@@ -70,16 +71,17 @@ public:
                 std::unique_lock<std::mutex> lock(mutex);
                 while(!stop)
                 {
-                    changed.wait_for(lock, std::chrono::seconds(2), [this]{ return stop || pending; });
+                    changed.wait_for(lock, std::chrono::seconds(2), [this]{ return stop || pending || battery_requested; });
                     if(stop) break;
-                    if(std::chrono::steady_clock::now() >= next_battery)
+                    if(battery_requested || std::chrono::steady_clock::now() >= next_battery)
                     {
+                        battery_requested = false;battery.SetRefreshing(true);
                         lock.unlock();
                         RazerBatteryStatus value;
                         value.supported = true; value.transport = "Bluetooth";
                         try { value.percent = transport.ReadBattery(); value.reachable = value.percent >= 0; } catch(...) {}
-                        battery.Publish(value);
-                        next_battery = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+                        battery.Publish(value);battery.SetRefreshing(false);
+                        next_battery = std::chrono::steady_clock::now() + RazerBatteryPollInterval;
                         lock.lock();
                         if(stop) break;
                     }
@@ -174,6 +176,12 @@ public:
         });
         return future.get();
     }
+    bool RequestBatteryRefresh()
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        if(stop || battery_requested || battery.Snapshot().refreshing) return false;
+        battery_requested = true;battery.SetRefreshing(true);changed.notify_all();return true;
+    }
     void Submit(std::vector<RazerBLE::Bytes> state)
     {
         { std::lock_guard<std::mutex> lock(mutex); desired = std::move(state); pending = true; owns_lighting = true; }
@@ -186,6 +194,7 @@ class RGBController_RazerBluetooth : public RGBController, public RazerBatteryPr
     std::unique_ptr<BluetoothWorker> worker;
 public:
     RazerBatteryStatus GetBatteryStatus() const override { return worker->battery.Snapshot(); }
+    bool RequestBatteryRefresh() override { return worker->RequestBatteryRefresh(); }
     explicit RGBController_RazerBluetooth(std::unique_ptr<BluetoothWorker> value) : worker(std::move(value))
     {
         name = worker->keyboard ? "Razer BlackWidow V3 Mini (Bluetooth)" : "Razer Basilisk V3 Pro 35K Phantom Green (Bluetooth)";
