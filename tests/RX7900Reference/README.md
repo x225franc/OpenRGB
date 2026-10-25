@@ -1,6 +1,6 @@
 # RX 7900 XTX reference / Avatar investigation
 
-Investigation started 2026-10-25. No native controller is enabled by these files.
+Investigation started 2026-10-25. A native Windows controller has now been implemented; see **[NATIVE-CONTROLLER.md](NATIVE-CONTROLLER.md)** for the current capabilities, successful standalone native hardware tests, and remaining full-application validation. Earlier sections below record the investigation before that implementation.
 
 ## Hardware observed on this PC
 
