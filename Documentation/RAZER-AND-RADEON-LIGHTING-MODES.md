@@ -10,7 +10,7 @@ Static, Off and Wave remain available at their original profile indices. Added n
 
 ## Razer Basilisk V3 Pro 35K Phantom Green, Bluetooth
 
-Static and Off retain their original profile indices. Added native Breathing, Spectrum Cycle, Wave and Reactive. Each group is independently enabled through its per-LED color: black sends Off with zero brightness to that group. Breathing and Spectrum Cycle were visually confirmed on the wheel with the underglow off, and Wave on the underglow with the wheel off. The probe exited after sending each effect; the animation continued autonomously.
+Static and Off retain their original profile indices. Added native Breathing, Spectrum Cycle, Wave and Reactive. Each group is independently enabled through its per-LED color: black sends Off with zero brightness to that group. Breathing and Spectrum Cycle were visually confirmed on the wheel with the underglow off, and Wave on the underglow with the wheel off. The final signed OpenRGB executable also passed the native Bluetooth Breathing test: the user confirmed smooth wheel breathing with the underglow off. The probe exited after sending each effect; the animation continued autonomously.
 
 Reactive was accepted and read back but its visible behavior is NOT validated: the user's Smart Dimming turns off lighting while moving and masks the observation. The tested Starlight command was rejected with vendor status 5, so Starlight is NOT exposed for this mouse. This does not prove that every possible Starlight command is unsupported. Fire was deliberately left out at the user's request, as was Audio Meter.
 
@@ -18,7 +18,7 @@ Initial brightness is read from the brightest group rather than always the wheel
 
 ## Basilisk Phantom Green, USB / HyperSpeed
 
-Added native Breathing at the END of the existing mode list to preserve saved mode indices. A one-shot extended-matrix Breathing command (class 0F, command 02, green, transaction 1F on the shared receiver) was accepted and visually confirmed fluid on HyperSpeed after the test tool exited. No continuous software animation is used. The corresponding wired PID uses the same native path but has NOT been visually retested in this session. Other Basilisk variants retain their previous capability declarations.
+Added native Breathing at the END of the existing mode list to preserve saved mode indices. A one-shot extended-matrix Breathing command (class 0F, command 02, green, transaction 1F on the shared receiver) was accepted and visually confirmed fluid on HyperSpeed after the test tool exited. The final OpenRGB controller was then tested through its SDK and visually confirmed fluid as well. No continuous software animation is used. The corresponding wired PID uses the same native path but has NOT been visually retested in this session. Other Basilisk variants retain their previous capability declarations.
 
 ## AMD RX 7900 XTX reference / Avatar
 
@@ -36,3 +36,5 @@ IMPORTANT: the GPU is on another PC. Direct and sustained software animation hav
 - tests/RazerSupport/Test-Bluetooth-SDK.py: isolated SDK server, explicit device/mode selection; --include-hyperspeed additionally permits only the verified shared Phantom Green controller. SDK acceptance alone is not visual hardware validation.
 
 Hardware probe logs and compiler/test logs are included in the delivery validation directory. No claim is made about hardware modes inferred only from Synapse's Quick Effects menu.
+
+The OpenRGB controller selects one mode for the mouse, with independent per-zone colors/enabling. Two different simultaneous modes per zone are not exposed by the current UI. Wave is spatially meaningful on the underglow rather than the single wheel group.
