@@ -1,0 +1,20 @@
+[
+  {
+    "TimeCreated": "2026-10-26T01:31:10.7140172+01:00",
+    "Id": 1000,
+    "ProviderName": "Application Error",
+    "Message": "Faulting application name: AMD_Radeon_RX_7900_XTX_Series_RGB_LED_x64.exe, version: 1.0.0.1, time stamp: 0x63c8d1c9\r\nFaulting module name: AMD_Radeon_RX_7900_XTX_Series_RGB_LED_x64.exe, version: 1.0.0.1, time stamp: 0x63c8d1c9\r\nException code: 0xc0000005\r\nFault offset: 0x0000000000001899\r\nFaulting process id: 0x3D78\r\nFaulting application start time: 0x1DD64E147E51CAC\r\nFaulting application path: C:\\PROGRA~2\\AMD\\AMDRAD~1\\AMD_Radeon_RX_7900_XTX_Series_RGB_LED_x64.exe\r\nFaulting module path: C:\\PROGRA~2\\AMD\\AMDRAD~1\\AMD_Radeon_RX_7900_XTX_Series_RGB_LED_x64.exe\r\nReport Id: ed63f053-eda5-4ed8-8771-5e6c1fdc730c\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-10-26T01:30:55.3199139+01:00",
+    "Id": 1000,
+    "ProviderName": "Application Error",
+    "Message": "Faulting application name: AMD_Radeon_RX_7900_XTX_Series_RGB_LED_x64.exe, version: 1.0.0.1, time stamp: 0x63c8d1c9\r\nFaulting module name: AMD_Radeon_RX_7900_XTX_Series_RGB_LED_x64.exe, version: 1.0.0.1, time stamp: 0x63c8d1c9\r\nException code: 0xc0000005\r\nFault offset: 0x000000000005e129\r\nFaulting process id: 0x16F0\r\nFaulting application start time: 0x1DD64E1396F17E6\r\nFaulting application path: C:\\PROGRA~2\\AMD\\AMDRAD~1\\AMD_Radeon_RX_7900_XTX_Series_RGB_LED_x64.exe\r\nFaulting module path: C:\\PROGRA~2\\AMD\\AMDRAD~1\\AMD_Radeon_RX_7900_XTX_Series_RGB_LED_x64.exe\r\nReport Id: bcfcbdd9-c093-40bf-8d19-ef4c31eed778\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-10-26T01:25:56.5978796+01:00",
+    "Id": 1000,
+    "ProviderName": "Application Error",
+    "Message": "Faulting application name: AMD_Radeon_RX_7900_XTX_Series_RGB_LED_x64.exe, version: 1.0.0.1, time stamp: 0x63c8d1c9\r\nFaulting module name: AMD_Radeon_RX_7900_XTX_Series_RGB_LED_x64.exe, version: 1.0.0.1, time stamp: 0x63c8d1c9\r\nException code: 0xc0000005\r\nFault offset: 0x0000000000001899\r\nFaulting process id: 0x4D7C\r\nFaulting application start time: 0x1DD64E055B089E7\r\nFaulting application path: C:\\PROGRA~2\\AMD\\AMDRAD~1\\AMD_Radeon_RX_7900_XTX_Series_RGB_LED_x64.exe\r\nFaulting module path: C:\\PROGRA~2\\AMD\\AMDRAD~1\\AMD_Radeon_RX_7900_XTX_Series_RGB_LED_x64.exe\r\nReport Id: 33ae4f10-8dd8-4709-bf14-b4b24cf44725\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  }
+]

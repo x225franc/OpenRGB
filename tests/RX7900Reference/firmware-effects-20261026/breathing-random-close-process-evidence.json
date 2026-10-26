@@ -1,0 +1,11 @@
+{
+  "marker": "breathing-random-close",
+  "observed_empty_from": "2026-10-26T00:19:28.777919+00:00",
+  "observed_empty_to": "2026-10-26T00:20:03.956707+00:00",
+  "duration_seconds": 35.179,
+  "inventory_samples": 8,
+  "remaining_producers": {},
+  "process_absence_at_least_required_duration": true,
+  "visual_animation_confirmation": "must be supplied by user separately",
+  "limits": "process inventory snapshots every 5 seconds; official PID changes also polled every 0.5 seconds; no kernel tracing"
+}

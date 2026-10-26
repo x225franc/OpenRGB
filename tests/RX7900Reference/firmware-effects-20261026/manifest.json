@@ -1,0 +1,94 @@
+{
+  ".gitattributes": {
+    "bytes": 191,
+    "sha256": "765c81578082b3aad641958c14f8e3c20301f4de9245ebafe9acad116f42104a"
+  },
+  "breathing-baseline.png": {
+    "bytes": 664149,
+    "sha256": "38d5a0a902ac91dfc7c8b063d6a40083d75974a3d158268ac20a3971b4c0a5da"
+  },
+  "breathing-before-close.png": {
+    "bytes": 663067,
+    "sha256": "73851f6fef6c7571550d974d81325047a127371227341353bba079f366d17139"
+  },
+  "breathing-fixed-close-process-evidence.json": {
+    "bytes": 514,
+    "sha256": "a9b5fc44696f76fd0a66e6d4e09e8af51fe8511c72c42ce000af92bc0d83ba9f"
+  },
+  "breathing-random-close-process-evidence.json": {
+    "bytes": 515,
+    "sha256": "b888201415dd7175544b80d300b0ac0f77328d9467fbdc2a7d6d1ede6bb76b54"
+  },
+  "breathing-random.png": {
+    "bytes": 669549,
+    "sha256": "13aa99ec4b53beea4c7bb08c94be3efada703f5899552be1206ca69012f740f2"
+  },
+  "capture-notes.json": {
+    "bytes": 1411,
+    "sha256": "d40c41861641f551f68e02b67b47cc8169a59c09b254c8d918ecfbcab04b6f63"
+  },
+  "color-cycle-close-process-evidence.json": {
+    "bytes": 510,
+    "sha256": "33dd8d159c913f449bda5f2197ba72aa1155d2d0a743e864dda139e91573ef03"
+  },
+  "color-cycle.png": {
+    "bytes": 612308,
+    "sha256": "640d7d85dcc3865a6bc8810774f89be8062c6f15bbfb791675924d40bebc900b"
+  },
+  "examples.json": {
+    "bytes": 6519,
+    "sha256": "57eaaad2e11551bef14a0403780968f4f2cd0d43878baca4bf92f669ec4db596"
+  },
+  "hardware.json": {
+    "bytes": 639,
+    "sha256": "0d36851fdd61b5eb29603cba52e331f73b60c47bea0e304211383aadfcda3749"
+  },
+  "interface-initial.png": {
+    "bytes": 665824,
+    "sha256": "accb60853c75dbb71996468a1c1a79dd59d6fcf126088437111bcd96a63b49c8"
+  },
+  "markers.jsonl": {
+    "bytes": 5223,
+    "sha256": "367c9c2c36cbdc958dbc588a2a44e1246177d732f50ba055af4343e54bf71f26"
+  },
+  "messages.json": {
+    "bytes": 2729476,
+    "sha256": "847df6469ae6a6bef942e54f183af9303bf95d285ad4aa8f573c0877ebe5a558"
+  },
+  "morse-close-process-evidence.json": {
+    "bytes": 504,
+    "sha256": "3627e9a21207b86dd0a8c78c2aaccd109656876d5c7fa953ec2d98389e63c490"
+  },
+  "morse-inventory.png": {
+    "bytes": 1504432,
+    "sha256": "b1840a7e76f9a9ccba6340bf6af13fb8250dfea5d4f95d6c39f8331d7b4753fe"
+  },
+  "processes-final.json": {
+    "bytes": 4,
+    "sha256": "a5338d955b09046ec0b16f3a9625b7955c763aae07dc722e474e6078745f932f"
+  },
+  "raw.jsonl": {
+    "bytes": 3147871,
+    "sha256": "8b8793cd2dcb95a50ee8a6f16888807fa67abc9d7c4b1a8d18d68e019dbb9282"
+  },
+  "services-baseline.json": {
+    "bytes": 4,
+    "sha256": "a5338d955b09046ec0b16f3a9625b7955c763aae07dc722e474e6078745f932f"
+  },
+  "software.json": {
+    "bytes": 631,
+    "sha256": "89d7c7eff3221252c4b71ff0c9b183837ed190db4ffbb1c7bbebe4ead8aca6c9"
+  },
+  "summary.json": {
+    "bytes": 14958,
+    "sha256": "cdce480216f1f7a36b86f034e3e0411b40382a5e26713998b02797f5fa5ddeab"
+  },
+  "timing.json": {
+    "bytes": 645,
+    "sha256": "c2e92c9cb1bb37a581a3972b148375c8a6aef2e06d2a4d5ee01f3ac537662937"
+  },
+  "version-crash-events.json": {
+    "bytes": 2579,
+    "sha256": "ef3ed394d315a992ab4d9a7a97775f7e6a01d517b590319e2556ec265356ce19"
+  }
+}
