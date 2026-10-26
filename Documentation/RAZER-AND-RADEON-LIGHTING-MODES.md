@@ -55,3 +55,15 @@ No Morse encoder or memory selection is implemented. No 50 55 save command is se
 Native protocol regression uses 15 complete messages extracted from canonical successful captures, not synthetic expected arrays. Run scripts/test-radeon-reference.cmd; the existing transport framing, error/acknowledgement tests also remain active.
 
 On the GPU PC, close RGB Tool, select Breathing (hardware), try fixed red and Random, and try all three speed/brightness levels. Repeat with Color Cycle (hardware). Verify Off, Static, and switching back from either software mode. Quit OpenRGB and confirm the hardware effect continues for at least 30 seconds. Do not infer persistence after reboot or power loss from this test.
+
+## Current GPU policy after hardware testing
+
+The owner confirmed that the firmware modes are smooth; the 4-Hz software modes were the choppy ones. Breathing (software) and Color Cycle (software) and their worker are now removed from this GPU. The available modes are Static, Off, Direct, Breathing (hardware), and Color Cycle (hardware). Old software-mode selections should be replaced with a hardware mode and the profile resaved.
+
+The native speed range is inverted (3 down to 1) using OpenRGB's existing inverted-slider support: moving the UI slider to the right now makes animation faster. Wire presets remain unchanged, preserving the captured messages and existing raw speed values.
+
+The GPU native-mode preview stays visible when LED preview is enabled. It is read-only and displays the chosen color or a spectrum symbol; no firmware phase/color feedback is available, so it does not claim to mirror the live hardware animation. It sends no extra GPU commands.
+
+Direct remains capped at 4 updates/s until measured validation on the GPU PC. The current path also has three 30-ms read waits per frame plus transfer overhead. See tests/RX7900Reference/HANDOFF-DIRECT-CADENCE.md for a reproducible measurement mission. No certified maximum sustained hardware cadence is known.
+
+GPU profile loading now matches retained mode names after the list shrinks, keeping saved native colors/brightness and raw speed presets with the new inverted slider metadata. A removed software selection falls back to Static, never an unrelated mode at the same index. ADL diagnostic history is bounded to avoid accumulating memory during long Direct/Ambient sessions.

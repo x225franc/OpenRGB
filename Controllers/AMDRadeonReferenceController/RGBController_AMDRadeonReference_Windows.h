@@ -3,9 +3,7 @@
 
 #include "RGBController.h"
 #include "RadeonReferenceProtocol.h"
-#include "SoftwareLightingEffect.h"
 #include <memory>
-#include <atomic>
 #include <mutex>
 #include <chrono>
 
@@ -26,8 +24,6 @@ private:
     void Update();
     void ApplyState(RGBColor color,bool off,unsigned brightness);
     void ApplyMessage(const RadeonReference::Message& message, uint8_t selection);
-    std::unique_ptr<SoftwareLighting::Worker> softwareEffect;
-    std::atomic<unsigned> software_brightness{5};
     std::shared_ptr<RadeonReferenceADL> adl;
     int adapter;
     std::mutex io_mutex;

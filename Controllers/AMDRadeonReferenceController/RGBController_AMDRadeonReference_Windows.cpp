@@ -78,13 +78,7 @@ RGBController_AMDRadeonReference::RGBController_AMDRadeonReference(std::shared_p
     off.color_mode = MODE_COLORS_NONE;
     modes.push_back(off);
     mode direct=static_mode;direct.name="Direct";direct.value=2;modes.push_back(direct);
-    for(int value:{3,4})
-    {
-        mode effect=static_mode;effect.name=value==3?"Breathing (software)":"Color Cycle (software)";effect.value=value;
-        effect.flags|=MODE_FLAG_HAS_SPEED;effect.speed_min=1;effect.speed_max=10;effect.speed=3;
-        modes.push_back(effect);
-    }
-    // Append native modes so saved indices of existing modes stay valid.
+    // Firmware effect values stay stable; profile migration matches modes by name.
     mode breathing{};
     breathing.name = "Breathing (hardware)";
     breathing.value = 5;
@@ -93,8 +87,11 @@ RGBController_AMDRadeonReference::RGBController_AMDRadeonReference(std::shared_p
     breathing.color_mode = MODE_COLORS_MODE_SPECIFIC;
     breathing.colors_min = breathing.colors_max = 1;
     breathing.colors = {ToRGBColor(255, 0, 0)};
-    breathing.speed_min = breathing.brightness_min = 1;
-    breathing.speed_max = breathing.brightness_max = 3;
+    // Larger wire presets produce slower firmware animation. Qt supports inverted ranges.
+    breathing.speed_min = 3;
+    breathing.speed_max = 1;
+    breathing.brightness_min = 1;
+    breathing.brightness_max = 3;
     breathing.speed = 2;
     breathing.brightness = 3;
     modes.push_back(breathing);
@@ -106,14 +103,11 @@ RGBController_AMDRadeonReference::RGBController_AMDRadeonReference(std::shared_p
     cycle.colors_min = cycle.colors_max = 0;
     cycle.colors.clear();
     modes.push_back(cycle);
-    description+=". Direct/software effects: one global zone, capped at 4 updates/s; sustained hardware validation pending.";
+    description += ". Native hardware effects; Direct/Ambient remains capped at 4 updates/s pending measured validation.";
     SetupZones();
-    softwareEffect=std::make_unique<SoftwareLighting::Worker>([this](std::vector<RGBColor>& frame){
-        if(!frame.empty())ApplyState(frame[0],false,software_brightness.load());
-    },std::chrono::milliseconds(250));
 }
 
-RGBController_AMDRadeonReference::~RGBController_AMDRadeonReference() { Shutdown();if(softwareEffect)softwareEffect->Shutdown(); }
+RGBController_AMDRadeonReference::~RGBController_AMDRadeonReference() { Shutdown(); }
 void RGBController_AMDRadeonReference::SetupZones()
 {
     zone global{};
@@ -129,20 +123,12 @@ void RGBController_AMDRadeonReference::SetupZones()
 void RGBController_AMDRadeonReference::DeviceUpdateLEDs() { Update(); }
 void RGBController_AMDRadeonReference::DeviceUpdateZoneLEDs(int) { Update(); }
 void RGBController_AMDRadeonReference::DeviceUpdateSingleLED(int) { Update(); }
-void RGBController_AMDRadeonReference::DeviceUpdateMode() { if(softwareEffect)softwareEffect->Stop();Update(); }
+void RGBController_AMDRadeonReference::DeviceUpdateMode() { Update(); }
 
 void RGBController_AMDRadeonReference::Update()
 {
     if(colors.empty()||active_mode<0||static_cast<size_t>(active_mode)>=modes.size())return;
     const auto& selected=modes[active_mode];
-    if(selected.value==3||selected.value==4)
-    {
-        software_brightness.store(selected.brightness);
-        auto base=colors;
-        if(selected.value==4 && base[0]==0)base[0]=ToRGBColor(255,255,255);
-        if(softwareEffect)softwareEffect->Set(std::move(base),selected.speed,selected.value==4);
-        return;
-    }
     if(selected.value == 5)
     {
         const auto color = selected.colors.empty() ? colors[0] : selected.colors[0];

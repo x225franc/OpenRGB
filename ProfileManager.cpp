@@ -20,6 +20,7 @@
 #include "NetworkServer.h"
 #include "PluginManagerInterface.h"
 #include "ProfileManager.h"
+#include "Controllers/AMDRadeonReferenceController/RadeonReferenceProfile.h"
 #include "ResourceManager.h"
 #include "RGBController_Dummy.h"
 #include "SettingsManager.h"
@@ -1423,7 +1424,15 @@ bool ProfileManager::LoadControllerFromListWithOptions
                 /*-----------------------------------------*\
                 | If mode list matches, load all modes      |
                 \*-----------------------------------------*/
-                if(profile_controller->modes.size() == load_controller->modes.size())
+                const bool radeon_reference = load_controller->GetVendor() == "AMD"
+                    && load_controller->GetLocation().rfind("AMD SMU I2C: ", 0) == 0;
+                if(radeon_reference)
+                {
+                    load_controller->active_mode = RadeonReference::RestoreModes(load_controller->modes,
+                        profile_controller->modes, profile_controller->active_mode);
+                    load_controller->UpdateMode();
+                }
+                else if(profile_controller->modes.size() == load_controller->modes.size())
                 {
                     for(unsigned int mode_index = 0; mode_index < (unsigned int)profile_controller->modes.size(); mode_index++)
                     {

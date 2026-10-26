@@ -22,6 +22,17 @@
 #include "SettingsManager.h"
 #include "ui_OpenRGBDevicePage.h"
 
+// Native effects on this single-zone board expose a read-only color/spectrum preview.
+static bool RadeonHardwarePreview(RGBController* controller)
+{
+    const auto active = controller->GetActiveMode();
+    if(active < 0 || static_cast<unsigned>(active) >= controller->GetModeCount()) return false;
+    const auto mode = controller->GetModeName(active);
+    return controller->GetVendor() == "AMD"
+        && controller->GetLocation().rfind("AMD SMU I2C: ", 0) == 0
+        && (mode == "Breathing (hardware)" || mode == "Color Cycle (hardware)");
+}
+
 static void OpenRGBDevicePageSettingsManagerCallback(void * this_ptr, unsigned int update_reason)
 {
     OpenRGBDevicePage * this_obj = (OpenRGBDevicePage *)this_ptr;
@@ -282,6 +293,11 @@ void OpenRGBDevicePage::ShowDeviceView()
     | Only show device view if active mode is Per-LED and   |
     | device contains at least one LED                      |
     \*-----------------------------------------------------*/
+    if(RadeonHardwarePreview(device) && device->GetLEDCount() > 0)
+    {
+        ui->DeviceViewBoxFrame->show();
+        return;
+    }
     if(device->GetLEDCount() > 0)
     {
         if(selected_zone_mode && (selected_mode >= 0))
@@ -1709,6 +1725,15 @@ void OpenRGBDevicePage::UpdateModeUi()
 
         ui->DeviceViewBoxFrame->hide();
     }
+
+    const bool hardware_preview = RadeonHardwarePreview(device);
+    ui->DeviceViewBox->setProperty("hardwarePreview", hardware_preview);
+    ui->DeviceViewBox->setAttribute(Qt::WA_TransparentForMouseEvents, hardware_preview);
+    ui->DeviceViewBox->setToolTip(hardware_preview
+        ? tr("Hardware effect runs on the device. Preview shows the selected color or a spectrum symbol, not live LED feedback.")
+        : QString());
+    if(hardware_preview && DeviceViewShowing && device->GetLEDCount() > 0) ui->DeviceViewBoxFrame->show();
+    ui->DeviceViewBox->update();
 
     if(supports_mode_specific)
     {

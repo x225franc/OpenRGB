@@ -116,6 +116,8 @@ public:
             std::ostringstream record;
             record << (write ? "write" : "read") << " ADL=" << result << " data=";
             for(unsigned int i = 0; i < size; ++i) record << std::hex << static_cast<unsigned int>(data[i]) << ' ';
+            // Keep recent failure context without growing indefinitely during Direct/Ambient.
+            if(trace.size() >= 256) trace.erase(trace.begin(), trace.begin() + 128);
             trace.push_back(record.str());
             return result == ADL_OK;
         }, [] { Sleep(30); }, echo);

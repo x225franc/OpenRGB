@@ -10,6 +10,7 @@
 \*---------------------------------------------------------*/
 
 #include <QPainter>
+#include <QLinearGradient>
 #include <QResizeEvent>
 #include <QStyleOption>
 #include <QtCore/qmath.h>
@@ -942,7 +943,30 @@ void DeviceView::paintEvent(QPaintEvent* /* event */)
         QColor currentColor     = QColor::fromRgb(RGBGetRValue(controller->GetColor(led_idx)),
                                                   RGBGetGValue(controller->GetColor(led_idx)),
                                                   RGBGetBValue(controller->GetColor(led_idx)));
-        painter.setBrush(currentColor);
+        bool hardware_spectrum = false;
+        if(property("hardwarePreview").toBool())
+        {
+            const int active = controller->GetActiveMode();
+            if(active >= 0 && static_cast<unsigned>(active) < controller->GetModeCount())
+            {
+                if(controller->GetModeColorMode(active) == MODE_COLORS_MODE_SPECIFIC
+                   && controller->GetModeColorsCount(active) > 0)
+                {
+                    const auto color = controller->GetModeColor(active, 0);
+                    currentColor = QColor(RGBGetRValue(color), RGBGetGValue(color), RGBGetBValue(color));
+                }
+                else
+                {
+                    hardware_spectrum = true;
+                    QLinearGradient spectrum(rect.topLeft(), rect.topRight());
+                    spectrum.setColorAt(0, Qt::red);spectrum.setColorAt(0.2, Qt::yellow);
+                    spectrum.setColorAt(0.4, Qt::green);spectrum.setColorAt(0.6, Qt::cyan);
+                    spectrum.setColorAt(0.8, Qt::blue);spectrum.setColorAt(1, Qt::magenta);
+                    painter.setBrush(spectrum);
+                }
+            }
+        }
+        if(!hardware_spectrum) painter.setBrush(currentColor);
 
         /*-------------------------------------------------*\
         | Set Border color                                  |
