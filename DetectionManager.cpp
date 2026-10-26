@@ -1957,6 +1957,21 @@ void DetectionManager::UpdateDetectorSettings()
     \*-----------------------------------------------------*/
     detector_settings = ResourceManager::get()->GetSettingsManager()->GetSettings("Detectors");
 
+    // Keep the enabled/disabled choice when renaming the reference GPU detector.
+    if(detector_settings.contains("detectors") && detector_settings["detectors"].is_object())
+    {
+        auto& entries = detector_settings["detectors"];
+        const char* previous = "AMD Radeon RX 7900 XTX Reference / Avatar";
+        const char* current = "AMD Radeon RX 7900 XTX Reference";
+        if(entries.contains(previous))
+        {
+            if(!entries.contains(current)) entries[current] = entries[previous];
+            entries.erase(previous);
+            save_settings = true;
+        }
+    }
+
+
     /*-----------------------------------------------------*\
     | Loop through all I2C detectors and see if any need to |
     | be saved to the settings                              |

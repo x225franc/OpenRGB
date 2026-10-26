@@ -57,7 +57,7 @@ bool OfficialToolRunning()
 RGBController_AMDRadeonReference::RGBController_AMDRadeonReference(std::shared_ptr<RadeonReferenceADL> session, int index, const std::string& pci_location)
     : adl(std::move(session)), adapter(index)
 {
-    name = "AMD Radeon RX 7900 XTX Reference / Avatar";
+    name = "AMD Radeon RX 7900 XTX Reference";
     vendor = "AMD";
     description = "AMD reference board RGB lighting (Cooler Master)";
     location = "AMD SMU I2C: " + pci_location;
@@ -231,4 +231,4 @@ DetectedControllers DetectAMDRadeonReference()
     return detected;
 }
 
-REGISTER_DETECTOR("AMD Radeon RX 7900 XTX Reference / Avatar", DetectAMDRadeonReference);
+REGISTER_DETECTOR("AMD Radeon RX 7900 XTX Reference", DetectAMDRadeonReference);
