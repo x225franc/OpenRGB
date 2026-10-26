@@ -140,6 +140,23 @@ RGBController_Razer::RGBController_Razer(RazerController* controller_ptr)
         modes.push_back(Reactive);
     }
 
+    if(controller->SupportsAdditionalNativeBreathing())
+    {
+        mode Breathing;
+        Breathing.name           = "Breathing";
+        Breathing.value          = RAZER_MODE_BREATHING;
+        Breathing.flags          = MODE_FLAG_HAS_MODE_SPECIFIC_COLOR | MODE_FLAG_HAS_RANDOM_COLOR | MODE_FLAG_HAS_BRIGHTNESS;
+        Breathing.color_mode     = MODE_COLORS_MODE_SPECIFIC;
+        Breathing.colors_min     = 1;
+        Breathing.colors_max     = 2;
+        Breathing.colors.resize(1);
+        Breathing.brightness_min = 0;
+        Breathing.brightness_max = max_brightness;
+        Breathing.brightness     = max_brightness;
+        modes.push_back(Breathing);
+    }
+
+    // Preserve mode indices for existing profiles; newly supported breathing is appended.
     SetupZones();
     if(controller->SupportsBattery()) battery.Start([this]{ return controller->ReadBattery(); });
 }

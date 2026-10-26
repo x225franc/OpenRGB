@@ -54,3 +54,8 @@ Source compilee : 11ee0b0c3b9668d37fe9eb7e9a3aa03e7015e4c2. Compilation Release 
 Le commit corrige la sauvegarde de LogManager.dialog_no_show_hashes et le traitement de la case Don't show again. Les tests d avertissement reel et de persistance sur plusieurs redemarrages sont a effectuer sur le PC de test selon WARNING-PERSISTENCE-TEST.md. Les 17 tests Qt ne valident pas a eux seuls ce scenario.
 
 Les fichiers RX7900Reference sont une investigation et des captures du logiciel officiel. Aucun controleur natif de la RX 7900 XTX de reference n est ajoute par ce commit. Ce build ne permet pas encore de piloter son RGB depuis OpenRGB. Aucune ecriture GPU nouvelle ni test materiel de la 7900 XTX n a ete effectue ici.
+
+
+## Native lighting expansion — 2026-10-26
+
+See Documentation/RAZER-AND-RADEON-LIGHTING-MODES.md for hardware confirmations and limitations. Fifteen lighting packet/worker checks, eighteen Bluetooth worker/reconnect checks and seventeen Qt navigation checks passed. Razer breathing is native on Bluetooth and HyperSpeed; no continuous software Razer animation is added. Radeon continuous software effects require validation on the other PC.

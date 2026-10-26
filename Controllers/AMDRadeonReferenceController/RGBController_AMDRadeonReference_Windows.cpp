@@ -47,8 +47,8 @@ bool OfficialToolRunning()
     @category GPU
     @type I2C
     @save :x:
-    @direct :x:
-    @effects :x:
+    @direct :white_check_mark:
+    @effects :white_check_mark:
     @detectors DetectAMDRadeonReference
     @comment Windows AMD SMU transport. One global lighting zone.
         PCI 1002:744C subsystem 1002:0E3B only, including Avatar edition.
@@ -77,10 +77,21 @@ RGBController_AMDRadeonReference::RGBController_AMDRadeonReference(std::shared_p
     off.value = 1;
     off.color_mode = MODE_COLORS_NONE;
     modes.push_back(off);
+    mode direct=static_mode;direct.name="Direct";direct.value=2;modes.push_back(direct);
+    for(int value:{3,4})
+    {
+        mode effect=static_mode;effect.name=value==3?"Breathing (software)":"Color Cycle (software)";effect.value=value;
+        effect.flags|=MODE_FLAG_HAS_SPEED;effect.speed_min=1;effect.speed_max=10;effect.speed=3;
+        modes.push_back(effect);
+    }
+    description+=". Direct/software effects: one global zone, capped at 4 updates/s; sustained hardware validation pending.";
     SetupZones();
+    softwareEffect=std::make_unique<SoftwareLighting::Worker>([this](std::vector<RGBColor>& frame){
+        if(!frame.empty())ApplyState(frame[0],false,software_brightness.load());
+    },std::chrono::milliseconds(250));
 }
 
-RGBController_AMDRadeonReference::~RGBController_AMDRadeonReference() { Shutdown(); }
+RGBController_AMDRadeonReference::~RGBController_AMDRadeonReference() { Shutdown();if(softwareEffect)softwareEffect->Shutdown(); }
 void RGBController_AMDRadeonReference::SetupZones()
 {
     zone global{};
@@ -96,14 +107,27 @@ void RGBController_AMDRadeonReference::SetupZones()
 void RGBController_AMDRadeonReference::DeviceUpdateLEDs() { Update(); }
 void RGBController_AMDRadeonReference::DeviceUpdateZoneLEDs(int) { Update(); }
 void RGBController_AMDRadeonReference::DeviceUpdateSingleLED(int) { Update(); }
-void RGBController_AMDRadeonReference::DeviceUpdateMode() { Update(); }
+void RGBController_AMDRadeonReference::DeviceUpdateMode() { if(softwareEffect)softwareEffect->Stop();Update(); }
 
 void RGBController_AMDRadeonReference::Update()
 {
+    if(colors.empty()||active_mode<0||static_cast<size_t>(active_mode)>=modes.size())return;
+    const auto& selected=modes[active_mode];
+    if(selected.value==3||selected.value==4)
+    {
+        software_brightness.store(selected.brightness);
+        auto base=colors;
+        if(selected.value==4 && base[0]==0)base[0]=ToRGBColor(255,255,255);
+        if(softwareEffect)softwareEffect->Set(std::move(base),selected.speed,selected.value==4);
+        return;
+    }
+    ApplyState(colors[0],selected.value==1,selected.brightness);
+}
+void RGBController_AMDRadeonReference::ApplyState(RGBColor color,bool off,unsigned brightness)
+{
     std::lock_guard<std::mutex> guard(io_mutex);
-    if(failed || colors.empty() || active_mode < 0 || static_cast<size_t>(active_mode) >= modes.size()) return;
-    const bool off = modes[active_mode].value == 1;
-    const auto message = RadeonReference::Static(RGBGetRValue(colors[0]), RGBGetGValue(colors[0]), RGBGetBValue(colors[0]), modes[0].brightness);
+    if(failed)return;
+    const auto message=RadeonReference::Static(RGBGetRValue(color),RGBGetGValue(color),RGBGetBValue(color),brightness);
     if(have_previous && off == previous_off && (off || previous == message)) return;
     if(OfficialToolRunning())
     {
@@ -116,7 +140,7 @@ void RGBController_AMDRadeonReference::Update()
         LOG_WARNING("[AMD Radeon Reference] Another OpenRGB instance owns this lighting controller.");
         return;
     }
-    // Static updates only. Never run the official persistent-save flow here.
+    // Reuse validated volatile static frames; never send the persistent-save flow.
     const auto earliest = last_update + std::chrono::milliseconds(250);
     if(std::chrono::steady_clock::now() < earliest) std::this_thread::sleep_until(earliest);
     last_update = std::chrono::steady_clock::now();

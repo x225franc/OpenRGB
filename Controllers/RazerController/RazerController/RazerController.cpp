@@ -418,6 +418,13 @@ void RazerController::SetModeWave(unsigned char direction)
     razer_set_mode_wave(direction);
 }
 
+bool RazerController::SupportsAdditionalNativeBreathing() const
+{
+    // Phantom Green firmware accepted extended-matrix breathing; RF was visually verified.
+    return dev_pid == RAZER_BASILISK_V3_PRO_35K_PG_WIRED_PID
+        || dev_pid == RAZER_BASILISK_V3_PRO_35K_PG_WIRELESS_PID;
+}
+
 bool RazerController::SupportsBreathing()
 {
     /*-----------------------------------------------------*\

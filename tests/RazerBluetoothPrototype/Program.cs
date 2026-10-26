@@ -5,10 +5,11 @@ using Windows.Storage.Streams;
 
 var keyboard = args.Contains("--keyboard");
 args = args.Where(a => a != "--keyboard").ToArray();
-if (args.Length > 1 || args.Any(a => a != "--color-test" && a != "--restore" && a != "--wave-test"))
+if (args.Length > 1 || args.Any(a => a != "--color-test" && a != "--restore" && a != "--wave-test" && a != "--breathing-test" && a != "--spectrum-test" && a != "--effects-restore" && a != "--reactive-test" && a != "--starlight-test"))
     throw new ArgumentException("Usage: prototype [--color-test | --restore]");
-if (args.Contains("--wave-test") && !keyboard) throw new ArgumentException("Wave is validated only on this keyboard.");
-var snapshotPath = Path.Combine(AppContext.BaseDirectory, keyboard ? "original-keyboard-lighting.json" : "original-lighting.json");
+
+var effectProbe = args.Any(a => a is "--breathing-test" or "--spectrum-test" or "--effects-restore" or "--wave-test" or "--reactive-test" or "--starlight-test");
+var snapshotPath = Path.Combine(AppContext.BaseDirectory, effectProbe ? (keyboard ? "effect-probe-keyboard-original.json" : "effect-probe-mouse-original.json") : (keyboard ? "original-keyboard-lighting.json" : "original-lighting.json"));
 var vendor = Guid.Parse("52401523-f97c-7f90-0e7f-6c6f4e36db1c");
 var devices = await DeviceInformation.FindAllAsync(BluetoothLEDevice.GetDeviceSelectorFromPairingState(true)).AsTask().WaitAsync(TimeSpan.FromSeconds(15));
 foreach (var info in devices.Where(d => (keyboard ? d.Name.Contains("BlackWidow", StringComparison.OrdinalIgnoreCase) : d.Name.Equals("BSKV3P 35K", StringComparison.OrdinalIgnoreCase))))
@@ -44,6 +45,7 @@ foreach (var info in devices.Where(d => (keyboard ? d.Name.Contains("BlackWidow"
             Console.WriteLine($"Access: {access}");
             var chars = await service.GetCharacteristicsAsync(BluetoothCacheMode.Uncached).AsTask().WaitAsync(TimeSpan.FromSeconds(15));
             Console.WriteLine($"Characteristics: {chars.Status}");
+            if(chars.Status!=GattCommunicationStatus.Success)throw new InvalidOperationException($"GATT characteristics unavailable: {chars.Status}");
             var write = chars.Characteristics.Single(c => c.Uuid == Guid.Parse("52401524-f97c-7f90-0e7f-6c6f4e36db1c"));
             var notify = chars.Characteristics.Single(c => c.Uuid == Guid.Parse("52401525-f97c-7f90-0e7f-6c6f4e36db1c"));
             var frames = new List<byte[]>();
@@ -108,7 +110,7 @@ foreach (var info in devices.Where(d => (keyboard ? d.Name.Contains("BlackWidow"
                     if (original.Count != (keyboard ? 1 : 2))
                         throw new InvalidOperationException("All physical zones must respond before changing lighting.");
                     Dictionary<byte, byte[]> target;
-                    if (args[0] == "--restore")
+                    if (args[0] is "--restore" or "--effects-restore")
                     {
                         target = System.Text.Json.JsonSerializer.Deserialize<Dictionary<byte, byte[]>>(File.ReadAllText(snapshotPath))
                             ?? throw new InvalidOperationException("Invalid snapshot.");
@@ -123,6 +125,24 @@ foreach (var info in devices.Where(d => (keyboard ? d.Name.Contains("BlackWidow"
                             [1] = new byte[] {1,0,0,1,0,0,255,0,0,0,96},
                             [10] = new byte[] {1,0,0,1,0,255,0,0,0,0,96}
                         };
+                    }
+                    if (effectProbe && args[0] != "--effects-restore")
+                    {
+                        byte[] state = args[0] switch {
+                            "--breathing-test" => new byte[] {2,0,0,1,0,255,0,0,0,0,96},
+                            "--spectrum-test" => new byte[] {3,0,0,0,0,0,0,0,0,0,96},
+                            "--wave-test" => new byte[] {4,1,40,1,0,255,0,0,0,0,96},
+                            "--reactive-test" => new byte[] {5,0,3,1,0,255,0,0,0,0,96},
+                            "--starlight-test" => new byte[] {7,0,2,1,0,255,0,0,0,0,96},
+                            _ => throw new ArgumentException("Unsupported lighting probe")
+                        };
+                        target = keyboard ? new() { [5] = state } : new() {
+                            [1] = state, [10] = new byte[] {1,0,0,1,0,0,0,0,0,0,0}
+                        };
+                    }
+                    if(!keyboard && args.Length>0 && args[0] is "--wave-test" or "--reactive-test" or "--starlight-test")
+                    {
+                        target[10]=target[1];target[1]=new byte[]{1,0,0,1,0,0,0,0,0,0,0};
                     }
                     foreach (var pair in target)
                     {

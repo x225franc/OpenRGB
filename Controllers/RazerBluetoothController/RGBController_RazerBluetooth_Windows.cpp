@@ -3,6 +3,7 @@
 #include "DetectionManager.h"
 #include "LogManager.h"
 #include "RGBController.h"
+#include "RazerBluetoothLighting.h"
 #include "../RazerController/RazerBattery.h"
 #include <hidapi.h>
 #include <future>
@@ -166,7 +167,7 @@ public:
                         next = std::chrono::steady_clock::now() + std::chrono::seconds(5);
                         // Preserve the latest requested scene for reconnect, no frame queue.
                         lock.lock();
-                        if(!pending) { desired = target; pending = true; }
+                        if(!pending) pending = true; // desired keeps the undimmed latest scene.
                         lock.unlock();
                     }
                     lock.lock();
@@ -184,7 +185,7 @@ public:
     }
     void Submit(std::vector<RazerBLE::Bytes> state)
     {
-        { std::lock_guard<std::mutex> lock(mutex); desired = std::move(state); pending = true; owns_lighting = true; }
+        { std::lock_guard<std::mutex> lock(mutex);desired = std::move(state);pending = true;owns_lighting = true; }
         changed.notify_all();
     }
 };
@@ -200,7 +201,7 @@ public:
         name = worker->keyboard ? "Razer BlackWidow V3 Mini (Bluetooth)" : "Razer Basilisk V3 Pro 35K Phantom Green (Bluetooth)";
         vendor = "Razer";
         type = worker->keyboard ? DEVICE_TYPE_KEYBOARD : DEVICE_TYPE_MOUSE;
-        description = "Bluetooth lighting groups; static color, brightness and keyboard hardware Wave. No per-key/Direct streaming.";
+        description = "Bluetooth hardware lighting effects; independently controlled mouse groups. No per-key/Direct streaming.";
         location = "Bluetooth";
         mode Static;
         Static.name = "Static";
@@ -209,7 +210,7 @@ public:
         Static.color_mode = MODE_COLORS_PER_LED;
         Static.brightness_min = 0;
         Static.brightness_max = 255;
-        Static.brightness = worker->initial.front()[10];
+        Static.brightness = 0;for(const auto& state:worker->initial)Static.brightness=std::max(Static.brightness,unsigned(state[10]));
         modes.push_back(Static);
         mode Off;
         Off.name = "Off";
@@ -228,10 +229,38 @@ public:
             Wave.brightness = Static.brightness;
             modes.push_back(Wave);
         }
-        active_mode = worker->initial.front()[10] == 0 ? 1 : (worker->keyboard && worker->initial.front()[0] == 4 ? 2 : 0);
+        auto addMode=[&](const char* name,int value,bool specific){
+            mode effect;effect.name=name;effect.value=value;
+            effect.flags=MODE_FLAG_HAS_BRIGHTNESS|(specific?MODE_FLAG_HAS_MODE_SPECIFIC_COLOR:0)|(!worker->keyboard?MODE_FLAG_HAS_PER_LED_COLOR:0);
+            effect.color_mode=specific?MODE_COLORS_MODE_SPECIFIC:(!worker->keyboard?MODE_COLORS_PER_LED:MODE_COLORS_NONE);
+            effect.brightness_min=0;effect.brightness_max=255;effect.brightness=Static.brightness;
+            if(specific){effect.colors_min=effect.colors_max=1;effect.colors={ToRGBColor(worker->initial[0][4],worker->initial[0][5],worker->initial[0][6])};}
+            modes.push_back(effect);
+        };
+        if(worker->keyboard)
+        {
+            addMode("Breathing",RazerBLELighting::Breathing,true);
+            addMode("Spectrum Cycle",RazerBLELighting::Spectrum,false);
+            addMode("Reactive",RazerBLELighting::Reactive,true);
+            addMode("Starlight",RazerBLELighting::Starlight,true);
+        }
+        else
+        {
+            addMode("Breathing",RazerBLELighting::Breathing,false);
+            addMode("Spectrum Cycle",RazerBLELighting::Spectrum,false);
+            addMode("Wave",RazerBLELighting::Wave,false);
+            addMode("Reactive",RazerBLELighting::Reactive,false);
+        }
+        auto initialState=worker->initial.front();for(const auto& state:worker->initial)if(state[10]){initialState=state;break;}
+        const int initialMode=RazerBLELighting::ModeFromState(initialState[0],initialState[10]);
+        active_mode=0;for(size_t i=0;i<modes.size();++i)if(modes[i].value==initialMode)active_mode=int(i);
         SetupZones();
         for(size_t i = 0; i < colors.size(); ++i)
-            colors[i] = ToRGBColor(worker->initial[i][4],worker->initial[i][5],worker->initial[i][6]);
+        {
+            const auto& state=worker->initial[i];
+            colors[i]=state[10]?ToRGBColor(state[4],state[5],state[6]):0;
+            if(!worker->keyboard && state[10] && state[0]!=1 && colors[i]==0)colors[i]=ToRGBColor(255,255,255);
+        }
     }
     ~RGBController_RazerBluetooth() override { Shutdown(); worker.reset(); }
     void SetupZones()
@@ -253,12 +282,12 @@ public:
     void DeviceUpdateLEDs() override
     {
         std::vector<RazerBLE::Bytes> target;
+        auto& effect=modes[active_mode];
         for(auto color : colors)
         {
-            if(active_mode == 1) target.push_back({1,0,0,1,0,0,0,0,0,0,0});
-            else if(active_mode == 2 && worker->keyboard)
-                target.push_back({4,1,40,1,0,255,0,0,0,0,static_cast<uint8_t>(modes[2].brightness)});
-            else target.push_back({1,0,0,1,static_cast<uint8_t>(RGBGetRValue(color)),static_cast<uint8_t>(RGBGetGValue(color)),static_cast<uint8_t>(RGBGetBValue(color)),0,0,0,static_cast<uint8_t>(modes[0].brightness)});
+            if(effect.color_mode==MODE_COLORS_MODE_SPECIFIC && !effect.colors.empty())color=effect.colors[0];
+            const auto state=RazerBLELighting::KeyboardState(!worker->keyboard && color==0?RazerBLELighting::Off:effect.value,color,static_cast<uint8_t>(effect.brightness));
+            target.emplace_back(state.begin(),state.end());
         }
         worker->Submit(std::move(target));
     }

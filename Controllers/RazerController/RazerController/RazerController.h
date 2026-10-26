@@ -256,6 +256,7 @@ public:
     void                    SetModeWave(unsigned char direction);
 
     bool                    SupportsBreathing();
+    bool                    SupportsAdditionalNativeBreathing() const;
     bool                    SupportsReactive();
     bool                    SupportsWave();
 
