@@ -1,0 +1,10 @@
+{
+  "raw_first_utc": "2026-10-26T00:03:33.856469+00:00",
+  "raw_last_utc": "2026-10-26T00:34:43.367653+00:00",
+  "observer_stopped_utc": "2026-10-26T00:36:45.635590+00:00",
+  "observer_stop": "Observer PID 18476 stopped only after checking its command line; stdin interrupt ended the tool session but left observer running. Official processes absent at stop.",
+  "detached_callback_limit": "The captured observer version incorrectly assumed two Frida detached callback arguments. A Session object failed JSON serialization at process exits. ADL message callbacks continued, and independent 0.5s official-PID polling plus 5s process inventories recorded exits and absence. Fixed in delivered script; reason strings from detached callbacks are unavailable for this trace.",
+  "version_tab": "User reported app crash on Version tab; matching Application Error events show 0xc0000005. Cause undetermined under instrumentation; no firmware update requested or run by agent.",
+  "final_state": "User confirms Static FF0000 maximum restored. No official process or post-restore command observed after restore-static-red-start marker; last captured static red configuration predates Version crash. Final state is user-reported, not a newly captured restore transaction.",
+  "scope": "No controller changes, no firmware flash, no unknown command replay, no power cycle or reboot performed in this campaign."
+}

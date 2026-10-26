@@ -1,0 +1,432 @@
+{
+  "messages": 738,
+  "canonical_messages": 369,
+  "messages_by_api": {
+    "ADL_Display_WriteAndReadSMUI2C": 369,
+    "ADL2_Display_WriteAndReadSMUI2C": 369
+  },
+  "counting_note": "This driver forwards legacy SMU calls through ADL2; canonical intervals count only the legacy observation when both exist for a PID.",
+  "adl_calls": 4488,
+  "unassembled": 0,
+  "return_codes": {
+    "0": 4428,
+    "-1": 60
+  },
+  "failed_calls_by_adapter": {
+    "0": 12,
+    "1": 12,
+    "2": 12,
+    "3": 12,
+    "4": 12
+  },
+  "capture_error_scope": "Only errors serialized into JSONL. Host callback stderr exceptions are documented separately in capture-notes.json.",
+  "capture_errors": [],
+  "intervals": [
+    {
+      "marker": "breathing-baseline-start",
+      "note": "Requested Breathing red FF0000 brightness max speed middle Chroma off; isolate this setting until confirmation",
+      "start": "2026-10-26T00:04:05.274082+00:00",
+      "end": "2026-10-26T00:07:38.855594+00:00",
+      "messages": 18,
+      "opcodes": {
+        "41 80": 1,
+        "51 96": 1,
+        "51 28": 6,
+        "51 2C": 5,
+        "51 A0": 5
+      },
+      "configuration_prefixes": [
+        "51 2C 01 00 01 31 20 03 FF FF FF 00 00 00 00 00",
+        "51 2C 01 00 01 31 A0 03 FF FF FF 00 00 00 00 00"
+      ]
+    },
+    {
+      "marker": "breathing-rgb-start",
+      "note": "User confirms red breathing, one color; random chooses new color each pulse. Requested green then blue then red, same middle speed and max brightness, Apply and 3s between steps.",
+      "start": "2026-10-26T00:07:38.855594+00:00",
+      "end": "2026-10-26T00:08:43.174792+00:00",
+      "messages": 18,
+      "opcodes": {
+        "51 2C": 6,
+        "51 A0": 6,
+        "51 28": 6
+      },
+      "configuration_prefixes": [
+        "51 2C 01 00 01 31 20 03 FF FF 00 00 FF 00 00 00",
+        "51 2C 01 00 01 31 20 03 FF FF 00 FF 00 00 00 00",
+        "51 2C 01 00 01 31 20 03 FF FF FF 00 00 00 00 00"
+      ]
+    },
+    {
+      "marker": "breathing-brightness-start",
+      "note": "RGB sequence completed by user. Requested red Breathing brightness first nonzero then middle then maximum, speed remains middle, Apply and 3s at each.",
+      "start": "2026-10-26T00:08:43.174792+00:00",
+      "end": "2026-10-26T00:10:25.131271+00:00",
+      "messages": 15,
+      "opcodes": {
+        "51 2C": 5,
+        "51 A0": 5,
+        "51 28": 5
+      },
+      "configuration_prefixes": [
+        "51 2C 01 00 01 31 20 03 FF 33 FF 00 00 00 00 00",
+        "51 2C 01 00 01 31 20 03 FF 99 FF 00 00 00 00 00",
+        "51 2C 01 00 01 31 20 03 FF CC FF 00 00 00 00 00",
+        "51 2C 01 00 01 31 20 03 FF FF FF 00 00 00 00 00"
+      ]
+    },
+    {
+      "marker": "breathing-speed-start",
+      "note": "User completed brightness min/middle/max while breathing. Requested speed minimum then middle then maximum, red and max brightness unchanged, 3s each.",
+      "start": "2026-10-26T00:10:25.131271+00:00",
+      "end": "2026-10-26T00:14:15.886617+00:00",
+      "messages": 9,
+      "opcodes": {
+        "51 2C": 3,
+        "51 A0": 3,
+        "51 28": 3
+      },
+      "configuration_prefixes": [
+        "51 2C 01 00 01 26 20 03 FF FF FF 00 00 00 00 00",
+        "51 2C 01 00 01 31 20 03 FF FF FF 00 00 00 00 00",
+        "51 2C 01 00 01 3C 20 03 FF FF FF 00 00 00 00 00"
+      ]
+    },
+    {
+      "marker": "breathing-fixed-close",
+      "note": "User completed speed min/middle/max and returned middle; requested full official UI/tray quit, then observe red breathing for at least 15 seconds without shutting down GPU.",
+      "start": "2026-10-26T00:14:15.886617+00:00",
+      "end": "2026-10-26T00:16:46.604849+00:00",
+      "messages": 0,
+      "opcodes": {},
+      "configuration_prefixes": []
+    },
+    {
+      "marker": "breathing-fixed-visual-confirmed",
+      "note": "User confirms red continues pulsing after real tool closure and at least 15 seconds; see process evidence.",
+      "start": "2026-10-26T00:16:46.604849+00:00",
+      "end": "2026-10-26T00:16:55.980455+00:00",
+      "messages": 0,
+      "opcodes": {},
+      "configuration_prefixes": []
+    },
+    {
+      "marker": "breathing-random-start",
+      "note": "Requested reopen official tool, wait 5s for new PID attachment, select Breathing Random Color, max brightness middle speed, Apply; then confirm changing pulse colors.",
+      "start": "2026-10-26T00:16:55.980455+00:00",
+      "end": "2026-10-26T00:18:01.260924+00:00",
+      "messages": 49,
+      "opcodes": {
+        "12 02": 2,
+        "12 00": 1,
+        "12 20": 1,
+        "12 01": 1,
+        "12 22": 1,
+        "40 20": 1,
+        "42 00": 1,
+        "40 63": 1,
+        "41 01": 1,
+        "41 03": 1,
+        "52 96": 1,
+        "52 94": 1,
+        "52 28": 1,
+        "52 29": 1,
+        "51 28": 7,
+        "52 2C": 4,
+        "52 73": 8,
+        "52 A0": 1,
+        "41 00": 1,
+        "41 80": 3,
+        "51 96": 2,
+        "51 2C": 4,
+        "51 A0": 4
+      },
+      "configuration_prefixes": [
+        "51 2C 01 00 00 FF 00 FF FF FF FF 00 00 00 00 00",
+        "51 2C 01 00 01 31 20 03 FF FF FF 00 00 00 00 00",
+        "51 2C 01 00 01 31 A0 03 FF FF FF 00 00 00 00 00"
+      ]
+    },
+    {
+      "marker": "breathing-random-close",
+      "note": "User confirms random pulse colors. Requested full official tool/tray exit and at least 15s observation of continued random-color breathing.",
+      "start": "2026-10-26T00:18:01.260924+00:00",
+      "end": "2026-10-26T00:19:43.904183+00:00",
+      "messages": 0,
+      "opcodes": {},
+      "configuration_prefixes": []
+    },
+    {
+      "marker": "breathing-random-visual-confirmed",
+      "note": "User confirms random-color breathing continues after closing official tool and observing at least 15 seconds.",
+      "start": "2026-10-26T00:19:43.904183+00:00",
+      "end": "2026-10-26T00:19:44.001168+00:00",
+      "messages": 0,
+      "opcodes": {},
+      "configuration_prefixes": []
+    },
+    {
+      "marker": "color-cycle-baseline-start",
+      "note": "Requested reopen official tool wait 5 seconds; Color Cycle, max brightness middle speed, Chroma off; inspect color/random/direction control availability.",
+      "start": "2026-10-26T00:19:44.001168+00:00",
+      "end": "2026-10-26T00:21:46.619465+00:00",
+      "messages": 55,
+      "opcodes": {
+        "12 02": 2,
+        "12 00": 1,
+        "12 20": 1,
+        "12 01": 1,
+        "12 22": 1,
+        "40 20": 1,
+        "42 00": 1,
+        "40 63": 1,
+        "41 01": 1,
+        "41 03": 1,
+        "52 96": 1,
+        "52 94": 1,
+        "52 28": 1,
+        "52 29": 1,
+        "51 28": 9,
+        "52 2C": 4,
+        "52 73": 8,
+        "52 A0": 1,
+        "41 00": 1,
+        "41 80": 3,
+        "51 96": 2,
+        "51 2C": 6,
+        "51 A0": 6
+      },
+      "configuration_prefixes": [
+        "51 2C 01 00 00 FF 00 FF FF FF FF 00 00 00 00 00",
+        "51 2C 01 00 02 6E 00 FF FF 10 FF FF FF 00 00 00",
+        "51 2C 01 00 02 6E 00 FF FF 7F FF FF FF 00 00 00",
+        "51 2C 01 00 02 80 00 FF FF 7F FF FF FF 00 00 00",
+        "51 2C 01 00 02 8C 00 FF FF 7F FF FF FF 00 00 00"
+      ]
+    },
+    {
+      "marker": "color-cycle-brightness-start",
+      "note": "User reports Color Cycle has only brightness and speed, no selectable color/random/direction. Requested brightness minimum nonzero then middle then maximum, speed middle, 3s each.",
+      "start": "2026-10-26T00:21:46.619465+00:00",
+      "end": "2026-10-26T00:22:36.392623+00:00",
+      "messages": 12,
+      "opcodes": {
+        "51 2C": 4,
+        "51 A0": 4,
+        "51 28": 4
+      },
+      "configuration_prefixes": [
+        "51 2C 01 00 02 80 00 FF FF 10 FF FF FF 00 00 00",
+        "51 2C 01 00 02 80 00 FF FF 40 FF FF FF 00 00 00",
+        "51 2C 01 00 02 80 00 FF FF 50 FF FF FF 00 00 00",
+        "51 2C 01 00 02 80 00 FF FF 7F FF FF FF 00 00 00"
+      ]
+    },
+    {
+      "marker": "color-cycle-speed-start",
+      "note": "User completed Color Cycle brightness sequence min/middle/max. Requested speed min/middle/max then return middle, brightness unchanged max, 3s each; confirm visual speed changes.",
+      "start": "2026-10-26T00:22:36.392623+00:00",
+      "end": "2026-10-26T00:23:14.127244+00:00",
+      "messages": 9,
+      "opcodes": {
+        "51 2C": 3,
+        "51 A0": 3,
+        "51 28": 3
+      },
+      "configuration_prefixes": [
+        "51 2C 01 00 02 68 00 FF FF 7F FF FF FF 00 00 00",
+        "51 2C 01 00 02 80 00 FF FF 7F FF FF FF 00 00 00",
+        "51 2C 01 00 02 96 00 FF FF 7F FF FF FF 00 00 00"
+      ]
+    },
+    {
+      "marker": "color-cycle-close",
+      "note": "User completed Color Cycle speed changes and returned middle. Requested real UI/tray quit and observe continued color cycling for at least 15 seconds.",
+      "start": "2026-10-26T00:23:14.127244+00:00",
+      "end": "2026-10-26T00:24:18.592061+00:00",
+      "messages": 0,
+      "opcodes": {},
+      "configuration_prefixes": []
+    },
+    {
+      "marker": "color-cycle-visual-confirmed",
+      "note": "User confirms Color Cycle continues after official tool closure and at least 15 seconds.",
+      "start": "2026-10-26T00:24:18.592061+00:00",
+      "end": "2026-10-26T00:24:31.519336+00:00",
+      "messages": 37,
+      "opcodes": {
+        "12 02": 2,
+        "12 00": 1,
+        "12 20": 1,
+        "12 01": 1,
+        "12 22": 1,
+        "40 20": 1,
+        "42 00": 1,
+        "40 63": 1,
+        "41 01": 1,
+        "41 03": 1,
+        "52 96": 1,
+        "52 94": 1,
+        "52 28": 1,
+        "52 29": 1,
+        "51 28": 3,
+        "52 2C": 4,
+        "52 73": 8,
+        "52 A0": 1,
+        "41 00": 1,
+        "41 80": 2,
+        "51 96": 1,
+        "51 2C": 1,
+        "51 A0": 1
+      },
+      "configuration_prefixes": [
+        "51 2C 01 00 00 FF 00 FF FF FF FF 00 00 00 00 00"
+      ]
+    },
+    {
+      "marker": "morse-inventory-start",
+      "note": "Requested reopen wait 5s, export existing official settings locally before editing Morse, select Morse Code without Save/Reset or changing text, report available controls.",
+      "start": "2026-10-26T00:24:31.519336+00:00",
+      "end": "2026-10-26T00:29:51.845631+00:00",
+      "messages": 70,
+      "opcodes": {
+        "12 02": 2,
+        "12 00": 1,
+        "12 20": 1,
+        "12 01": 1,
+        "12 22": 1,
+        "40 20": 1,
+        "42 00": 1,
+        "40 63": 1,
+        "41 01": 1,
+        "41 03": 1,
+        "52 96": 1,
+        "52 94": 1,
+        "52 28": 1,
+        "52 29": 1,
+        "51 28": 10,
+        "52 2C": 4,
+        "52 73": 8,
+        "52 A0": 1,
+        "41 00": 1,
+        "41 80": 3,
+        "51 96": 2,
+        "51 2C": 7,
+        "51 A0": 7,
+        "51 73": 12
+      },
+      "configuration_prefixes": [
+        "51 2C 01 00 00 FF 00 FF FF FF FF 00 00 00 00 00",
+        "51 2C 01 00 0B 6B 00 05 FF 99 C5 19 19 00 00 00",
+        "51 2C 01 00 0B 6B 80 05 FF 99 C5 19 19 00 00 00"
+      ]
+    },
+    {
+      "marker": "morse-close",
+      "note": "User deprioritizes Morse; reports text-to-pulses with selected color, Random Color seems ineffective. Screenshot shows speed disabled. No text/memory changes requested. Requested play existing text if needed, real quit, observe at least 15s.",
+      "start": "2026-10-26T00:29:51.845631+00:00",
+      "end": "2026-10-26T00:30:38.059624+00:00",
+      "messages": 0,
+      "opcodes": {},
+      "configuration_prefixes": []
+    },
+    {
+      "marker": "morse-visual-confirmed",
+      "note": "User confirms Morse effect continues outside RGB Tool after requested 15 seconds. Existing text preserved; Morse parameter matrix intentionally limited at user request.",
+      "start": "2026-10-26T00:30:38.059624+00:00",
+      "end": "2026-10-26T00:30:47.959455+00:00",
+      "messages": 37,
+      "opcodes": {
+        "12 02": 2,
+        "12 00": 1,
+        "12 20": 1,
+        "12 01": 1,
+        "12 22": 1,
+        "40 20": 1,
+        "42 00": 1,
+        "40 63": 1,
+        "41 01": 1,
+        "41 03": 1,
+        "52 96": 1,
+        "52 94": 1,
+        "52 28": 1,
+        "52 29": 1,
+        "51 28": 3,
+        "52 2C": 4,
+        "52 73": 8,
+        "52 A0": 1,
+        "41 00": 1,
+        "41 80": 2,
+        "51 96": 1,
+        "51 2C": 1,
+        "51 A0": 1
+      },
+      "configuration_prefixes": [
+        "51 2C 01 00 00 FF 00 FF FF FF FF 00 00 00 00 00"
+      ]
+    },
+    {
+      "marker": "version-inventory-start",
+      "note": "All animated modes have visual autonomy confirmations and at least 15s empty process evidence. Requested reopen tool and display Version tab without clicking firmware update.",
+      "start": "2026-10-26T00:30:47.959455+00:00",
+      "end": "2026-10-26T00:32:10.535851+00:00",
+      "messages": 40,
+      "opcodes": {
+        "41 03": 2,
+        "50 00": 1,
+        "41 00": 2,
+        "12 02": 2,
+        "12 00": 1,
+        "12 20": 1,
+        "12 01": 1,
+        "12 22": 1,
+        "40 20": 1,
+        "42 00": 1,
+        "40 63": 1,
+        "41 01": 1,
+        "52 96": 1,
+        "52 94": 1,
+        "52 28": 1,
+        "52 29": 1,
+        "51 28": 3,
+        "52 2C": 4,
+        "52 73": 8,
+        "52 A0": 1,
+        "41 80": 2,
+        "51 96": 1,
+        "51 2C": 1,
+        "51 A0": 1
+      },
+      "configuration_prefixes": [
+        "51 2C 01 00 00 FF 00 FF FF FF FF 00 00 00 00 00"
+      ]
+    },
+    {
+      "marker": "version-crash-reported",
+      "note": "User reports Version tab crashes official app. No repeated attempt requested. Cause undetermined under instrumentation. Use executable metadata/hashes for provenance.",
+      "start": "2026-10-26T00:32:10.535851+00:00",
+      "end": "2026-10-26T00:32:10.632032+00:00",
+      "messages": 0,
+      "opcodes": {},
+      "configuration_prefixes": []
+    },
+    {
+      "marker": "restore-static-red-start",
+      "note": "Requested normal Main Control only; Static red FF0000 max brightness Chroma off, no Version tab, no Morse text/memory changes.",
+      "start": "2026-10-26T00:32:10.632032+00:00",
+      "end": "2026-10-26T00:32:59.662024+00:00",
+      "messages": 0,
+      "opcodes": {},
+      "configuration_prefixes": []
+    },
+    {
+      "marker": "restore-static-red-confirmed",
+      "note": "User confirms final Static FF0000 maximum brightness restored using official Main Control. No further Version attempt; Morse text/memories not intentionally changed.",
+      "start": "2026-10-26T00:32:59.662024+00:00",
+      "end": "2026-10-26T00:34:43.367653+00:00",
+      "messages": 0,
+      "opcodes": {},
+      "configuration_prefixes": []
+    }
+  ]
+}

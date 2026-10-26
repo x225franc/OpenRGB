@@ -1,0 +1,32 @@
+{
+  "write1_to_write2": {
+    "minimum_ms": 0.037,
+    "median_ms": 0.097,
+    "maximum_ms": 0.278,
+    "samples": 166
+  },
+  "write2_to_write3": {
+    "minimum_ms": 0.041,
+    "median_ms": 0.112,
+    "maximum_ms": 0.261,
+    "samples": 166
+  },
+  "write3_to_read1": {
+    "minimum_ms": 20.257,
+    "median_ms": 32.5715,
+    "maximum_ms": 36.532,
+    "samples": 166
+  },
+  "read1_to_read2": {
+    "minimum_ms": 0.041,
+    "median_ms": 0.1255,
+    "maximum_ms": 0.309,
+    "samples": 166
+  },
+  "read2_to_read3": {
+    "minimum_ms": 0.036,
+    "median_ms": 0.1185,
+    "maximum_ms": 0.28,
+    "samples": 166
+  }
+}

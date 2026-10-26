@@ -1,0 +1,4 @@
+# Preserve the exact evidence bytes and SHA256 values across Windows checkouts.
+*.json -text whitespace=cr-at-eol
+*.jsonl -text whitespace=cr-at-eol
+.gitattributes -text whitespace=cr-at-eol

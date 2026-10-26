@@ -1,0 +1,22 @@
+[
+  {
+    "Name": "SudoMaker Virtual Display Adapter",
+    "PNPDeviceID": "ROOT\\DISPLAY\\0000",
+    "DriverVersion": "1.10.9.289"
+  },
+  {
+    "Name": "Sunshine Virtual Display Driver",
+    "PNPDeviceID": "ROOT\\DISPLAY\\0001",
+    "DriverVersion": "1.6.3.0"
+  },
+  {
+    "Name": "AMD Radeon 780M Graphics",
+    "PNPDeviceID": "PCI\\VEN_1002&DEV_1900&SUBSYS_19001002&REV_BA\\4&98C338A&0&0041",
+    "DriverVersion": "32.0.32015.7029"
+  },
+  {
+    "Name": "AMD Radeon RX 7900 XTX",
+    "PNPDeviceID": "PCI\\VEN_1002&DEV_744C&SUBSYS_0E3B1002&REV_C8\\6&13FCA301&0&00000009",
+    "DriverVersion": "32.0.32015.7029"
+  }
+]
