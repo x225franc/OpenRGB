@@ -84,6 +84,28 @@ RGBController_AMDRadeonReference::RGBController_AMDRadeonReference(std::shared_p
         effect.flags|=MODE_FLAG_HAS_SPEED;effect.speed_min=1;effect.speed_max=10;effect.speed=3;
         modes.push_back(effect);
     }
+    // Append native modes so saved indices of existing modes stay valid.
+    mode breathing{};
+    breathing.name = "Breathing (hardware)";
+    breathing.value = 5;
+    breathing.flags = MODE_FLAG_HAS_MODE_SPECIFIC_COLOR | MODE_FLAG_HAS_RANDOM_COLOR
+                    | MODE_FLAG_HAS_SPEED | MODE_FLAG_HAS_BRIGHTNESS;
+    breathing.color_mode = MODE_COLORS_MODE_SPECIFIC;
+    breathing.colors_min = breathing.colors_max = 1;
+    breathing.colors = {ToRGBColor(255, 0, 0)};
+    breathing.speed_min = breathing.brightness_min = 1;
+    breathing.speed_max = breathing.brightness_max = 3;
+    breathing.speed = 2;
+    breathing.brightness = 3;
+    modes.push_back(breathing);
+    mode cycle = breathing;
+    cycle.name = "Color Cycle (hardware)";
+    cycle.value = 6;
+    cycle.flags = MODE_FLAG_HAS_SPEED | MODE_FLAG_HAS_BRIGHTNESS;
+    cycle.color_mode = MODE_COLORS_NONE;
+    cycle.colors_min = cycle.colors_max = 0;
+    cycle.colors.clear();
+    modes.push_back(cycle);
     description+=". Direct/software effects: one global zone, capped at 4 updates/s; sustained hardware validation pending.";
     SetupZones();
     softwareEffect=std::make_unique<SoftwareLighting::Worker>([this](std::vector<RGBColor>& frame){
@@ -121,14 +143,26 @@ void RGBController_AMDRadeonReference::Update()
         if(softwareEffect)softwareEffect->Set(std::move(base),selected.speed,selected.value==4);
         return;
     }
-    ApplyState(colors[0],selected.value==1,selected.brightness);
+    if(selected.value == 5)
+    {
+        const auto color = selected.colors.empty() ? colors[0] : selected.colors[0];
+        ApplyMessage(RadeonReference::Breathing(RGBGetRValue(color), RGBGetGValue(color), RGBGetBValue(color),
+            selected.brightness, selected.speed, selected.color_mode == MODE_COLORS_RANDOM), 0x01);
+    }
+    else if(selected.value == 6)
+        ApplyMessage(RadeonReference::ColorCycle(selected.brightness, selected.speed), 0x02);
+    else ApplyState(colors[0],selected.value==1,selected.brightness);
 }
 void RGBController_AMDRadeonReference::ApplyState(RGBColor color,bool off,unsigned brightness)
 {
+    ApplyMessage(RadeonReference::Static(RGBGetRValue(color),RGBGetGValue(color),RGBGetBValue(color),brightness), off ? 0xFE : 0x00);
+}
+void RGBController_AMDRadeonReference::ApplyMessage(const RadeonReference::Message& message, uint8_t selection)
+{
     std::lock_guard<std::mutex> guard(io_mutex);
     if(failed)return;
-    const auto message=RadeonReference::Static(RGBGetRValue(color),RGBGetGValue(color),RGBGetBValue(color),brightness);
-    if(have_previous && off == previous_off && (off || previous == message)) return;
+    const bool off = selection == 0xFE;
+    if(have_previous && selection == previous_selection && (off || previous == message)) return;
     if(OfficialToolRunning())
     {
         LOG_WARNING("[AMD Radeon Reference] RGB Tool is running; close it before changing lighting.");
@@ -140,7 +174,8 @@ void RGBController_AMDRadeonReference::ApplyState(RGBColor color,bool off,unsign
         LOG_WARNING("[AMD Radeon Reference] Another OpenRGB instance owns this lighting controller.");
         return;
     }
-    // Reuse validated volatile static frames; never send the persistent-save flow.
+    // Reuse captured live-lighting frames. No explicit persistent-save command is sent;
+    // persistence of Apply itself across power loss has not been established.
     const auto earliest = last_update + std::chrono::milliseconds(250);
     if(std::chrono::steady_clock::now() < earliest) std::this_thread::sleep_until(earliest);
     last_update = std::chrono::steady_clock::now();
@@ -149,7 +184,8 @@ void RGBController_AMDRadeonReference::ApplyState(RGBColor color,bool off,unsign
         && adl->Exchange(adapter, RadeonReference::SelectControl())
         && adl->Exchange(adapter, RadeonReference::Apply()));
     const bool ok = initialized && (off || adl->Exchange(adapter, message))
-        && adl->Exchange(adapter, RadeonReference::Mode(off))
+        && adl->Exchange(adapter, selection == 0x01 || selection == 0x02
+            ? RadeonReference::EffectSelection(selection == 0x02) : RadeonReference::Mode(off))
         && adl->Exchange(adapter, RadeonReference::Apply());
     if(!ok)
     {
@@ -160,7 +196,7 @@ void RGBController_AMDRadeonReference::ApplyState(RGBColor color,bool off,unsign
     }
     previous = message;
     lighting_initialized = true;
-    previous_off = off;
+    previous_selection = selection;
     have_previous = true;
 }
 

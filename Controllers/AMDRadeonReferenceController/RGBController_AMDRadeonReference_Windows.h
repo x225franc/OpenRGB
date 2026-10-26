@@ -25,6 +25,7 @@ public:
 private:
     void Update();
     void ApplyState(RGBColor color,bool off,unsigned brightness);
+    void ApplyMessage(const RadeonReference::Message& message, uint8_t selection);
     std::unique_ptr<SoftwareLighting::Worker> softwareEffect;
     std::atomic<unsigned> software_brightness{5};
     std::shared_ptr<RadeonReferenceADL> adl;
@@ -33,7 +34,7 @@ private:
     bool failed = false;
     bool lighting_initialized = false;
     bool have_previous = false;
-    bool previous_off = false;
+    uint8_t previous_selection = 0;
     RadeonReference::Message previous{};
     std::chrono::steady_clock::time_point last_update{};
 };

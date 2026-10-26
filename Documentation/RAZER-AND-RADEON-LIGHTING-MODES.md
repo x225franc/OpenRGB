@@ -38,3 +38,20 @@ IMPORTANT: the GPU is on another PC. Direct and sustained software animation hav
 Hardware probe logs and compiler/test logs are included in the delivery validation directory. No claim is made about hardware modes inferred only from Synapse's Quick Effects menu.
 
 The OpenRGB controller selects one mode for the mouse, with independent per-zone colors/enabling. Two different simultaneous modes per zone are not exposed by the current UI. Wave is spatially meaningful on the underglow rather than the single wheel group.
+
+## RX 7900 XTX firmware audit integration
+
+The external 2026-10-26 audit is now included under tests/RX7900Reference/FIRMWARE-MODES-RESULTS.md with its original captures. Two additional modes are appended without changing existing mode indices:
+
+- Breathing (hardware): one chosen RGB color or the native Random color option; no two-color palette.
+- Color Cycle (hardware): autonomous spectrum, no selectable RGB palette.
+
+Both use three discrete speed and brightness settings (1=low, 2=middle, 3=high), taken directly from the observed presets. These are not measured physical percentages or periods. Breathing brightness encodes 33/99/FF and speed 26/31/3C. Color Cycle brightness encodes 10/40/7F and speed 68/80/96. The two scales are deliberately separate.
+
+The driver sends the captured configuration, mode selection, and Apply once per changed setting, with exact acknowledgement validation and the existing producer exclusion and failure latch. It does not start the software animation worker for native modes. Identical repeated requests are skipped. Existing Static, Off, Direct and explicitly named software modes remain available. The hardware animation continues autonomously according to the external audit; the newly compiled OpenRGB integration still needs validation on the GPU PC.
+
+No Morse encoder or memory selection is implemented. No 50 55 save command is sent. Persistence of 51 28 Apply across power loss remains unknown; autonomous operation after exiting the app does not establish power-cycle persistence. The audit does not certify Direct/Ambient streaming cadence.
+
+Native protocol regression uses 15 complete messages extracted from canonical successful captures, not synthetic expected arrays. Run scripts/test-radeon-reference.cmd; the existing transport framing, error/acknowledgement tests also remain active.
+
+On the GPU PC, close RGB Tool, select Breathing (hardware), try fixed red and Random, and try all three speed/brightness levels. Repeat with Color Cycle (hardware). Verify Off, Static, and switching back from either software mode. Quit OpenRGB and confirm the hardware effect continues for at least 30 seconds. Do not infer persistence after reboot or power loss from this test.

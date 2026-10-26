@@ -6,7 +6,7 @@
 #include <cstdint>
 
 // RX 7900 XTX reference, captured on PCI 1002:744C / 1002:0E3B.
-// No USB assumptions, firmware commands, or persistent-save command (50 55).
+// Only captured live-lighting commands; no USB assumptions or explicit save (50 55).
 namespace RadeonReference
 {
 using Message = std::array<uint8_t, 64>;
@@ -31,6 +31,40 @@ inline Message Mode(bool off)
     const uint8_t prefix[] = {0x51, 0xA0, 0x01, 0x00, 0x00, 0x03, 0x00, 0x00, 0x05, 0x06};
     std::copy(prefix, prefix + sizeof(prefix), message.begin());
     std::fill(message.begin() + 10, message.begin() + 25, off ? 0xFE : 0x00);
+    return message;
+}
+
+// Discrete low/middle/high presets captured on 2026-10-26. These values
+// are not milliseconds or a measured linear brightness/speed scale.
+inline Message Breathing(uint8_t red, uint8_t green, uint8_t blue,
+                         unsigned int brightness, unsigned int speed, bool random)
+{
+    constexpr uint8_t speeds[] = {0x26, 0x31, 0x3C};
+    constexpr uint8_t levels[] = {0x33, 0x99, 0xFF};
+    auto message = Static(red, green, blue, 5);
+    message[4] = 0x01;
+    message[5] = speeds[std::clamp(speed, 1u, 3u) - 1];
+    message[6] = random ? 0xA0 : 0x20;
+    message[7] = 0x03;
+    message[9] = levels[std::clamp(brightness, 1u, 3u) - 1];
+    return message;
+}
+
+inline Message ColorCycle(unsigned int brightness, unsigned int speed)
+{
+    constexpr uint8_t speeds[] = {0x68, 0x80, 0x96};
+    constexpr uint8_t levels[] = {0x10, 0x40, 0x7F};
+    auto message = Static(255, 255, 255, 5);
+    message[4] = 0x02;
+    message[5] = speeds[std::clamp(speed, 1u, 3u) - 1];
+    message[9] = levels[std::clamp(brightness, 1u, 3u) - 1];
+    return message;
+}
+
+inline Message EffectSelection(bool color_cycle)
+{
+    auto message = Mode(false);
+    std::fill(message.begin() + 10, message.begin() + 25, color_cycle ? 0x02 : 0x01);
     return message;
 }
 

@@ -16,10 +16,12 @@ int main(int argc, char** argv)
 {
     try
     {
-        Require(argc == 2, "Pass the RecordedMessages.txt fixture path");
-        std::ifstream input(argv[1]);
-        Require(input.good(), "Cannot open captured fixtures");
+        Require(argc == 3, "Pass static and firmware captured fixture paths");
         std::map<std::string, RadeonReference::Message> fixtures;
+        for(int file = 1; file < argc; ++file)
+        {
+        std::ifstream input(argv[file]);
+        Require(input.good(), "Cannot open captured fixtures");
         std::string line;
         while(std::getline(input, line))
         {
@@ -35,6 +37,7 @@ int main(int argc, char** argv)
             }
             fixtures[name] = message;
         }
+        }
         Require(fixtures.at("red") == RadeonReference::Static(255, 0, 0, 5), "Red differs from official capture");
         Require(fixtures.at("green") == RadeonReference::Static(0, 255, 0, 5), "Green differs from official capture");
         Require(fixtures.at("blue") == RadeonReference::Static(0, 0, 255, 5), "Blue differs from official capture");
@@ -47,6 +50,37 @@ int main(int argc, char** argv)
         Require(fixtures.at("identify") == RadeonReference::Identify(), "Identify differs from startup capture");
         Require(RadeonReference::Static(1, 2, 3, 0)[9] == 0x33, "Brightness lower bound");
         Require(RadeonReference::Static(1, 2, 3, 999)[9] == 0xFF, "Brightness upper bound");
+
+        unsigned int firmware_cases = 0;
+        for(const auto& fixture : fixtures)
+        {
+            std::string name = fixture.first;
+            if(name.rfind("fw_", 0) != 0) continue;
+            if(name == "fw_select_cycle") Require(fixture.second == RadeonReference::EffectSelection(true), "Cycle selection differs from capture");
+            else if(name == "fw_select_breathing") Require(fixture.second == RadeonReference::EffectSelection(false), "Breathing selection differs from capture");
+            else
+            {
+                std::replace(name.begin(), name.end(), '_', ' ');
+                std::istringstream values(name);
+                std::string prefix, effect;values >> prefix >> effect;
+                unsigned int red=0, green=0, blue=0, brightness=0, speed=0, random=0;
+                if(effect == "breathing")
+                {
+                    Require(bool(values >> red >> green >> blue >> brightness >> speed >> random), "Bad breathing fixture name");
+                    Require(fixture.second == RadeonReference::Breathing(uint8_t(red), uint8_t(green), uint8_t(blue), brightness, speed, random != 0), "Native breathing differs from full 64-byte capture");
+                }
+                else
+                {
+                    Require(effect == "cycle" && bool(values >> brightness >> speed), "Bad cycle fixture name");
+                    Require(fixture.second == RadeonReference::ColorCycle(brightness, speed), "Native color cycle differs from full 64-byte capture");
+                }
+            }
+            ++firmware_cases;
+        }
+        Require(firmware_cases >= 12, "Missing native firmware fixtures");
+        Require(RadeonReference::ColorCycle(999,999)[9] == 0x7F, "Cycle brightness must not reach FF");
+        Require(RadeonReference::Breathing(255,0,0,0,0,false)[5] == 0x26, "Breathing clamps to captured low speed");
+        std::cout << "PASS " << firmware_cases << " native firmware messages match complete captured packets" << std::endl;
 
         // Each failure must stop immediately, including invalid reply markers
         // and payloads; a partial write must never be retried automatically.

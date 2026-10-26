@@ -10,7 +10,7 @@ if not exist "%RADEON_ROOT%\build\radeon-tests" mkdir "%RADEON_ROOT%\build\radeo
 pushd "%RADEON_ROOT%\build\radeon-tests"
 cl /nologo /EHsc /std:c++17 /W4 /Fe:ProtocolTests.exe "%RADEON_ROOT%\tests\RX7900Reference\ProtocolTests.cpp"
 if errorlevel 1 goto failed
-ProtocolTests.exe "%RADEON_ROOT%\tests\RX7900Reference\RecordedMessages.txt"
+ProtocolTests.exe "%RADEON_ROOT%\tests\RX7900Reference\RecordedMessages.txt" "%RADEON_ROOT%\tests\RX7900Reference\RecordedFirmwareMessages.txt"
 if errorlevel 1 goto failed
 cl /nologo /EHsc /std:c++17 /W4 /I"%RADEON_ROOT%\dependencies\display-library\include" /Fe:NativeProbe.exe "%RADEON_ROOT%\tests\RX7900Reference\NativeProbe_Windows.cpp"
 if errorlevel 1 goto failed
