@@ -1,0 +1,1082 @@
+[
+  {
+    "trace": "tests\\RX7900Reference\\direct-cadence-20261026\\native-10fps-30s-repeat.jsonl",
+    "configuration": {
+      "event": "start",
+      "target_fps": 10.0,
+      "seconds": 30.0,
+      "adapter": 5,
+      "bus": 3,
+      "device": 0,
+      "function": 0,
+      "sequence": "static-mode-apply",
+      "wait_ms": 30,
+      "unix_ms": 1793016527185
+    },
+    "complete": {
+      "event": "complete",
+      "frames": 161,
+      "elapsed_ms": 30054.6986
+    },
+    "effective_fps": 5.356899503227758,
+    "animation_messages_per_second": 16.070698509683275,
+    "frames": {
+      "count": 161,
+      "mean_ms": 181.3326130434784,
+      "p95_ms": 183.10189999999966,
+      "max_ms": 184.22810000000027
+    },
+    "frame_start_intervals": {
+      "count": 160,
+      "mean_ms": 186.67354312499998,
+      "p95_ms": 188.67119999999977,
+      "max_ms": 189.73109999999997
+    },
+    "exchanges": {
+      "count": 487,
+      "mean_ms": 60.41046324435318,
+      "p95_ms": 62.887,
+      "max_ms": 64.6575
+    },
+    "transfers": {
+      "count": 2922,
+      "mean_ms": 3.6404710814510657,
+      "p95_ms": 4.241700000002311,
+      "max_ms": 5.0833999999995285
+    },
+    "waits": {
+      "count": 487,
+      "mean_ms": 37.535187679671445,
+      "p95_ms": 40.528699999998935,
+      "max_ms": 41.45940000000155
+    },
+    "management": {
+      "PMLog_Create": {
+        "timing": {
+          "count": 487,
+          "mean_ms": 0.6004178644764,
+          "p95_ms": 0.8395999999993364,
+          "max_ms": 3.119799999999998
+        },
+        "results": {
+          "0": 487
+        }
+      },
+      "KeepAwake_Start": {
+        "timing": {
+          "count": 487,
+          "mean_ms": 0.08530616016426104,
+          "p95_ms": 0.14649999999892316,
+          "max_ms": 0.5302000000010594
+        },
+        "results": {
+          "-1": 487
+        }
+      },
+      "PMLog_Destroy": {
+        "timing": {
+          "count": 487,
+          "mean_ms": 0.24188090349074332,
+          "p95_ms": 0.30860000000029686,
+          "max_ms": 0.9727999999995518
+        },
+        "results": {
+          "0": 487
+        }
+      }
+    },
+    "invalid_exchanges": [],
+    "unfinished_exchange_ids": [],
+    "visual_status": "Requires separate human confirmation; ACKs do not prove smooth LED output."
+  },
+  {
+    "trace": "tests\\RX7900Reference\\direct-cadence-20261026\\native-10fps-30s.jsonl",
+    "configuration": {
+      "event": "start",
+      "target_fps": 10.0,
+      "seconds": 30.0,
+      "adapter": 5,
+      "bus": 3,
+      "device": 0,
+      "function": 0,
+      "sequence": "static-mode-apply",
+      "wait_ms": 30,
+      "unix_ms": 1793016428999
+    },
+    "complete": {
+      "event": "complete",
+      "frames": 161,
+      "elapsed_ms": 30025.4866
+    },
+    "effective_fps": 5.362111267165941,
+    "animation_messages_per_second": 16.086333801497826,
+    "frames": {
+      "count": 161,
+      "mean_ms": 181.21879937888218,
+      "p95_ms": 183.16399999999703,
+      "max_ms": 184.5414000000019
+    },
+    "frame_start_intervals": {
+      "count": 160,
+      "mean_ms": 186.499299375,
+      "p95_ms": 188.3321999999971,
+      "max_ms": 190.2489999999998
+    },
+    "exchanges": {
+      "count": 487,
+      "mean_ms": 60.390546201232034,
+      "p95_ms": 62.834,
+      "max_ms": 66.7233
+    },
+    "transfers": {
+      "count": 2922,
+      "mean_ms": 3.6354801163586523,
+      "p95_ms": 4.231200000000172,
+      "max_ms": 5.115200000000186
+    },
+    "waits": {
+      "count": 487,
+      "mean_ms": 37.55406837782339,
+      "p95_ms": 40.36819999999989,
+      "max_ms": 41.9644
+    },
+    "management": {
+      "PMLog_Create": {
+        "timing": {
+          "count": 487,
+          "mean_ms": 0.5978747433265194,
+          "p95_ms": 0.7941000000000713,
+          "max_ms": 2.798400000000001
+        },
+        "results": {
+          "0": 487
+        }
+      },
+      "KeepAwake_Start": {
+        "timing": {
+          "count": 487,
+          "mean_ms": 0.08129733059545324,
+          "p95_ms": 0.1434000000008382,
+          "max_ms": 0.25709999999980937
+        },
+        "results": {
+          "-1": 487
+        }
+      },
+      "PMLog_Destroy": {
+        "timing": {
+          "count": 487,
+          "mean_ms": 0.24070000000002756,
+          "p95_ms": 0.30279999999947904,
+          "max_ms": 0.6571999999978289
+        },
+        "results": {
+          "0": 487
+        }
+      }
+    },
+    "invalid_exchanges": [],
+    "unfinished_exchange_ids": [],
+    "visual_status": "Requires separate human confirmation; ACKs do not prove smooth LED output."
+  },
+  {
+    "trace": "tests\\RX7900Reference\\direct-cadence-20261026\\native-2fps-30s-repeat.jsonl",
+    "configuration": {
+      "event": "start",
+      "target_fps": 2.0,
+      "seconds": 30.0,
+      "adapter": 5,
+      "bus": 3,
+      "device": 0,
+      "function": 0,
+      "sequence": "static-mode-apply",
+      "wait_ms": 30,
+      "unix_ms": 1793016215331
+    },
+    "complete": {
+      "event": "complete",
+      "frames": 59,
+      "elapsed_ms": 30274.772
+    },
+    "effective_fps": 1.94881731892151,
+    "animation_messages_per_second": 5.84645195676453,
+    "frames": {
+      "count": 59,
+      "mean_ms": 191.24455762711884,
+      "p95_ms": 193.63430000000153,
+      "max_ms": 193.96230000000287
+    },
+    "frame_start_intervals": {
+      "count": 58,
+      "mean_ms": 513.1496482758621,
+      "p95_ms": 517.9728999999988,
+      "max_ms": 521.8163
+    },
+    "exchanges": {
+      "count": 181,
+      "mean_ms": 63.63188453038674,
+      "p95_ms": 67.8684,
+      "max_ms": 68.425
+    },
+    "transfers": {
+      "count": 1086,
+      "mean_ms": 3.6429825046039963,
+      "p95_ms": 4.2391999999999825,
+      "max_ms": 5.188800000000128
+    },
+    "waits": {
+      "count": 181,
+      "mean_ms": 40.29515635359114,
+      "p95_ms": 44.29820000000109,
+      "max_ms": 45.36069999999927
+    },
+    "management": {
+      "PMLog_Create": {
+        "timing": {
+          "count": 181,
+          "mean_ms": 1.0171198895027944,
+          "p95_ms": 2.974500000000262,
+          "max_ms": 3.4010999999991327
+        },
+        "results": {
+          "0": 181
+        }
+      },
+      "KeepAwake_Start": {
+        "timing": {
+          "count": 181,
+          "mean_ms": 0.09414640883984532,
+          "p95_ms": 0.1559000000000026,
+          "max_ms": 0.2628999999997177
+        },
+        "results": {
+          "-1": 181
+        }
+      },
+      "PMLog_Destroy": {
+        "timing": {
+          "count": 181,
+          "mean_ms": 0.25247734806637995,
+          "p95_ms": 0.31569999999999254,
+          "max_ms": 1.5210000000006403
+        },
+        "results": {
+          "0": 181
+        }
+      }
+    },
+    "invalid_exchanges": [],
+    "unfinished_exchange_ids": [],
+    "visual_status": "Requires separate human confirmation; ACKs do not prove smooth LED output."
+  },
+  {
+    "trace": "tests\\RX7900Reference\\direct-cadence-20261026\\native-2fps-30s.jsonl",
+    "configuration": {
+      "event": "start",
+      "target_fps": 2.0,
+      "seconds": 30.0,
+      "adapter": 5,
+      "bus": 3,
+      "device": 0,
+      "function": 0,
+      "sequence": "static-mode-apply",
+      "wait_ms": 30,
+      "unix_ms": 1793015541140
+    },
+    "complete": {
+      "event": "complete",
+      "frames": 59,
+      "elapsed_ms": 30308.1712
+    },
+    "effective_fps": 1.9466697482558764,
+    "animation_messages_per_second": 5.840009244767629,
+    "frames": {
+      "count": 59,
+      "mean_ms": 191.47363050847457,
+      "p95_ms": 194.21769999999742,
+      "max_ms": 194.48559999999998
+    },
+    "frame_start_intervals": {
+      "count": 58,
+      "mean_ms": 513.75025,
+      "p95_ms": 517.2687000000001,
+      "max_ms": 517.6876000000011
+    },
+    "exchanges": {
+      "count": 181,
+      "mean_ms": 63.7355591160221,
+      "p95_ms": 67.8829,
+      "max_ms": 69.0106
+    },
+    "transfers": {
+      "count": 1086,
+      "mean_ms": 3.643924309392227,
+      "p95_ms": 4.285900000002584,
+      "max_ms": 5.111899999999878
+    },
+    "waits": {
+      "count": 181,
+      "mean_ms": 40.53121712707173,
+      "p95_ms": 44.28839999999991,
+      "max_ms": 44.839899999999034
+    },
+    "management": {
+      "PMLog_Create": {
+        "timing": {
+          "count": 181,
+          "mean_ms": 0.8962331491712227,
+          "p95_ms": 2.9707999999991443,
+          "max_ms": 3.59860000000117
+        },
+        "results": {
+          "0": 181
+        }
+      },
+      "KeepAwake_Start": {
+        "timing": {
+          "count": 181,
+          "mean_ms": 0.08668232044197755,
+          "p95_ms": 0.1500000000014552,
+          "max_ms": 0.1859999999996944
+        },
+        "results": {
+          "-1": 181
+        }
+      },
+      "PMLog_Destroy": {
+        "timing": {
+          "count": 181,
+          "mean_ms": 0.24714585635370517,
+          "p95_ms": 0.30730000000016844,
+          "max_ms": 0.6615000000001601
+        },
+        "results": {
+          "0": 181
+        }
+      }
+    },
+    "invalid_exchanges": [],
+    "unfinished_exchange_ids": [],
+    "visual_status": "Requires separate human confirmation; ACKs do not prove smooth LED output."
+  },
+  {
+    "trace": "tests\\RX7900Reference\\direct-cadence-20261026\\native-4fps-30s.jsonl",
+    "configuration": {
+      "event": "start",
+      "target_fps": 4.0,
+      "seconds": 30.0,
+      "adapter": 5,
+      "bus": 3,
+      "device": 0,
+      "function": 0,
+      "sequence": "static-mode-apply",
+      "wait_ms": 30,
+      "unix_ms": 1793016270432
+    },
+    "complete": {
+      "event": "complete",
+      "frames": 114,
+      "elapsed_ms": 30150.7346
+    },
+    "effective_fps": 3.781002403835295,
+    "animation_messages_per_second": 11.343007211505885,
+    "frames": {
+      "count": 114,
+      "mean_ms": 191.18910263157886,
+      "p95_ms": 193.1792000000023,
+      "max_ms": 193.87059999999838
+    },
+    "frame_start_intervals": {
+      "count": 113,
+      "mean_ms": 264.5038460176991,
+      "p95_ms": 266.90369999999893,
+      "max_ms": 267.9256
+    },
+    "exchanges": {
+      "count": 346,
+      "mean_ms": 63.684215317919076,
+      "p95_ms": 67.8207,
+      "max_ms": 68.564
+    },
+    "transfers": {
+      "count": 2076,
+      "mean_ms": 3.6362878131020997,
+      "p95_ms": 4.249100000000908,
+      "max_ms": 5.031699999999546
+    },
+    "waits": {
+      "count": 346,
+      "mean_ms": 40.73073786127175,
+      "p95_ms": 44.73099999999977,
+      "max_ms": 45.625599999999395
+    },
+    "management": {
+      "PMLog_Create": {
+        "timing": {
+          "count": 346,
+          "mean_ms": 0.6923421965318186,
+          "p95_ms": 0.9302999999999884,
+          "max_ms": 3.2916000000004715
+        },
+        "results": {
+          "0": 346
+        }
+      },
+      "KeepAwake_Start": {
+        "timing": {
+          "count": 346,
+          "mean_ms": 0.08908728323700503,
+          "p95_ms": 0.16969999999946594,
+          "max_ms": 0.2429999999985739
+        },
+        "results": {
+          "-1": 346
+        }
+      },
+      "PMLog_Destroy": {
+        "timing": {
+          "count": 346,
+          "mean_ms": 0.24622890173426099,
+          "p95_ms": 0.3114000000005035,
+          "max_ms": 0.6492999999973108
+        },
+        "results": {
+          "0": 346
+        }
+      }
+    },
+    "invalid_exchanges": [],
+    "unfinished_exchange_ids": [],
+    "visual_status": "Requires separate human confirmation; ACKs do not prove smooth LED output."
+  },
+  {
+    "trace": "tests\\RX7900Reference\\direct-cadence-20261026\\native-6fps-30s.jsonl",
+    "configuration": {
+      "event": "start",
+      "target_fps": 6.0,
+      "seconds": 30.0,
+      "adapter": 5,
+      "bus": 3,
+      "device": 0,
+      "function": 0,
+      "sequence": "static-mode-apply",
+      "wait_ms": 30,
+      "unix_ms": 1793016321104
+    },
+    "complete": {
+      "event": "complete",
+      "frames": 161,
+      "elapsed_ms": 30053.3938
+    },
+    "effective_fps": 5.357132078707197,
+    "animation_messages_per_second": 16.07139623612159,
+    "frames": {
+      "count": 161,
+      "mean_ms": 181.41632919254653,
+      "p95_ms": 183.27019999999902,
+      "max_ms": 184.5595000000003
+    },
+    "frame_start_intervals": {
+      "count": 160,
+      "mean_ms": 186.676608125,
+      "p95_ms": 188.56159999999727,
+      "max_ms": 190.23180000000139
+    },
+    "exchanges": {
+      "count": 487,
+      "mean_ms": 60.45370020533881,
+      "p95_ms": 62.8318,
+      "max_ms": 66.6477
+    },
+    "transfers": {
+      "count": 2922,
+      "mean_ms": 3.628931759069156,
+      "p95_ms": 4.22609999999986,
+      "max_ms": 5.37119999999959
+    },
+    "waits": {
+      "count": 487,
+      "mean_ms": 37.63490554414789,
+      "p95_ms": 40.40179999999964,
+      "max_ms": 42.08250000000044
+    },
+    "management": {
+      "PMLog_Create": {
+        "timing": {
+          "count": 487,
+          "mean_ms": 0.6131236139631027,
+          "p95_ms": 0.8720000000002983,
+          "max_ms": 3.118699999999997
+        },
+        "results": {
+          "0": 487
+        }
+      },
+      "KeepAwake_Start": {
+        "timing": {
+          "count": 487,
+          "mean_ms": 0.08445133470230846,
+          "p95_ms": 0.14659999999639695,
+          "max_ms": 0.3405000000002474
+        },
+        "results": {
+          "-1": 487
+        }
+      },
+      "PMLog_Destroy": {
+        "timing": {
+          "count": 487,
+          "mean_ms": 0.24455277207398884,
+          "p95_ms": 0.30019999999967695,
+          "max_ms": 0.6345000000001164
+        },
+        "results": {
+          "0": 487
+        }
+      }
+    },
+    "invalid_exchanges": [],
+    "unfinished_exchange_ids": [],
+    "visual_status": "Requires separate human confirmation; ACKs do not prove smooth LED output."
+  },
+  {
+    "trace": "tests\\RX7900Reference\\direct-cadence-20261026\\native-8fps-30s.jsonl",
+    "configuration": {
+      "event": "start",
+      "target_fps": 8.0,
+      "seconds": 30.0,
+      "adapter": 5,
+      "bus": 3,
+      "device": 0,
+      "function": 0,
+      "sequence": "static-mode-apply",
+      "wait_ms": 30,
+      "unix_ms": 1793016376705
+    },
+    "complete": {
+      "event": "complete",
+      "frames": 161,
+      "elapsed_ms": 30040.8225
+    },
+    "effective_fps": 5.3593738986341,
+    "animation_messages_per_second": 16.0781216959023,
+    "frames": {
+      "count": 161,
+      "mean_ms": 181.32591863354037,
+      "p95_ms": 183.1794000000009,
+      "max_ms": 184.3810999999987
+    },
+    "frame_start_intervals": {
+      "count": 160,
+      "mean_ms": 186.59558125,
+      "p95_ms": 188.51220000000012,
+      "max_ms": 189.61940000000322
+    },
+    "exchanges": {
+      "count": 487,
+      "mean_ms": 60.418088501026695,
+      "p95_ms": 62.8922,
+      "max_ms": 64.0735
+    },
+    "transfers": {
+      "count": 2922,
+      "mean_ms": 3.638068925393529,
+      "p95_ms": 4.2336999999997715,
+      "max_ms": 5.249700000000303
+    },
+    "waits": {
+      "count": 487,
+      "mean_ms": 37.55111314168388,
+      "p95_ms": 40.498999999999796,
+      "max_ms": 41.26389999999992
+    },
+    "management": {
+      "PMLog_Create": {
+        "timing": {
+          "count": 487,
+          "mean_ms": 0.6082919917864097,
+          "p95_ms": 0.8431999999993423,
+          "max_ms": 3.265899999999995
+        },
+        "results": {
+          "0": 487
+        }
+      },
+      "KeepAwake_Start": {
+        "timing": {
+          "count": 487,
+          "mean_ms": 0.08442854209452322,
+          "p95_ms": 0.14509999999972933,
+          "max_ms": 0.3926000000001295
+        },
+        "results": {
+          "-1": 487
+        }
+      },
+      "PMLog_Destroy": {
+        "timing": {
+          "count": 487,
+          "mean_ms": 0.24069917864479642,
+          "p95_ms": 0.30320000000006075,
+          "max_ms": 0.7698999999997795
+        },
+        "results": {
+          "0": 487
+        }
+      }
+    },
+    "invalid_exchanges": [],
+    "unfinished_exchange_ids": [],
+    "visual_status": "Requires separate human confirmation; ACKs do not prove smooth LED output."
+  },
+  {
+    "trace": "tests\\RX7900Reference\\direct-cadence-20261026\\native-mode-once-10fps-30s.jsonl",
+    "configuration": {
+      "event": "start",
+      "target_fps": 10.0,
+      "seconds": 30.0,
+      "adapter": 5,
+      "bus": 3,
+      "device": 0,
+      "function": 0,
+      "sequence": "static-apply-mode-selected-once",
+      "wait_ms": 30,
+      "unix_ms": 1793016763989
+    },
+    "complete": {
+      "event": "complete",
+      "frames": 242,
+      "elapsed_ms": 30102.3779
+    },
+    "effective_fps": 8.039232010305737,
+    "animation_messages_per_second": 16.078464020611474,
+    "frames": {
+      "count": 242,
+      "mean_ms": 119.06629793388424,
+      "p95_ms": 120.41699999999946,
+      "max_ms": 121.6298999999999
+    },
+    "frame_start_intervals": {
+      "count": 241,
+      "mean_ms": 124.39008755186721,
+      "p95_ms": 125.78590000000077,
+      "max_ms": 127.1472999999969
+    },
+    "exchanges": {
+      "count": 490,
+      "mean_ms": 59.52735163265306,
+      "p95_ms": 62.8371,
+      "max_ms": 67.1752
+    },
+    "transfers": {
+      "count": 2940,
+      "mean_ms": 3.6253455442176787,
+      "p95_ms": 4.2321999999985565,
+      "max_ms": 5.421099999999569
+    },
+    "waits": {
+      "count": 490,
+      "mean_ms": 36.748429387755124,
+      "p95_ms": 40.402900000000955,
+      "max_ms": 41.31680000000006
+    },
+    "management": {
+      "PMLog_Create": {
+        "timing": {
+          "count": 490,
+          "mean_ms": 0.6087357142856905,
+          "p95_ms": 0.8293999999999642,
+          "max_ms": 3.328400000000002
+        },
+        "results": {
+          "0": 490
+        }
+      },
+      "KeepAwake_Start": {
+        "timing": {
+          "count": 490,
+          "mean_ms": 0.07239448979597414,
+          "p95_ms": 0.12120000000140863,
+          "max_ms": 0.1967000000004191
+        },
+        "results": {
+          "-1": 490
+        }
+      },
+      "PMLog_Destroy": {
+        "timing": {
+          "count": 490,
+          "mean_ms": 0.2393287755102248,
+          "p95_ms": 0.30270000000018626,
+          "max_ms": 0.6488000000008469
+        },
+        "results": {
+          "0": 490
+        }
+      }
+    },
+    "invalid_exchanges": [],
+    "unfinished_exchange_ids": [],
+    "visual_status": "Requires separate human confirmation; ACKs do not prove smooth LED output."
+  },
+  {
+    "trace": "tests\\RX7900Reference\\direct-cadence-20261026\\native-mode-once-2fps-30s.jsonl",
+    "configuration": {
+      "event": "start",
+      "target_fps": 2.0,
+      "seconds": 30.0,
+      "adapter": 5,
+      "bus": 3,
+      "device": 0,
+      "function": 0,
+      "sequence": "static-apply-mode-selected-once",
+      "wait_ms": 30,
+      "unix_ms": 1793016573741
+    },
+    "complete": {
+      "event": "complete",
+      "frames": 59,
+      "elapsed_ms": 30267.8638
+    },
+    "effective_fps": 1.9492621081504933,
+    "animation_messages_per_second": 3.8985242163009866,
+    "frames": {
+      "count": 59,
+      "mean_ms": 128.69640847457617,
+      "p95_ms": 130.30010000000038,
+      "max_ms": 130.6776000000027
+    },
+    "frame_start_intervals": {
+      "count": 58,
+      "mean_ms": 513.0655620689655,
+      "p95_ms": 516.0838999999996,
+      "max_ms": 519.5790999999999
+    },
+    "exchanges": {
+      "count": 124,
+      "mean_ms": 64.13572983870968,
+      "p95_ms": 67.8611,
+      "max_ms": 68.4918
+    },
+    "transfers": {
+      "count": 744,
+      "mean_ms": 3.636211290322574,
+      "p95_ms": 4.349799999999959,
+      "max_ms": 5.044699999999466
+    },
+    "waits": {
+      "count": 124,
+      "mean_ms": 40.67271129032228,
+      "p95_ms": 44.44789999999921,
+      "max_ms": 45.31919999999991
+    },
+    "management": {
+      "PMLog_Create": {
+        "timing": {
+          "count": 124,
+          "mean_ms": 1.1909741935482354,
+          "p95_ms": 3.1312999999972817,
+          "max_ms": 4.34519999999975
+        },
+        "results": {
+          "0": 124
+        }
+      },
+      "KeepAwake_Start": {
+        "timing": {
+          "count": 124,
+          "mean_ms": 0.09259435483867802,
+          "p95_ms": 0.14760000000023865,
+          "max_ms": 0.1916999999998552
+        },
+        "results": {
+          "-1": 124
+        }
+      },
+      "PMLog_Destroy": {
+        "timing": {
+          "count": 124,
+          "mean_ms": 0.24668064516116214,
+          "p95_ms": 0.30199999999967986,
+          "max_ms": 0.6386999999995169
+        },
+        "results": {
+          "0": 124
+        }
+      }
+    },
+    "invalid_exchanges": [],
+    "unfinished_exchange_ids": [],
+    "visual_status": "Requires separate human confirmation; ACKs do not prove smooth LED output."
+  },
+  {
+    "trace": "tests\\RX7900Reference\\direct-cadence-20261026\\native-mode-once-6fps-30s.jsonl",
+    "configuration": {
+      "event": "start",
+      "target_fps": 6.0,
+      "seconds": 30.0,
+      "adapter": 5,
+      "bus": 3,
+      "device": 0,
+      "function": 0,
+      "sequence": "static-apply-mode-selected-once",
+      "wait_ms": 30,
+      "unix_ms": 1793016643479
+    },
+    "complete": {
+      "event": "complete",
+      "frames": 162,
+      "elapsed_ms": 30070.8832
+    },
+    "effective_fps": 5.387271099506648,
+    "animation_messages_per_second": 10.774542199013297,
+    "frames": {
+      "count": 162,
+      "mean_ms": 128.7261339506173,
+      "p95_ms": 130.77170000000115,
+      "max_ms": 131.63810000000012
+    },
+    "frame_start_intervals": {
+      "count": 161,
+      "mean_ms": 185.6136,
+      "p95_ms": 188.370600000002,
+      "max_ms": 189.41079999999965
+    },
+    "exchanges": {
+      "count": 330,
+      "mean_ms": 64.28994909090909,
+      "p95_ms": 67.9688,
+      "max_ms": 68.7725
+    },
+    "transfers": {
+      "count": 1980,
+      "mean_ms": 3.6423293939393586,
+      "p95_ms": 4.349099999999453,
+      "max_ms": 5.282999999999447
+    },
+    "waits": {
+      "count": 330,
+      "mean_ms": 41.27821969696962,
+      "p95_ms": 44.76300000000083,
+      "max_ms": 45.62540000000081
+    },
+    "management": {
+      "PMLog_Create": {
+        "timing": {
+          "count": 330,
+          "mean_ms": 0.7156072727273324,
+          "p95_ms": 0.9681999999993423,
+          "max_ms": 3.504700000000412
+        },
+        "results": {
+          "0": 330
+        }
+      },
+      "KeepAwake_Start": {
+        "timing": {
+          "count": 330,
+          "mean_ms": 0.07830787878788656,
+          "p95_ms": 0.15049999999973807,
+          "max_ms": 0.247799999999188
+        },
+        "results": {
+          "-1": 330
+        }
+      },
+      "PMLog_Destroy": {
+        "timing": {
+          "count": 330,
+          "mean_ms": 0.24373909090914295,
+          "p95_ms": 0.3114999999997963,
+          "max_ms": 0.6821000000018103
+        },
+        "results": {
+          "0": 330
+        }
+      }
+    },
+    "invalid_exchanges": [],
+    "unfinished_exchange_ids": [],
+    "visual_status": "Requires separate human confirmation; ACKs do not prove smooth LED output."
+  },
+  {
+    "trace": "tests\\RX7900Reference\\direct-cadence-20261026\\native-mode-once-7fps-300s.jsonl",
+    "configuration": {
+      "event": "start",
+      "target_fps": 7.0,
+      "seconds": 300.0,
+      "adapter": 5,
+      "bus": 3,
+      "device": 0,
+      "function": 0,
+      "sequence": "static-apply-mode-selected-once",
+      "wait_ms": 30,
+      "unix_ms": 1793016830447
+    },
+    "complete": {
+      "event": "complete",
+      "frames": 1930,
+      "elapsed_ms": 300064.377
+    },
+    "effective_fps": 6.431953100517494,
+    "animation_messages_per_second": 12.863906201034988,
+    "frames": {
+      "count": 1930,
+      "mean_ms": 128.9508952331604,
+      "p95_ms": 130.74629999999888,
+      "max_ms": 131.99030000000494
+    },
+    "frame_start_intervals": {
+      "count": 1929,
+      "mean_ms": 155.47369896319339,
+      "p95_ms": 157.28759999999602,
+      "max_ms": 161.94259999999997
+    },
+    "exchanges": {
+      "count": 3866,
+      "mean_ms": 64.43179280910502,
+      "p95_ms": 67.8528,
+      "max_ms": 69.7214
+    },
+    "transfers": {
+      "count": 23196,
+      "mean_ms": 3.640697197792751,
+      "p95_ms": 4.296200000011595,
+      "max_ms": 5.3708000000042375
+    },
+    "waits": {
+      "count": 3866,
+      "mean_ms": 41.47919418003103,
+      "p95_ms": 44.873600000000806,
+      "max_ms": 45.97349999999278
+    },
+    "management": {
+      "PMLog_Create": {
+        "timing": {
+          "count": 3866,
+          "mean_ms": 0.6715008018625294,
+          "p95_ms": 0.8996000000042841,
+          "max_ms": 3.710900000005495
+        },
+        "results": {
+          "0": 3866
+        }
+      },
+      "KeepAwake_Start": {
+        "timing": {
+          "count": 3866,
+          "mean_ms": 0.07706171753736077,
+          "p95_ms": 0.13430000000516884,
+          "max_ms": 0.4032999999981257
+        },
+        "results": {
+          "-1": 3866
+        }
+      },
+      "PMLog_Destroy": {
+        "timing": {
+          "count": 3866,
+          "mean_ms": 0.2450596223486031,
+          "p95_ms": 0.3032999999995809,
+          "max_ms": 0.896100000012666
+        },
+        "results": {
+          "0": 3866
+        }
+      }
+    },
+    "invalid_exchanges": [],
+    "unfinished_exchange_ids": [],
+    "visual_status": "Requires separate human confirmation; ACKs do not prove smooth LED output."
+  },
+  {
+    "trace": "tests\\RX7900Reference\\direct-cadence-20261026\\native-mode-once-8fps-30s.jsonl",
+    "configuration": {
+      "event": "start",
+      "target_fps": 8.0,
+      "seconds": 30.0,
+      "adapter": 5,
+      "bus": 3,
+      "device": 0,
+      "function": 0,
+      "sequence": "static-apply-mode-selected-once",
+      "wait_ms": 30,
+      "unix_ms": 1793016704229
+    },
+    "complete": {
+      "event": "complete",
+      "frames": 216,
+      "elapsed_ms": 30040.723
+    },
+    "effective_fps": 7.19023972891731,
+    "animation_messages_per_second": 14.38047945783462,
+    "frames": {
+      "count": 216,
+      "mean_ms": 124.04231990740746,
+      "p95_ms": 130.62950000000092,
+      "max_ms": 131.31890000000203
+    },
+    "frame_start_intervals": {
+      "count": 215,
+      "mean_ms": 139.05064279069768,
+      "p95_ms": 146.34549999999945,
+      "max_ms": 146.92209999999977
+    },
+    "exchanges": {
+      "count": 438,
+      "mean_ms": 61.966861643835614,
+      "p95_ms": 67.4416,
+      "max_ms": 68.5525
+    },
+    "transfers": {
+      "count": 2628,
+      "mean_ms": 3.6339986301370035,
+      "p95_ms": 4.285299999999552,
+      "max_ms": 5.099200000000565
+    },
+    "waits": {
+      "count": 438,
+      "mean_ms": 39.09784063926948,
+      "p95_ms": 44.542199999999866,
+      "max_ms": 45.63330000000133
+    },
+    "management": {
+      "PMLog_Create": {
+        "timing": {
+          "count": 438,
+          "mean_ms": 0.6378303652968964,
+          "p95_ms": 0.8522000000002663,
+          "max_ms": 3.501400000001013
+        },
+        "results": {
+          "0": 438
+        }
+      },
+      "KeepAwake_Start": {
+        "timing": {
+          "count": 438,
+          "mean_ms": 0.07803835616435645,
+          "p95_ms": 0.14619999999922584,
+          "max_ms": 0.302599999999984
+        },
+        "results": {
+          "-1": 438
+        }
+      },
+      "PMLog_Destroy": {
+        "timing": {
+          "count": 438,
+          "mean_ms": 0.23735114155254772,
+          "p95_ms": 0.299300000000585,
+          "max_ms": 0.3390999999974156
+        },
+        "results": {
+          "0": 438
+        }
+      }
+    },
+    "invalid_exchanges": [],
+    "unfinished_exchange_ids": [],
+    "visual_status": "Requires separate human confirmation; ACKs do not prove smooth LED output."
+  }
+]

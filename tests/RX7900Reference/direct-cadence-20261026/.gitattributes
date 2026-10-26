@@ -1,0 +1,7 @@
+# Keep evidence hashes unchanged between Windows and other checkouts.
+*.json -text whitespace=cr-at-eol
+*.jsonl -text whitespace=cr-at-eol
+*.request -text whitespace=cr-at-eol
+.gitattributes -text whitespace=cr-at-eol
+.gitignore -text whitespace=cr-at-eol
+*.gz binary
