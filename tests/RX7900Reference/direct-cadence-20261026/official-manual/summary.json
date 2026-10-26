@@ -1,0 +1,23 @@
+{
+  "messages": 0,
+  "canonical_messages": 0,
+  "messages_by_api": {},
+  "counting_note": "This driver forwards legacy SMU calls through ADL2; canonical intervals count only the legacy observation when both exist for a PID.",
+  "adl_calls": 0,
+  "unassembled": 0,
+  "return_codes": {},
+  "failed_calls_by_adapter": {},
+  "capture_error_scope": "Only errors serialized into JSONL. Host callback stderr exceptions are documented separately in capture-notes.json.",
+  "capture_errors": [],
+  "intervals": [
+    {
+      "marker": "manual-static-request",
+      "note": "Chroma unavailable. Requested static RGB sequence and gentle slider drag; awaiting visual response.",
+      "start": "2026-10-26T11:15:50.134291+00:00",
+      "end": "2026-10-26T11:16:20.822531+00:00",
+      "messages": 0,
+      "opcodes": {},
+      "configuration_prefixes": []
+    }
+  ]
+}

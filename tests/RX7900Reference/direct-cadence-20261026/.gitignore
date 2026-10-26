@@ -1,0 +1,3 @@
+# Full long-trial traces are committed as lossless .jsonl.gz archives.
+native-*-300s.jsonl
+native-*-1800s.jsonl

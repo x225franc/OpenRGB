@@ -1,0 +1,150 @@
+{
+  "messages": 458,
+  "canonical_messages": 229,
+  "messages_by_api": {
+    "ADL_Display_WriteAndReadSMUI2C": 229,
+    "ADL2_Display_WriteAndReadSMUI2C": 229
+  },
+  "counting_note": "This driver forwards legacy SMU calls through ADL2; canonical intervals count only the legacy observation when both exist for a PID.",
+  "adl_calls": 2748,
+  "unassembled": 0,
+  "return_codes": {
+    "0": 2748
+  },
+  "failed_calls_by_adapter": {},
+  "capture_error_scope": "Only errors serialized into JSONL. Host callback stderr exceptions are documented separately in capture-notes.json.",
+  "capture_errors": [],
+  "intervals": [
+    {
+      "marker": "dpi-corrected-red",
+      "note": "Physical mouse input with DPI awareness, selecting red and Apply.",
+      "start": "2026-10-26T11:49:52.126374+00:00",
+      "end": "2026-10-26T11:51:22.982241+00:00",
+      "messages": 76,
+      "opcodes": {
+        "51 2C": 24,
+        "51 A0": 12,
+        "51 28": 18,
+        "41 03": 1,
+        "51 96": 6,
+        "51 94": 1,
+        "51 73": 8,
+        "50 55": 1,
+        "41 80": 5
+      },
+      "configuration_prefixes": [
+        "51 2C 01 00 00 FF 00 FF FF 33 CC 00 CC 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF 66 CC 00 CC 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF 99 CC 00 CC 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF CC CC 00 CC 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF CC 00 CC 00 00 00",
+        "51 2C 01 00 01 31 20 03 FF FF FF 00 00 00 00 00",
+        "51 2C 01 00 02 6E 00 FF FF 10 FF FF FF 00 00 00",
+        "51 2C 01 00 05 31 20 03 FF 99 FF FF FF 00 00 00",
+        "51 2C 01 00 05 6E 00 02 FF 40 FF FF FF 00 00 00",
+        "51 2C 01 00 05 FF 00 00 FF FF 00 00 00 00 00 00",
+        "51 2C 01 00 05 FF 00 01 FF 99 FF FF FF 00 00 00",
+        "51 2C 01 00 06 31 20 03 FF 99 FF FF FF 00 00 00",
+        "51 2C 01 00 06 6E 00 02 FF 40 FF FF FF 00 00 00",
+        "51 2C 01 00 06 FF 00 00 FF FF 00 00 00 00 00 00",
+        "51 2C 01 00 06 FF 00 01 FF 99 FF FF FF 00 00 00",
+        "51 2C 01 00 0B 6B 00 05 FF 99 C5 19 19 00 00 00"
+      ]
+    },
+    {
+      "marker": "static-red",
+      "note": "Automated official UI input; no Apply button",
+      "start": "2026-10-26T11:51:22.982241+00:00",
+      "end": "2026-10-26T11:51:28.029125+00:00",
+      "messages": 3,
+      "opcodes": {
+        "51 2C": 1,
+        "51 A0": 1,
+        "51 28": 1
+      },
+      "configuration_prefixes": [
+        "51 2C 01 00 00 FF 00 FF FF FF FF 00 00 00 00 00"
+      ]
+    },
+    {
+      "marker": "static-green",
+      "note": "Automated official UI input; no Apply button",
+      "start": "2026-10-26T11:51:28.029125+00:00",
+      "end": "2026-10-26T11:51:32.914831+00:00",
+      "messages": 3,
+      "opcodes": {
+        "51 2C": 1,
+        "51 A0": 1,
+        "51 28": 1
+      },
+      "configuration_prefixes": [
+        "51 2C 01 00 00 FF 00 FF FF FF 00 FF 00 00 00 00"
+      ]
+    },
+    {
+      "marker": "static-blue",
+      "note": "Automated official UI input; no Apply button",
+      "start": "2026-10-26T11:51:32.914831+00:00",
+      "end": "2026-10-26T11:51:37.804252+00:00",
+      "messages": 3,
+      "opcodes": {
+        "51 2C": 1,
+        "51 A0": 1,
+        "51 28": 1
+      },
+      "configuration_prefixes": [
+        "51 2C 01 00 00 FF 00 FF FF FF 00 00 FF 00 00 00"
+      ]
+    },
+    {
+      "marker": "static-slider",
+      "note": "Automated official UI input; no Apply button",
+      "start": "2026-10-26T11:51:37.804252+00:00",
+      "end": "2026-10-26T11:51:47.901885+00:00",
+      "messages": 69,
+      "opcodes": {
+        "51 2C": 23,
+        "51 A0": 23,
+        "51 28": 23
+      },
+      "configuration_prefixes": [
+        "51 2C 01 00 00 FF 00 FF FF FF 0D 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF 14 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF 21 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF 2E 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF 3A 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF 40 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF 4E 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF 5B 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF 60 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF 6D 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF 79 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF 80 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF 8D 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF 9A 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF A7 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF B4 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF C1 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF C8 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF D4 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF E1 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF ED 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF F3 00 FF 00 00 00",
+        "51 2C 01 00 00 FF 00 FF FF FF FA 00 FF 00 00 00"
+      ]
+    },
+    {
+      "marker": "ui-complete",
+      "note": "Automated colors and slider completed. Hardware visibility unconfirmed.",
+      "start": "2026-10-26T11:51:47.901885+00:00",
+      "end": "2026-10-26T11:52:06.861235+00:00",
+      "messages": 3,
+      "opcodes": {
+        "41 03": 1,
+        "50 00": 1,
+        "41 00": 1
+      },
+      "configuration_prefixes": []
+    }
+  ]
+}

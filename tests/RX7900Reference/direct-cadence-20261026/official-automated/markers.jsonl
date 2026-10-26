@@ -1,0 +1,6 @@
+{"utc": "2026-10-26T11:49:52.126374+00:00", "marker": "dpi-corrected-red", "note": "Physical mouse input with DPI awareness, selecting red and Apply."}
+{"utc": "2026-10-26T11:51:22.982241+00:00", "marker": "static-red", "note": "Automated official UI input; no Apply button"}
+{"utc": "2026-10-26T11:51:28.029125+00:00", "marker": "static-green", "note": "Automated official UI input; no Apply button"}
+{"utc": "2026-10-26T11:51:32.914831+00:00", "marker": "static-blue", "note": "Automated official UI input; no Apply button"}
+{"utc": "2026-10-26T11:51:37.804252+00:00", "marker": "static-slider", "note": "Automated official UI input; no Apply button"}
+{"utc": "2026-10-26T11:51:47.901885+00:00", "marker": "ui-complete", "note": "Automated colors and slider completed. Hardware visibility unconfirmed."}

@@ -1,0 +1,28 @@
+[
+  {
+    "trace": "native-2fps-30s.jsonl",
+    "status": "not-observed",
+    "user_statement": "j'etais pas la je n'ai rien vu , peut tu refaire ?"
+  },
+  {
+    "trace": "native-2fps-30s-repeat.jsonl",
+    "status": "visible-changes-pc-normal",
+    "user_statement": "Oui, changements visibles et PC normal",
+    "scope": "No physical LED cadence measurement; subjective observation only."
+  },
+  {
+    "trace": "native-4fps-30s.jsonl",
+    "status": "regular-changes-pc-normal",
+    "user_statement": "Oui, changements réguliers et PC normal",
+    "scope": "Subjective observation; not a physical refresh-rate measurement."
+  },
+  {"trace":"native-6fps-30s.jsonl","status":"regular-changes-pc-normal","user_statement":"Oui, changements réguliers et PC normal"},
+  {"trace":"native-8fps-30s.jsonl","status":"regular-changes-pc-normal","user_statement":"Oui, changements réguliers et PC normal"},
+  {"trace":"native-10fps-30s.jsonl","status":"not-observed","user_statement":"refait le pour voir , je suivais pas"},
+  {"trace":"native-10fps-30s-repeat.jsonl","status":"regular-changes-pc-normal","user_statement":"Oui, changements réguliers et PC normal"},
+  {"trace":"native-mode-once-2fps-30s.jsonl","status":"visible-changes-pc-normal","user_statement":"Oui, changements visibles et PC normal"},
+  {"trace":"native-mode-once-6fps-30s.jsonl","status":"regular-changes-pc-normal","user_statement":"Oui, changements réguliers et PC normal"},
+  {"trace":"native-mode-once-8fps-30s.jsonl","status":"regular-changes-pc-normal","user_statement":"Oui, changements réguliers et PC normal"},
+  {"trace":"native-mode-once-10fps-30s.jsonl","status":"regular-changes-pc-normal","user_statement":"Oui, changements réguliers et PC normal"},
+  {"trace":"native-mode-once-7fps-300s.jsonl","status":"regular-colors-pc-normal","user_statement":"Oui, couleurs régulières et PC normal","endurance_scope":"Five minutes only; owner explicitly cancelled 30-minute trial."}
+]
