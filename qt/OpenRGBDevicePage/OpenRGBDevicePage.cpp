@@ -1544,6 +1544,14 @@ void OpenRGBDevicePage::UpdateModeUi()
     bool    manual_save             = flags & MODE_FLAG_MANUAL_SAVE;
     bool    automatic_save          = flags & MODE_FLAG_AUTOMATIC_SAVE;
 
+    const bool radeon_direct_rate = device->GetVendor() == "AMD"
+        && device->GetLocation().rfind("AMD SMU I2C: ", 0) == 0
+        && !selected_zone_mode && device->GetModeName(selected_mode) == "Direct";
+    ui->SpeedLabel->setText(radeon_direct_rate ? tr("Update rate (FPS):") : tr("Speed:"));
+    ui->SpeedSlider->setToolTip(radeon_direct_rate
+        ? tr("Target GPU updates per second (1-10; recommended 7). Actual throughput depends on SMU transfer times; 10 is not guaranteed.")
+        : QString());
+
     if(supports_speed)
     {
         ui->SpeedSlider->blockSignals(true);

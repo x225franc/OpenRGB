@@ -3,11 +3,13 @@
 
 #include "RGBController.h"
 #include "RadeonReferenceProtocol.h"
+#include "RadeonReferenceOutput.h"
 #include <memory>
-#include <mutex>
 #include <chrono>
 
 class RadeonReferenceADL;
+class RadeonReferenceDeviceLock;
+class RadeonReferencePowerEvents;
 
 class RGBController_AMDRadeonReference : public RGBController
 {
@@ -22,15 +24,13 @@ public:
 
 private:
     void Update();
-    void ApplyState(RGBColor color,bool off,unsigned brightness);
-    void ApplyMessage(const RadeonReference::Message& message, uint8_t selection);
+    RadeonReference::SendResult SendFrame(const RadeonReference::Frame& frame, uint64_t epoch);
     std::shared_ptr<RadeonReferenceADL> adl;
     int adapter;
-    std::mutex io_mutex;
-    bool failed = false;
-    bool lighting_initialized = false;
-    bool have_previous = false;
-    uint8_t previous_selection = 0;
-    RadeonReference::Message previous{};
-    std::chrono::steady_clock::time_point last_update{};
+    std::unique_ptr<RadeonReference::OutputSession> output_session;
+    std::unique_ptr<RadeonReference::OutputWorker> output;
+    std::unique_ptr<RadeonReferenceDeviceLock> ownership;
+    std::unique_ptr<RadeonReferencePowerEvents> power_events;
+    uint64_t last_activity = 0;
+    std::chrono::steady_clock::time_point next_warning{};
 };

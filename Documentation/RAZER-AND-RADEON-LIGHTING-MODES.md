@@ -67,3 +67,17 @@ The GPU native-mode preview stays visible when LED preview is enabled. It is rea
 Direct remains capped at 4 updates/s until measured validation on the GPU PC. The current path also has three 30-ms read waits per frame plus transfer overhead. See tests/RX7900Reference/HANDOFF-DIRECT-CADENCE.md for a reproducible measurement mission. No certified maximum sustained hardware cadence is known.
 
 GPU profile loading now matches retained mode names after the list shrinks, keeping saved native colors/brightness and raw speed presets with the new inverted slider metadata. A removed software selection falls back to Static, never an unrelated mode at the same index. ADL diagnostic history is bounded to avoid accumulating memory during long Direct/Ambient sessions.
+
+## Direct cadence integration (supersedes the earlier 4/s limit)
+
+The external cadence campaign is included as tests/RX7900Reference/DIRECT-CADENCE-RESULTS.md. The requested 10/s short test achieved 8.039 effective updates/s, not 10 physical LED frames/s. The five-minute test at a target of 7/s achieved 6.432 effective updates/s. The user cancelled the thirty-minute test. These observations are not a certified hardware maximum or endurance rating.
+
+Direct now exposes an Update rate (FPS) slider in Devices: target 1-10/s, recommended/default 7. Values up to 10 reproduce the short-test target; actual throughput depends on the ADL round trips and scheduling. No read delay, framing, ACK validation, KeepAwake handling or explicit-save policy was relaxed.
+
+A dedicated serial worker handles all GPU output, while device callbacks only publish the latest desired state. There is one in-flight frame and one replaceable pending state, with no old-frame FIFO or catch-up burst. Unchanged colors are not resent. Native controls bypass the Direct cadence wait. A final submitted Static/Off/native control may complete on shutdown, but pending streaming frames are discarded; the worker is joined before releasing ADL resources.
+
+On entering Direct, Static is selected and applied once. Further Direct frames send only the captured Static-color message and Apply. Mode transitions, external ownership, long idle gaps and power resume invalidate this assumption. Native modes and Off retain full mode selection. A PCI named mutex is held by the output thread and released on that same thread. Output defers while RGB Tool or another owner is present. The first transfer/ACK failure permanently stops this controller's worker until rescan; resume does not clear a failure latch.
+
+Windows suspend/resume notifications pause and invalidate the output session; the latest desired scene is queued again on resume. The first frame reinitializes and reselects the mode. Hardware resume behavior still requires testing on the GPU PC. Existing Direct profiles that predate the rate field retain their brightness and receive the recommended target 7; newer profiles preserve their configured rate.
+
+The real OutputSession and OutputWorker are exercised without a GPU in tests/RX7900Reference/OutputTests.cpp: exact captured ordering, short subsequent frames, mode transitions, resume, failure at every initialization stage, latest-state replacement, nonblocking producers, cadence, Off priority, shutdown and profile migration. The full Windows binary must now be validated on the GPU PC with Ambient/Visual Map. No physical GPU test is claimed on the compilation PC.

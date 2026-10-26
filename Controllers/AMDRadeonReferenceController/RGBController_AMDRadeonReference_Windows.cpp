@@ -6,6 +6,8 @@
 #include "adl_sdk.h"
 #include <windows.h>
 #include <tlhelp32.h>
+#include <powrprof.h>
+#include <powerbase.h>
 #include <cstdlib>
 #include <cstring>
 #include <cwctype>
@@ -42,6 +44,43 @@ bool OfficialToolRunning()
 }
 }
 
+// Runtime-loaded Windows power notifications avoid a new linker dependency.
+class RadeonReferencePowerEvents
+{
+    using Register = DWORD (WINAPI*)(DWORD, HANDLE, PHPOWERNOTIFY);
+    using Unregister = DWORD (WINAPI*)(HPOWERNOTIFY);
+    HMODULE library = nullptr;
+    HPOWERNOTIFY notification = nullptr;
+    Unregister unregister = nullptr;
+    DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS recipient{};
+    static ULONG CALLBACK Notify(PVOID context, ULONG type, PVOID)
+    {
+        auto worker = static_cast<RadeonReference::OutputWorker*>(context);
+        if(type == PBT_APMSUSPEND) worker->Pause(true);
+        else if(type == PBT_APMRESUMEAUTOMATIC || type == PBT_APMRESUMESUSPEND) worker->Pause(false);
+        return ERROR_SUCCESS;
+    }
+public:
+    explicit RadeonReferencePowerEvents(RadeonReference::OutputWorker* worker)
+    {
+        library = LoadLibraryExW(L"powrprof.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        if(!library) return;
+        auto subscribe = reinterpret_cast<Register>(GetProcAddress(library, "PowerRegisterSuspendResumeNotification"));
+        unregister = reinterpret_cast<Unregister>(GetProcAddress(library, "PowerUnregisterSuspendResumeNotification"));
+        recipient = {Notify, worker};
+        if(!subscribe || !unregister || subscribe(DEVICE_NOTIFY_CALLBACK, &recipient, &notification) != ERROR_SUCCESS)
+        {
+            notification = nullptr;
+            LOG_WARNING("[AMD Radeon Reference] Power notification registration unavailable; idle-gap invalidation remains active.");
+        }
+    }
+    ~RadeonReferencePowerEvents()
+    {
+        if(notification && unregister) unregister(notification);
+        if(library) FreeLibrary(library);
+    }
+};
+
 /**------------------------------------------------------------------*\
     @name AMD Radeon RX 7900 XTX Reference
     @category GPU
@@ -77,7 +116,12 @@ RGBController_AMDRadeonReference::RGBController_AMDRadeonReference(std::shared_p
     off.value = 1;
     off.color_mode = MODE_COLORS_NONE;
     modes.push_back(off);
-    mode direct=static_mode;direct.name="Direct";direct.value=2;modes.push_back(direct);
+    mode direct = static_mode;
+    direct.name = "Direct";
+    direct.value = 2;
+    direct.flags |= MODE_FLAG_HAS_SPEED;
+    direct.speed_min = 1;direct.speed_max = 10;direct.speed = 7;
+    modes.push_back(direct);
     // Firmware effect values stay stable; profile migration matches modes by name.
     mode breathing{};
     breathing.name = "Breathing (hardware)";
@@ -103,11 +147,23 @@ RGBController_AMDRadeonReference::RGBController_AMDRadeonReference(std::shared_p
     cycle.colors_min = cycle.colors_max = 0;
     cycle.colors.clear();
     modes.push_back(cycle);
-    description += ". Native hardware effects; Direct/Ambient remains capped at 4 updates/s pending measured validation.";
+    description += ". Native hardware effects; Direct target 1-10 updates/s (default 7), actual rate depends on verified SMU exchanges.";
     SetupZones();
+    output_session = std::make_unique<RadeonReference::OutputSession>([this](const RadeonReference::Message& message, bool echo){
+        return adl->Exchange(adapter, message, echo);
+    });
+    output = std::make_unique<RadeonReference::OutputWorker>([this](const RadeonReference::Frame& frame, uint64_t epoch){
+        return SendFrame(frame, epoch);
+    }, [this]{ ownership.reset(); });
+    power_events = std::make_unique<RadeonReferencePowerEvents>(output.get());
 }
 
-RGBController_AMDRadeonReference::~RGBController_AMDRadeonReference() { Shutdown(); }
+RGBController_AMDRadeonReference::~RGBController_AMDRadeonReference()
+{
+    Shutdown();
+    power_events.reset();
+    if(output) output->Shutdown();
+}
 void RGBController_AMDRadeonReference::SetupZones()
 {
     zone global{};
@@ -129,61 +185,67 @@ void RGBController_AMDRadeonReference::Update()
 {
     if(colors.empty()||active_mode<0||static_cast<size_t>(active_mode)>=modes.size())return;
     const auto& selected=modes[active_mode];
+    RadeonReference::Frame frame;
+    frame.kind = selected.value;
+    frame.fps = selected.value == 2 ? std::clamp(selected.speed, 1u, 10u) : 7;
     if(selected.value == 5)
     {
         const auto color = selected.colors.empty() ? colors[0] : selected.colors[0];
-        ApplyMessage(RadeonReference::Breathing(RGBGetRValue(color), RGBGetGValue(color), RGBGetBValue(color),
-            selected.brightness, selected.speed, selected.color_mode == MODE_COLORS_RANDOM), 0x01);
+        frame.message = RadeonReference::Breathing(RGBGetRValue(color), RGBGetGValue(color), RGBGetBValue(color),
+            selected.brightness, selected.speed, selected.color_mode == MODE_COLORS_RANDOM);
+        frame.selection = 1;
     }
     else if(selected.value == 6)
-        ApplyMessage(RadeonReference::ColorCycle(selected.brightness, selected.speed), 0x02);
-    else ApplyState(colors[0],selected.value==1,selected.brightness);
+    {
+        frame.message = RadeonReference::ColorCycle(selected.brightness, selected.speed);
+        frame.selection = 2;
+    }
+    else
+    {
+        frame.message = RadeonReference::Static(RGBGetRValue(colors[0]), RGBGetGValue(colors[0]), RGBGetBValue(colors[0]), selected.brightness);
+        frame.selection = selected.value == 1 ? 0xFE : 0;
+    }
+    if(output) output->Submit(std::move(frame));
 }
-void RGBController_AMDRadeonReference::ApplyState(RGBColor color,bool off,unsigned brightness)
+
+RadeonReference::SendResult RGBController_AMDRadeonReference::SendFrame(const RadeonReference::Frame& frame, uint64_t epoch)
 {
-    ApplyMessage(RadeonReference::Static(RGBGetRValue(color),RGBGetGValue(color),RGBGetBValue(color),brightness), off ? 0xFE : 0x00);
-}
-void RGBController_AMDRadeonReference::ApplyMessage(const RadeonReference::Message& message, uint8_t selection)
-{
-    std::lock_guard<std::mutex> guard(io_mutex);
-    if(failed)return;
-    const bool off = selection == 0xFE;
-    if(have_previous && selection == previous_selection && (off || previous == message)) return;
+    // This function and the session cache belong exclusively to the output worker.
     if(OfficialToolRunning())
     {
-        LOG_WARNING("[AMD Radeon Reference] RGB Tool is running; close it before changing lighting.");
-        return;
+        output_session->Invalidate();ownership.reset();
+        if(std::chrono::steady_clock::now() >= next_warning)
+        {
+            LOG_WARNING("[AMD Radeon Reference] RGB Tool is running; output paused until it closes.");
+            next_warning = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+        }
+        return RadeonReference::SendResult::Deferred;
     }
-    RadeonReferenceDeviceLock device_lock(location);
-    if(!device_lock.Acquired())
+    if(!ownership)
     {
-        LOG_WARNING("[AMD Radeon Reference] Another OpenRGB instance owns this lighting controller.");
-        return;
+        ownership = std::make_unique<RadeonReferenceDeviceLock>(location);
+        if(!ownership->Acquired())
+        {
+            ownership.reset();output_session->Invalidate();
+            if(std::chrono::steady_clock::now() >= next_warning)
+            {
+                LOG_WARNING("[AMD Radeon Reference] Another process owns this lighting controller; output paused.");
+                next_warning = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+            }
+            return RadeonReference::SendResult::Deferred;
+        }
     }
-    // Reuse captured live-lighting frames. No explicit persistent-save command is sent;
-    // persistence of Apply itself across power loss has not been established.
-    const auto earliest = last_update + std::chrono::milliseconds(250);
-    if(std::chrono::steady_clock::now() < earliest) std::this_thread::sleep_until(earliest);
-    last_update = std::chrono::steady_clock::now();
-    const bool initialized = lighting_initialized || (adl->Exchange(adapter, RadeonReference::Identify(), false)
-        && adl->Exchange(adapter, RadeonReference::Enable())
-        && adl->Exchange(adapter, RadeonReference::SelectControl())
-        && adl->Exchange(adapter, RadeonReference::Apply()));
-    const bool ok = initialized && (off || adl->Exchange(adapter, message))
-        && adl->Exchange(adapter, selection == 0x01 || selection == 0x02
-            ? RadeonReference::EffectSelection(selection == 0x02) : RadeonReference::Mode(off))
-        && adl->Exchange(adapter, RadeonReference::Apply());
-    if(!ok)
+    const uint64_t now = GetTickCount64();
+    // Never reuse mode-once assumptions after a long idle interval or sleep gap.
+    if(last_activity && now - last_activity > 2000) output_session->Invalidate();
+    last_activity = now;
+    if(!output_session->Apply(frame, epoch))
     {
-        failed = true;
         LOG_ERROR("[AMD Radeon Reference] SMU transfer or acknowledgement failed. Writes stopped until rescan; no retry or save command sent.");
         for(const auto& entry : adl->trace) LOG_DEBUG("[AMD Radeon Reference] %s", entry.c_str());
-        return;
+        return RadeonReference::SendResult::Failed;
     }
-    previous = message;
-    lighting_initialized = true;
-    previous_selection = selection;
-    have_previous = true;
+    return RadeonReference::SendResult::Applied;
 }
 
 DetectedControllers DetectAMDRadeonReference()
