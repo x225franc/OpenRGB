@@ -63,12 +63,14 @@ QVariant DetectorTableModel::data(const QModelIndex& index, int role) const
         | Column 0 is the detector name, 1 is the enable flag   |
         \*-----------------------------------------------------*/
         case Qt::DisplayRole:
+        case Qt::UserRole:
             switch(index.column())
             {
                 case 0:
                     return(detectors[index.row()].key.c_str());
                 case 1:
-                    return(detectors[index.row()].value);
+                    // Keep the boolean available for sorting, without painting true/false.
+                    return(role == Qt::UserRole ? QVariant(detectors[index.row()].value) : QVariant());
             }
             return(QVariant());
 

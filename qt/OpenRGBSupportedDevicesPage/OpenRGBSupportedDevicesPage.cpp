@@ -26,6 +26,7 @@ OpenRGBSupportedDevicesPage::OpenRGBSupportedDevicesPage(QWidget *parent) :
     detectorSortModel = new QSortFilterProxyModel;
 
     detectorSortModel->setSourceModel(detectorTableModel);
+    detectorSortModel->setSortRole(Qt::UserRole);
     ui->SupportedDevicesTable->setModel(detectorSortModel);
 
     /*-----------------------------------------------------*\
