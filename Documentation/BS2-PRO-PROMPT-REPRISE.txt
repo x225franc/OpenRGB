@@ -1,0 +1,11 @@
+Reprends la préparation du support RGB natif Flydigi BS2 Pro dans mon OpenRGB modifié.
+
+Dépôt : https://github.com/x225franc/OpenRGB.git
+Branche de préparation : feature/bs2-pro-preparation
+Lis d'abord Documentation/HANDOFF-BS2-PRO.md, puis tests/FlydigiBS2Pro/README.md et STATIC-EVIDENCE.json. Le handoff est autosuffisant même sans la conversation précédente.
+
+Le matériel était absent pendant la préparation : aucun RGB BS2 n'est validé et aucun backend actif n'est installé. Un encodeur inactif et un survey BLE en lecture seule sont prêts. RGB uniquement : ne modifie jamais ventilation, RPM, protections ou modes thermiques. Vérifie alimentation versus transport de données.
+
+Conserve les acquis Razer (mode matériel, boutons en mémoire), Apex 5, LightSync LAN/Lenovo, Effects/Visual Map et l'identité Windows existante. L'application réellement livrée correspond à 964e02d9 sur feature/fluent-interface.
+
+À mon retour avec le refroidisseur, commence par l'identité et les services en lecture seule, puis reproduis seulement les commandes RGB constructeur observées. Avance en autonomie jusqu'aux builds/tests, sauvegarde complète dans Downloads et commit/push, sans inventer de validation matérielle. Si le BS2 n'est toujours pas revenu, améliore la préparation sans tenter d'écriture ni annoncer un support fonctionnel.

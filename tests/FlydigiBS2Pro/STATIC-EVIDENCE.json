@@ -1,0 +1,46 @@
+{
+  "status": "Static analysis only; NOT captured or validated against BS2 Pro hardware",
+  "date": "2026-10-29",
+  "spaceStationVersionFile": "36.9.5",
+  "asarSha256": "A93889E7518B7CE964541DE6538787A2636C6BEC6461C9934AC231425E284482",
+  "assets": [
+    ".vite/renderer/main_window/assets/index-CGwMero6.js",
+    ".vite/renderer/main_window/assets/index-DfobnxJB.js"
+  ],
+  "cachedWindowsIdentity": {
+    "name": "FlyDigi BS2PRO",
+    "pnpVendor": "37D7",
+    "pnpProduct": "1002",
+    "pnpRevision": "0110",
+    "liveRadioConfirmed": false
+  },
+  "staticRgbMethods": {
+    "getRgbLightSwitch": {
+      "opcode": "45",
+      "size": 32
+    },
+    "setRgbLightSwitch": {
+      "opcode": "46",
+      "payload": "0 or 1",
+      "size": 32
+    },
+    "setRgbConfig": {
+      "prepare": "41",
+      "chunk": "47",
+      "finalize": "43",
+      "size": 24,
+      "chunkDataBytes": 10,
+      "chunkIndexStartsAt": 0,
+      "sourceSuccessCheck": "response[4] == 1; complete reply format unverified"
+    }
+  },
+  "notKnown": [
+    "GATT service and characteristic UUIDs",
+    "actual BLE envelope and permissions",
+    "RGB configuration schema",
+    "LED count and mapping",
+    "persistent versus volatile behavior",
+    "hardware modes and safe continuous update rate",
+    "USB/2.4 GHz data capability versus power only"
+  ]
+}
