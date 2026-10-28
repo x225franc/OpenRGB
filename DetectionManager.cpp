@@ -729,8 +729,9 @@ void DetectionManager::BackgroundThreadFunction()
         const json pair_settings = initial_detection ? json()
             : ResourceManager::get()->GetSettingsManager()->GetSettings("RazerHyperspeed");
         const bool refresh_pair = !initial_detection && pair_settings.is_object()
-            && pair_settings.value("BlackWidowV3MiniAndPhantomGreenSharedPair",
-                                   pair_settings.value("BlackWidowV3MiniOnPhantomGreenReceiver", false));
+            && (pair_settings.value("BlackWidowV3MiniAndPhantomGreenSharedPair",
+                                    pair_settings.value("BlackWidowV3MiniOnPhantomGreenReceiver", false))
+                || pair_settings.value("BlackWidowV3MiniAndBasiliskV4ProSharedPair", false));
         if(refresh_pair)
         {
             // Reuse this worker for peers that become ready after USB arrival.
@@ -769,16 +770,19 @@ void DetectionManager::BackgroundRefreshConfiguredRazerPair()
     }
     if(keyboard && mouse) return;
 
-    // Enumerate only the two configured receiver models when a peer is absent.
+    const json pair_settings = ResourceManager::get()->GetSettingsManager()->GetSettings("RazerHyperspeed");
+    const bool v4_pair = pair_settings.is_object()
+        && pair_settings.value("BlackWidowV3MiniAndBasiliskV4ProSharedPair", false);
+    // Enumerate only the configured receiver models when a peer is absent.
     // Registration preserves a matching live controller and its colors/profile.
     json detector_settings = ResourceManager::get()->GetSettingsManager()->GetSettings("Detectors");
-    for(unsigned short pid : {0x00D7, 0x0271})
+    for(unsigned short pid : {static_cast<unsigned short>(v4_pair ? 0x00E3 : 0x00D7), static_cast<unsigned short>(0x0271)})
     {
         hid_device_info* receivers = HidApiLifecycle::Enumerate(0x1532, pid);
         for(hid_device_info* info = receivers; info; info = info->next)
         {
             if((pid == 0x00D7 && info->interface_number == 0 && info->usage_page == 1 && info->usage == 2)
-               || (pid == 0x0271 && info->interface_number == 3 && info->usage_page == 0x0C && info->usage == 1))
+               || ((pid == 0x0271 || pid == 0x00E3) && info->interface_number == 3 && info->usage_page == 0x0C && info->usage == 1))
             {
                 RunHIDDetector(info, detector_settings);
             }
@@ -2293,12 +2297,13 @@ int DetectionManager::UnplugCallbackFunction(hid_hotplug_callback_handle /*callb
         const json pair_settings = ResourceManager::get()->GetSettingsManager()->GetSettings("RazerHyperspeed");
         if(device->vendor_id == 0x1532
            && ((device->product_id == 0x00D7 && device->interface_number == 0 && device->usage_page == 1 && device->usage == 2)
-               || (device->product_id == 0x0271 && device->interface_number == 3 && device->usage_page == 0x0C && device->usage == 1))
-           && pair_settings.is_object() && pair_settings.value("BlackWidowV3MiniAndPhantomGreenSharedPair",
-               pair_settings.value("BlackWidowV3MiniOnPhantomGreenReceiver", false)))
+               || ((device->product_id == 0x0271 || device->product_id == 0x00E3) && device->interface_number == 3 && device->usage_page == 0x0C && device->usage == 1))
+           && pair_settings.is_object() && (pair_settings.value("BlackWidowV3MiniAndPhantomGreenSharedPair",
+               pair_settings.value("BlackWidowV3MiniOnPhantomGreenReceiver", false))
+               || pair_settings.value("BlackWidowV3MiniAndBasiliskV4ProSharedPair", false)))
         {
             json detector_settings = ResourceManager::get()->GetSettingsManager()->GetSettings("Detectors");
-            for(unsigned short pid : {0x0258, 0x00D6})
+            for(unsigned short pid : {0x0258, 0x00D6, 0x00E2})
             {
                 hid_device_info* wired_devices = HidApiLifecycle::Enumerate(0x1532, pid);
                 for(hid_device_info* info = wired_devices; info; info = info->next)

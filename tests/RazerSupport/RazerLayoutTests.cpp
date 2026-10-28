@@ -52,6 +52,17 @@ int main()
             Check(device->rows * device->cols == 12 && leds == 12,
                   "Phantom Green frame has exactly 12 colors and no logo slot or out-of-bounds read");
         }
+        for(unsigned short pid : {RAZER_BASILISK_V4_PRO_WIRED_PID, RAZER_BASILISK_V4_PRO_WIRELESS_PID})
+        {
+            const razer_device* device = nullptr;
+            for(unsigned i=0;i<RAZER_NUM_DEVICES;++i) if(device_list[i]->pid==pid) device=device_list[i];
+            Check(device && device->rows==1 && device->cols==7 && device->transaction_id==0x1F,
+                  "V4 has its own seven-position frame and transaction ID");
+            Check(device->zones[0] && device->zones[1] && device->zones[2]
+                  && std::string(device->zones[0]->name)=="Logo" && std::string(device->zones[1]->name)=="Scroll Wheel"
+                  && device->zones[0]->cols==1 && device->zones[1]->cols==1 && device->zones[2]->cols==5,
+                  "V4 protocol order is logo, wheel, five underglow positions; V3 geometry stays unchanged");
+        }
         return 0;
     }
     catch(const std::exception& error) { std::cerr << "FAIL " << error.what() << '\n'; return 1; }

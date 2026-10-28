@@ -94,6 +94,8 @@ RazerController::RazerController(hid_device* dev_handle, hid_device* dev_argb_ha
         case RAZER_BASILISK_V3_PRO_35K_PG_WIRED_PID:
         case RAZER_BASILISK_V3_PRO_35K_PG_WIRELESS_PID:
         case RAZER_BASILISK_V3_PRO_35K_PG_BLUETOOTH_PID:
+        case RAZER_BASILISK_V4_PRO_WIRED_PID:
+        case RAZER_BASILISK_V4_PRO_WIRELESS_PID:
         case RAZER_BASE_STATION_CHROMA_PID:
         case RAZER_BASE_STATION_V2_CHROMA_PID:
         case RAZER_BLADE_14_2022_PID:
@@ -301,6 +303,7 @@ void RazerController::SetBrightness(unsigned char brightness)
 void RazerController::SetLEDs(RGBColor* colors)
 {
     if(shared_receiver && !IsAvailable()) return;
+    if(IsBasiliskV4() && !PrepareLightingMode(true)) return;
     if(shared_receiver)
     {
         // A reconnect or a lost brightness command can leave the hardware dim
@@ -375,7 +378,7 @@ void RazerController::SetLEDs(RGBColor* colors)
     /*---------------------------------------------------------*\
     | Set custom mode to apply frame                            |
     \*---------------------------------------------------------*/
-    razer_set_mode_custom();
+    if(!IsBasiliskV4()) razer_set_mode_custom();
 
     /*---------------------------------------------------------*\
     | Delete the output array                                   |
@@ -416,6 +419,29 @@ void RazerController::SetModeStatic(unsigned char red, unsigned char grn, unsign
 void RazerController::SetModeWave(unsigned char direction)
 {
     razer_set_mode_wave(direction);
+}
+
+bool RazerController::IsBasiliskV4() const
+{
+    return dev_pid == RAZER_BASILISK_V4_PRO_WIRED_PID || dev_pid == RAZER_BASILISK_V4_PRO_WIRELESS_PID;
+}
+
+bool RazerController::PrepareLightingMode(bool direct)
+{
+    if(!IsBasiliskV4()) return true;
+    std::lock_guard<std::mutex> guard(v4_mode_mutex);
+    if(direct && v4_direct_ready.load()) return true;
+    auto request = razer_create_device_mode_report(direct ? RAZER_DEVICE_MODE_SOFTWARE : RAZER_DEVICE_MODE_HARDWARE, 0);
+    auto response = razer_create_response();
+    v4_direct_ready.store(false);
+    if(!razer_usb_query(&request, &response, 5)) return false;
+    if(direct)
+    {
+        request = razer_create_mode_custom_extended_matrix_report();
+        if(!razer_usb_query(&request, &response, 5)) return false;
+        v4_direct_ready.store(true);
+    }
+    return true;
 }
 
 bool RazerController::SupportsAdditionalNativeBreathing() const
@@ -1279,6 +1305,18 @@ void RazerController::razer_set_brightness(unsigned char brightness)
 {
     razer_report report;
 
+    if(IsBasiliskV4())
+    {
+        // Native group brightness survives transport changes. Bluetooth may have
+        // disabled logo/underglow, so updating only the global slot leaves them off.
+        for(unsigned char group : {static_cast<unsigned char>(1), static_cast<unsigned char>(4), static_cast<unsigned char>(10)})
+        {
+            report = razer_create_brightness_extended_matrix_report(RAZER_STORAGE_NO_SAVE, group, brightness);
+            razer_usb_send(&report);
+        }
+        return;
+    }
+
     switch(matrix_type)
     {
         case RAZER_MATRIX_TYPE_STANDARD:
@@ -1946,7 +1984,7 @@ void RazerController::razer_set_mode_wave(unsigned char direction)
 bool RazerController::SupportsBattery() const
 {
     return dev_pid == RAZER_BLACKWIDOW_V3_MINI_WIRED_PID || dev_pid == RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID
-        || dev_pid == RAZER_BASILISK_V3_PRO_35K_PG_WIRED_PID || dev_pid == RAZER_BASILISK_V3_PRO_35K_PG_WIRELESS_PID;
+        || dev_pid == RAZER_BASILISK_V3_PRO_35K_PG_WIRED_PID || dev_pid == RAZER_BASILISK_V3_PRO_35K_PG_WIRELESS_PID || IsBasiliskV4();
 }
 
 RazerBatteryStatus RazerController::ReadBattery()
@@ -1965,7 +2003,7 @@ RazerBatteryStatus RazerController::ReadBattery()
             value.charging = response.arguments[1];
     }
     { std::lock_guard<std::mutex> lock(transport_mutex);
-      value.transport = usb_dev || dev_pid == RAZER_BLACKWIDOW_V3_MINI_WIRED_PID || dev_pid == RAZER_BASILISK_V3_PRO_35K_PG_WIRED_PID ? "USB" : "HyperSpeed"; }
+      value.transport = usb_dev || dev_pid == RAZER_BLACKWIDOW_V3_MINI_WIRED_PID || dev_pid == RAZER_BASILISK_V3_PRO_35K_PG_WIRED_PID || dev_pid == RAZER_BASILISK_V4_PRO_WIRED_PID ? "USB" : "HyperSpeed"; }
     return value;
 }
 
@@ -1977,13 +2015,13 @@ void RazerController::RefreshSharedTransport()
     next_transport_check = now + std::chrono::seconds(1);
     const bool keyboard = dev_pid == RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID;
     const unsigned short usb_pid = keyboard ? RAZER_BLACKWIDOW_V3_MINI_WIRED_PID
-                                           : RAZER_BASILISK_V3_PRO_35K_PG_WIRED_PID;
+                                           : (IsBasiliskV4() ? RAZER_BASILISK_V4_PRO_WIRED_PID : RAZER_BASILISK_V3_PRO_35K_PG_WIRED_PID);
     hid_device_info* devices = HidApiLifecycle::Enumerate(RAZER_VID, usb_pid);
     std::string path;
     for(hid_device_info* info = devices; info; info = info->next)
     {
-        if((keyboard && info->interface_number == 3 && info->usage_page == 0x0C && info->usage == 1)
-           || (!keyboard && info->interface_number == 0 && info->usage_page == 1 && info->usage == 2))
+        if(((keyboard || IsBasiliskV4()) && info->interface_number == 3 && info->usage_page == 0x0C && info->usage == 1)
+           || (!keyboard && !IsBasiliskV4() && info->interface_number == 0 && info->usage_page == 1 && info->usage == 2))
         {
             path = info->path;
             break;
@@ -1996,6 +2034,7 @@ void RazerController::RefreshSharedTransport()
     hid_device* previous = usb_dev;
     usb_dev = replacement;
     usb_path = path;
+    v4_direct_ready.store(false);
     dev = usb_dev ? usb_dev : receiver_dev;
     last_brightness_refresh_ms.store(0);
     if(previous) HidApiLifecycle::Close(previous);
@@ -2077,7 +2116,7 @@ bool RazerController::IsAvailable()
         {
             LOG_INFO("[Razer] HyperSpeed target %02X %s", dev_transaction_id, responsive ? "available" : "unavailable");
             available = responsive;
-            if(responsive) last_brightness_refresh_ms.store(0);
+            if(responsive) { last_brightness_refresh_ms.store(0);v4_direct_ready.store(false); }
         }
     }
     return available;
@@ -2091,7 +2130,23 @@ int RazerController::razer_usb_receive(razer_report* report)
 int RazerController::razer_usb_send(razer_report* report)
 {
     if(!IsAvailable()) return -1;
-    if(shared_receiver)
+    // Official V4 Synapse captures use a short 7-color write-only RGB report.
+    // GET after this streaming write yields BUSY, not a per-frame acknowledgement.
+    // Keep the existing query/ACK path unchanged for every V3 and control command.
+    if(IsBasiliskV4() && report->command_class == 0x0F && report->command_id.id == 0x03)
+    {
+        if(report->data_size != 26 || report->arguments[2] != 0
+           || report->arguments[3] != 0 || report->arguments[4] != 6) return -1;
+        std::lock_guard<std::mutex> transport_lock(transport_mutex);
+        RefreshSharedTransport();
+        report->transaction_id.id = 0x1F;
+        report->crc = razer_calculate_crc(report);
+        DeviceGuardLock guard = guard_manager_ptr->AwaitExclusiveAccess();
+        const int written = hid_send_feature_report(dev, reinterpret_cast<unsigned char*>(report), sizeof(*report));
+        if(written != sizeof(*report)) { v4_direct_ready.store(false); LOG_DEBUG("[Razer V4] Incomplete RGB write; stream setup will be renewed on the next frame"); }
+        return written;
+    }
+    if(shared_receiver || IsBasiliskV4())
     {
         razer_report response = razer_create_response();
         return razer_usb_query(report, &response, 1) ? sizeof(*report) : -1;

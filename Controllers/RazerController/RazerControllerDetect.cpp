@@ -33,6 +33,57 @@ DetectedControllers DetectRazerControllers(hid_device_info* info, const std::str
 {
     DetectedControllers detected_controllers;
     const json settings = ResourceManager::get()->GetSettingsManager()->GetSettings("RazerHyperspeed");
+    const bool v4_pair = settings.is_object()
+        && settings.value("BlackWidowV3MiniAndBasiliskV4ProSharedPair", false);
+    // The V4 receiver exposes RGB on interface 3. Its peer model must be explicit;
+    // a keyboard receiver alone cannot identify which Basilisk is paired to it.
+    if(info->product_id == RAZER_BASILISK_V4_PRO_WIRED_PID
+       || info->product_id == RAZER_BASILISK_V4_PRO_WIRELESS_PID
+       || (v4_pair && info->product_id == RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID))
+    {
+        const bool receiver = info->product_id != RAZER_BASILISK_V4_PRO_WIRED_PID;
+        if(!receiver)
+        {
+            bool present = false;
+            for(unsigned short pid : {RAZER_BASILISK_V4_PRO_WIRELESS_PID, RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID})
+            {
+                if(pid == RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID && !v4_pair) continue;
+                hid_device_info* devices = HidApiLifecycle::Enumerate(RAZER_VID, pid);
+                for(auto item = devices; item; item = item->next)
+                    present |= item->interface_number == 3 && item->usage_page == 0x0C && item->usage == 1;
+                hid_free_enumeration(devices);
+            }
+            if(present) return detected_controllers;
+        }
+        const unsigned short mouse_pid = receiver ? RAZER_BASILISK_V4_PRO_WIRELESS_PID : RAZER_BASILISK_V4_PRO_WIRED_PID;
+        for(unsigned short pid : {mouse_pid, static_cast<unsigned short>(RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID)})
+        {
+            const bool keyboard = pid == RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID;
+            if(keyboard && (!receiver || !v4_pair)) continue;
+            hid_device* handle = HidApiLifecycle::OpenPath(info->path);
+            if(!handle) continue;
+            auto controller = new RazerController(handle, handle, info->path, pid,
+                keyboard ? "Razer BlackWidow V3 Mini (USB/HyperSpeed auto)"
+                         : receiver ? "Razer Basilisk V4 Pro (USB/HyperSpeed auto)" : "Razer Basilisk V4 Pro (Wired)", receiver);
+            const bool responsive = !receiver || (keyboard ? controller->ProbeSharedKeyboard()
+                : (!controller->GetFirmwareString().empty() && !controller->GetSerialString().empty()));
+            if(responsive) detected_controllers.push_back(new RGBController_Razer(controller));
+            else delete controller;
+        }
+        return detected_controllers;
+    }
+    if(v4_pair && info->product_id == RAZER_BLACKWIDOW_V3_MINI_WIRED_PID)
+    {
+        bool present = false;
+        for(unsigned short pid : {RAZER_BASILISK_V4_PRO_WIRELESS_PID, RAZER_BLACKWIDOW_V3_MINI_WIRELESS_PID})
+        {
+            hid_device_info* devices = HidApiLifecycle::Enumerate(RAZER_VID, pid);
+            for(auto item = devices; item; item = item->next)
+                present |= item->interface_number == 3 && item->usage_page == 0x0C && item->usage == 1;
+            hid_free_enumeration(devices);
+        }
+        if(present) return detected_controllers; // Shared controller gives USB priority itself.
+    }
     const bool configured_pair = settings.is_object()
         && settings.value("BlackWidowV3MiniAndPhantomGreenSharedPair",
                           settings.value("BlackWidowV3MiniOnPhantomGreenReceiver", false));
@@ -376,6 +427,8 @@ REGISTER_HID_DETECTOR_IPU("Razer Basilisk V3",                               Det
 REGISTER_HID_DETECTOR_IPU("Razer Basilisk V3 35K",                           DetectRazerControllers,        RAZER_VID,  RAZER_BASILISK_V3_35K_PID,                      0x03,   0x0C,   0x01);
 REGISTER_HID_DETECTOR_IPU("Razer Basilisk V3 Pro (Wired)",                   DetectRazerControllers,        RAZER_VID,  RAZER_BASILISK_V3_PRO_WIRED_PID,                0x00,   0x01,   0x02);
 REGISTER_HID_DETECTOR_IPU("Razer Basilisk V3 Pro (Wireless)",                DetectRazerControllers,        RAZER_VID,  RAZER_BASILISK_V3_PRO_WIRELESS_PID,             0x00,   0x01,   0x02);
+REGISTER_HID_DETECTOR_IPU("Razer Basilisk V4 Pro (Wired)",                   DetectRazerControllers,        RAZER_VID, RAZER_BASILISK_V4_PRO_WIRED_PID,                 0x03,   0x0C,   0x01);
+REGISTER_HID_DETECTOR_IPU("Razer Basilisk V4 Pro (Wireless)",                DetectRazerControllers,        RAZER_VID, RAZER_BASILISK_V4_PRO_WIRELESS_PID,              0x03,   0x0C,   0x01);
 REGISTER_HID_DETECTOR_IPU("Razer Basilisk V3 Pro 35K (Wired)",               DetectRazerControllers,        RAZER_VID,  RAZER_BASILISK_V3_PRO_35K_WIRED_PID,            0x00,   0x01,   0x02);
 REGISTER_HID_DETECTOR_IPU("Razer Basilisk V3 Pro 35K (Wireless)",            DetectRazerControllers,        RAZER_VID,  RAZER_BASILISK_V3_PRO_35K_WIRELESS_PID,         0x00,   0x01,   0x02);
 // REGISTER_HID_DETECTOR_PU ("Razer Basilisk V3 Pro (Bluetooth)",               DetectRazerControllers,        RAZER_VID,  RAZER_BASILISK_V3_PRO_BLUETOOTH_PID,                    0x01,   0x02);

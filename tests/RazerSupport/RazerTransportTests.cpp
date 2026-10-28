@@ -13,7 +13,7 @@ struct Fixture
     std::vector<razer_report> sent;
     bool corrupt = false, wrong_target = false, wrong_command = false, short_read = false, failed = false;
     unsigned int busy = 0, stale = 0, reads = 0, transaction_reads = 0, closes = 0;
-    bool empty_ack = false;
+    bool empty_ack = false, write_only_rgb = false;
 };
 static std::atomic<int> pending{0}, collisions{0};
 static bool usb_connected = false;
@@ -45,7 +45,8 @@ extern "C" int hid_send_feature_report(hid_device* handle, const unsigned char* 
     memcpy(&fixture.request, data, length);
     fixture.sent.push_back(fixture.request);
     fixture.transaction_reads = 0;
-    if(fixture.request.command_id.id & 0x80 || fixture.request.status == 0)
+    if(!(fixture.write_only_rgb && fixture.request.command_class == 0x0F && fixture.request.command_id.id == 3)
+       && (fixture.request.command_id.id & 0x80 || fixture.request.status == 0))
     {
         if(pending.fetch_add(1) != 0) collisions++;
     }
@@ -212,6 +213,33 @@ int main()
         std::this_thread::sleep_for(std::chrono::milliseconds(1050));
         Check(unavailable.IsAvailable() && missing.sent.back().transaction_id.id == 0x9F,
               "RF reconnection restores the original keyboard target");
+        {
+            Fixture v4;
+            v4.write_only_rgb = true;
+            RazerController mouse(reinterpret_cast<hid_device*>(&v4), reinterpret_cast<hid_device*>(&v4),
+                                  "wired-v4", RAZER_BASILISK_V4_PRO_WIRED_PID, "V4");
+            RGBColor colors[7] = {ToRGBColor(255,0,0),ToRGBColor(0,0,255),0,0,0,0,0};
+            mouse.SetLEDs(colors);
+            Check(v4.sent.size()==3 && v4.reads==2 && v4.sent.back().command_class==0x0F && v4.sent.back().command_id.id==3,
+                  "V4 stream performs acknowledged setup followed by write-only RGB, without an unsupported GET");
+            Check(v4.sent.back().data_size==26 && v4.sent.back().arguments[4]==6
+                  && v4.sent.back().arguments[5]==255 && v4.sent.back().arguments[10]==255,
+                  "V4 frame keeps the verified seven positions and logo/wheel order");
+            const auto reads = v4.reads;
+            mouse.SetLEDs(colors);
+            Check(v4.sent.size()==4 && v4.reads==reads,"Subsequent V4 frames do not repeatedly switch device mode or poll RGB ACKs");
+            Check(mouse.SupportsBattery(),"V4 has battery support without changing V3 capabilities");
+            const auto before_brightness = v4.sent.size();
+            mouse.SetBrightness(96);
+            Check(v4.sent.size()==before_brightness+3
+                  && v4.sent[before_brightness].arguments[1]==1
+                  && v4.sent[before_brightness+1].arguments[1]==4
+                  && v4.sent[before_brightness+2].arguments[1]==10
+                  && v4.sent[before_brightness+2].arguments[2]==96,
+                  "V4 brightness restores wheel logo and underglow after a Bluetooth group was off");
+            v4.corrupt=true;
+            Check(!mouse.PrepareLightingMode(false),"V4 native-mode setup still rejects a corrupt control ACK");
+        }
         return 0;
     }
     catch(const std::exception& error) { std::cerr << "FAIL " << error.what() << '\n'; return 1; }

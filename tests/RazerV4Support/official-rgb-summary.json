@@ -1,0 +1,20 @@
+[
+  {
+    "api": "HidD_SetFeature",
+    "where": "request",
+    "class": 15,
+    "command": 3,
+    "size": 26,
+    "status": 0,
+    "observations": 3
+  },
+  {
+    "api": "DeviceIoControl",
+    "where": "input",
+    "class": 15,
+    "command": 3,
+    "size": 26,
+    "status": 0,
+    "observations": 6
+  }
+]

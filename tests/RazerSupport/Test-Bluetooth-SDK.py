@@ -8,6 +8,7 @@ p.add_argument('--mode',help='Exact displayed mode name; applies only to the sel
 p.add_argument('--device',choices=['keyboard','mouse','both'],default='both')
 p.add_argument('--include-hyperspeed',action='store_true',help='Allow the verified shared USB/HyperSpeed mouse in the isolated test server')
 p.add_argument('--list-only',action='store_true')
+p.add_argument('--transport',choices=['all','bluetooth','usb-rf'],default='all')
 p.add_argument('--brightness',type=int,default=96)
 a=p.parse_args()
 if not 0 <= a.brightness <= 255: p.error('brightness must be 0..255')
@@ -53,8 +54,10 @@ with socket.create_connection(('127.0.0.1',a.port),timeout=5) as s:
             if n and a.mode: struct.pack_into('<I',record,len(record)-n*4,0x0000FF00)
             if values[5] > values[4]: struct.pack_into('<I',record,fields-start+9*4,a.brightness)
             records.append((mode_name,record))
-        if name not in ('Razer BlackWidow V3 Mini (Bluetooth)','Razer Basilisk V3 Pro 35K Phantom Green (Bluetooth)') and not (a.include_hyperspeed and name=='Razer Basilisk V3 Pro 35K Phantom Green (USB/HyperSpeed auto)'):
+        if name not in ('Razer BlackWidow V3 Mini (Bluetooth)','Razer Basilisk V3 Pro 35K Phantom Green (Bluetooth)','Razer Basilisk V4 Pro (Bluetooth)') and not (a.include_hyperspeed and name in ('Razer BlackWidow V3 Mini (USB/HyperSpeed auto)','Razer Basilisk V3 Pro 35K Phantom Green (USB/HyperSpeed auto)','Razer Basilisk V4 Pro (USB/HyperSpeed auto)','Razer Basilisk V4 Pro (Wired)')):
             raise RuntimeError('Use an isolated Bluetooth-only server')
+        if a.transport=='bluetooth' and '(Bluetooth)' not in name: continue
+        if a.transport=='usb-rf' and '(Bluetooth)' in name: continue
         if a.device=='keyboard' and 'BlackWidow' not in name: continue
         if a.device=='mouse' and 'Basilisk' not in name: continue
         devices.append((index,name,records))
@@ -67,8 +70,12 @@ with socket.create_connection(('127.0.0.1',a.port),timeout=5) as s:
         keyboard='BlackWidow' in name
         selected=a.mode or ('Off' if a.action=='off' else ('Wave' if a.action=='wave' and keyboard else 'Static'))
         mode_index=next(i for i,(n,_) in enumerate(records) if n==selected)
-        if selected=='Static' or '(software)' in selected or (a.mode and not keyboard and '(Bluetooth)' in name):
+        if selected in ('Static','Direct') or '(software)' in selected or (a.mode and not keyboard and '(Bluetooth)' in name):
             colors=[0x000000FF] if keyboard else [0x0000FF00,0x00000000] if a.mode else [0x00FF0000,0x0000FF00]
+            if 'Basilisk V4' in name:
+                # Verified order: logo, wheel, then underglow (one BT group or five USB/RF LEDs).
+                colors=([0,0x0000FF00,0] if a.mode and selected!='Direct' else [0x000000FF,0x00FF0000,0x0000FF00])
+                if '(Bluetooth)' not in name: colors=colors[:2]+colors[2:]*5
             payload=struct.pack('<IH',6+4*len(colors),len(colors))+struct.pack('<'+'I'*len(colors),*colors)
             send(index,1050,payload)
         record=records[mode_index][1]

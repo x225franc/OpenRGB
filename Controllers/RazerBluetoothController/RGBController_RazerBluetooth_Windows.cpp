@@ -11,9 +11,9 @@
 
 namespace
 {
-bool WiredPresent(bool keyboard)
+bool WiredPresent(bool keyboard, bool v4 = false)
 {
-    auto info = hid_enumerate(0x1532, keyboard ? 0x0258 : 0x00D6);
+    auto info = hid_enumerate(0x1532, keyboard ? 0x0258 : v4 ? 0x00E2 : 0x00D6);
     bool present = info != nullptr;
     hid_free_enumeration(info);
     return present;
@@ -32,6 +32,7 @@ class BluetoothWorker
 public:
     RazerBatteryCache battery;
     bool keyboard = false;
+    bool v4 = false;
     std::vector<uint8_t> zones;
     std::vector<RazerBLE::Bytes> initial;
     ~BluetoothWorker()
@@ -55,9 +56,10 @@ public:
                 {
                     transport.Open(id);
                     keyboard = transport.keyboard;
+                    v4 = transport.v4;
                     zones = transport.zones;
                     initial = transport.initial;
-                    if(WiredPresent(keyboard)) { ready.set_value(false); return; }
+                    if(WiredPresent(keyboard, v4)) { ready.set_value(false); return; }
                     ready.set_value(true);
                 }
                 catch(std::exception const& e) { LOG_DEBUG("[Razer Bluetooth] Initial connection: %s", e.what()); ready.set_value(false); return; }
@@ -103,7 +105,7 @@ public:
                         bool matches = true;
                         try
                         {
-                            if(WiredPresent(keyboard)) throw std::runtime_error("USB transport has priority");
+                            if(WiredPresent(keyboard, v4)) throw std::runtime_error("USB transport has priority");
                             for(size_t i = 0; i < sent.size(); ++i)
                                 matches = transport.MatchesLighting(zones[i], sent[i]) && matches;
                         }
@@ -130,7 +132,7 @@ public:
                     try
                     {
                         // A wired controller has priority; never write BLE concurrently.
-                        if(WiredPresent(keyboard)) throw std::runtime_error("USB transport has priority");
+                        if(WiredPresent(keyboard, v4)) throw std::runtime_error("USB transport has priority");
                         if(!connected || !transport.IsConnected()
                             || transport.ConnectionGeneration() != connection_generation)
                         {
@@ -198,7 +200,7 @@ public:
     bool RequestBatteryRefresh() override { return worker->RequestBatteryRefresh(); }
     explicit RGBController_RazerBluetooth(std::unique_ptr<BluetoothWorker> value) : worker(std::move(value))
     {
-        name = worker->keyboard ? "Razer BlackWidow V3 Mini (Bluetooth)" : "Razer Basilisk V3 Pro 35K Phantom Green (Bluetooth)";
+        name = worker->keyboard ? "Razer BlackWidow V3 Mini (Bluetooth)" : worker->v4 ? "Razer Basilisk V4 Pro (Bluetooth)" : "Razer Basilisk V3 Pro 35K Phantom Green (Bluetooth)";
         vendor = "Razer";
         type = worker->keyboard ? DEVICE_TYPE_KEYBOARD : DEVICE_TYPE_MOUSE;
         description = "Bluetooth hardware lighting effects; independently controlled mouse groups. No per-key/Direct streaming.";
@@ -249,7 +251,7 @@ public:
             addMode("Breathing",RazerBLELighting::Breathing,false);
             addMode("Spectrum Cycle",RazerBLELighting::Spectrum,false);
             addMode("Wave",RazerBLELighting::Wave,false);
-            addMode("Reactive",RazerBLELighting::Reactive,false);
+            if(!worker->v4) addMode("Reactive",RazerBLELighting::Reactive,false);
         }
         auto initialState=worker->initial.front();for(const auto& state:worker->initial)if(state[10]){initialState=state;break;}
         const int initialMode=RazerBLELighting::ModeFromState(initialState[0],initialState[10]);
@@ -269,7 +271,7 @@ public:
         for(auto id : worker->zones)
         {
             zone z;
-            z.name = worker->keyboard ? "Keyboard (all keys)" : (id == 1 ? "Scroll Wheel" : "Underglow (group)");
+            z.name = worker->keyboard ? "Keyboard (all keys)" : (id == 4 ? "Logo" : id == 1 ? "Scroll Wheel" : "Underglow (group)");
             z.type = ZONE_TYPE_SINGLE;
             z.leds_min = z.leds_max = z.leds_count = 1;
             zones.push_back(z);
@@ -311,7 +313,7 @@ DetectedControllers DetectRazerBluetoothControllers()
             {
                 auto devices = RazerBLE::Await(RazerBLE::DeviceInformation::FindAllAsync(RazerBLE::BluetoothLEDevice::GetDeviceSelectorFromPairingState(true)));
                 for(auto const& d : devices)
-                    if(d.Name() == L"BSKV3P 35K" || d.Name() == L"BlackWidow V3 Mini") ids.push_back(d.Id());
+                    if(d.Name() == L"BSKV3P 35K" || d.Name() == L"BlackWidow V3 Mini" || d.Name() == L"BSK V4 PRO") ids.push_back(d.Id());
             }
             return ids;
         }).get();

@@ -13,3 +13,5 @@ cl /nologo /EHsc /std:c++17 /O2 /MD build/bluetooth-reconnect-test.cpp /Fe:build
 An optional second argument selects a previous controller source for a before/after regression check.
 
 The mouse test also simulates a silent hardware lighting reset while Windows continues to report the transport as connected. The worker must read back and restore both zones without any new requested frame.
+
+V4 coverage uses three groups (logo, wheel, underglow), including an underglow that must remain off after reconnect and silent state loss. These are deterministic worker tests, not a claim of physical radio validation.

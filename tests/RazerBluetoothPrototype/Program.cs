@@ -4,20 +4,23 @@ using Windows.Devices.Enumeration;
 using Windows.Storage.Streams;
 
 var keyboard = args.Contains("--keyboard");
-args = args.Where(a => a != "--keyboard").ToArray();
-if (args.Length > 1 || args.Any(a => a != "--color-test" && a != "--restore" && a != "--wave-test" && a != "--breathing-test" && a != "--spectrum-test" && a != "--effects-restore" && a != "--reactive-test" && a != "--starlight-test"))
+var v4 = args.Contains("--v4");
+if(v4 && keyboard) throw new ArgumentException("Choose one model");
+args = args.Where(a => a != "--keyboard" && a != "--v4").ToArray();
+if (args.Length > 1 || args.Any(a => a != "--color-test" && a != "--restore" && a != "--wave-test" && a != "--breathing-test" && a != "--spectrum-test" && a != "--effects-restore" && a != "--reactive-red-test" && a != "--reactive-test" && a != "--starlight-test"))
     throw new ArgumentException("Usage: prototype [--color-test | --restore]");
 
-var effectProbe = args.Any(a => a is "--breathing-test" or "--spectrum-test" or "--effects-restore" or "--wave-test" or "--reactive-test" or "--starlight-test");
-var snapshotPath = Path.Combine(AppContext.BaseDirectory, effectProbe ? (keyboard ? "effect-probe-keyboard-original.json" : "effect-probe-mouse-original.json") : (keyboard ? "original-keyboard-lighting.json" : "original-lighting.json"));
+var effectProbe = args.Any(a => a is "--breathing-test" or "--spectrum-test" or "--effects-restore" or "--wave-test" or "--reactive-test" or "--reactive-red-test" or "--starlight-test");
+var snapshotPath = Path.Combine(AppContext.BaseDirectory, (v4 ? "v4-" : "") + (effectProbe ? (keyboard ? "effect-probe-keyboard-original.json" : "effect-probe-mouse-original.json") : (keyboard ? "original-keyboard-lighting.json" : "original-lighting.json")));
 var vendor = Guid.Parse("52401523-f97c-7f90-0e7f-6c6f4e36db1c");
 var devices = await DeviceInformation.FindAllAsync(BluetoothLEDevice.GetDeviceSelectorFromPairingState(true)).AsTask().WaitAsync(TimeSpan.FromSeconds(15));
-foreach (var info in devices.Where(d => (keyboard ? d.Name.Contains("BlackWidow", StringComparison.OrdinalIgnoreCase) : d.Name.Equals("BSKV3P 35K", StringComparison.OrdinalIgnoreCase))))
+foreach (var info in devices.Where(d => (keyboard ? d.Name.Contains("BlackWidow", StringComparison.OrdinalIgnoreCase) : d.Name.Equals(v4 ? "BSK V4 PRO" : "BSKV3P 35K", StringComparison.OrdinalIgnoreCase))))
 {
     Console.WriteLine($"Device: {info.Name}");
     using var device = await BluetoothLEDevice.FromIdAsync(info.Id).AsTask().WaitAsync(TimeSpan.FromSeconds(15));
     if (device is null) { Console.WriteLine("Device unavailable"); continue; }
     Console.WriteLine($"Connection: {device.ConnectionStatus}");
+    bool verifiedIdentity = !v4;
     var identityServices = await device.GetGattServicesForUuidAsync(Guid.Parse("0000180a-0000-1000-8000-00805f9b34fb"), BluetoothCacheMode.Uncached).AsTask().WaitAsync(TimeSpan.FromSeconds(15));
     foreach (var identityService in identityServices.Services)
     using (identityService)
@@ -31,10 +34,12 @@ foreach (var info in devices.Where(d => (keyboard ? d.Name.Contains("BlackWidow"
                 using var reader = DataReader.FromBuffer(identity.Value);
                 var value = new byte[reader.UnconsumedBufferLength]; reader.ReadBytes(value);
                 Console.WriteLine($"PnP identity: {Convert.ToHexString(value)}");
+                if(value.Length==7 && value[0]==2 && value[1]==0x8E && value[2]==6 && value[3]==0xE4 && value[4]==0) verifiedIdentity=true;
             }
         }
     }
 
+    if(!verifiedIdentity) throw new InvalidOperationException("Unexpected V4 PnP identity; no lighting query/write attempted");
     var result = await device.GetGattServicesForUuidAsync(vendor, BluetoothCacheMode.Uncached).AsTask().WaitAsync(TimeSpan.FromSeconds(15));
     Console.WriteLine($"Vendor discovery: {result.Status}");
     foreach (var service in result.Services)
@@ -102,12 +107,12 @@ foreach (var info in devices.Where(d => (keyboard ? d.Name.Contains("BlackWidow"
                     foreach(byte zone in zones.Distinct().Where(z => z != 0)) {
                         var state = await Exchange(new byte[] {0x10,0x83,0,zone});
                         var brightness = await Exchange(new byte[] {0x10,0x85,1,zone});
-                        if ((keyboard ? zone == 5 : zone is 1 or 10) && state?.Length == 10 && brightness?.Length == 1)
+                        if ((keyboard ? zone == 5 : v4 ? zone is 1 or 4 or 10 : zone is 1 or 10) && state?.Length == 10 && brightness?.Length == 1)
                             original.Add(zone, state.Concat(brightness).ToArray());
                     }
                 if (args.Length != 0)
                 {
-                    if (original.Count != (keyboard ? 1 : 2))
+                    if (original.Count != (keyboard ? 1 : v4 ? 3 : 2))
                         throw new InvalidOperationException("All physical zones must respond before changing lighting.");
                     Dictionary<byte, byte[]> target;
                     if (args[0] is "--restore" or "--effects-restore")
@@ -126,12 +131,14 @@ foreach (var info in devices.Where(d => (keyboard ? d.Name.Contains("BlackWidow"
                             [10] = new byte[] {1,0,0,1,0,255,0,0,0,0,96}
                         };
                     }
+                    if(v4 && args[0] == "--color-test") target[4]=new byte[]{1,0,0,1,255,0,0,0,0,0,96};
                     if (effectProbe && args[0] != "--effects-restore")
                     {
                         byte[] state = args[0] switch {
                             "--breathing-test" => new byte[] {2,0,0,1,0,255,0,0,0,0,96},
                             "--spectrum-test" => new byte[] {3,0,0,0,0,0,0,0,0,0,96},
                             "--wave-test" => new byte[] {4,1,40,1,0,255,0,0,0,0,96},
+                            "--reactive-red-test" => new byte[] {5,0,3,1,255,0,0,0,0,0,160},
                             "--reactive-test" => new byte[] {5,0,3,1,0,255,0,0,0,0,96},
                             "--starlight-test" => new byte[] {7,0,2,1,0,255,0,0,0,0,96},
                             _ => throw new ArgumentException("Unsupported lighting probe")
@@ -140,10 +147,12 @@ foreach (var info in devices.Where(d => (keyboard ? d.Name.Contains("BlackWidow"
                             [1] = state, [10] = new byte[] {1,0,0,1,0,0,0,0,0,0,0}
                         };
                     }
-                    if(!keyboard && args.Length>0 && args[0] is "--wave-test" or "--reactive-test" or "--starlight-test")
+                    if(!keyboard && args.Length>0 && args[0] is "--wave-test" or "--reactive-test" or "--reactive-red-test" or "--starlight-test")
                     {
                         target[10]=target[1];target[1]=new byte[]{1,0,0,1,0,0,0,0,0,0,0};
                     }
+                    if(v4 && effectProbe && args[0] != "--effects-restore") target[4]=new byte[]{1,0,0,1,0,0,0,0,0,0,0};
+                    if(target.Count != original.Count) throw new InvalidOperationException("Every verified physical group must have an explicit target");
                     foreach (var pair in target)
                     {
                         if (await Exchange(new byte[] {0x10,3,0,pair.Key}, pair.Value[..10]) is null)

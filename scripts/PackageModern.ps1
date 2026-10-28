@@ -38,6 +38,8 @@ Copy-Item -LiteralPath (Join-Path $root 'tests\RX7900Reference\FIRMWARE-MODES-RE
 Copy-Item -LiteralPath (Join-Path $root 'tests\RX7900Reference\HANDOFF-DIRECT-CADENCE.md') -Destination (Join-Path $stage 'Documentation')
 Copy-Item -LiteralPath (Join-Path $root 'tests\RX7900Reference\DIRECT-CADENCE-RESULTS.md') -Destination (Join-Path $stage 'Documentation')
 foreach($file in @('Register-ApplicationIdentity.ps1','Prepare-ApplicationIdentity.ps1')){Copy-Item -LiteralPath (Join-Path $root ('scripts\'+$file)) -Destination (Join-Path $stage 'scripts')}
+Copy-Item -LiteralPath (Join-Path $root 'tests\RazerV4Support\README.md') -Destination (Join-Path $stage 'Documentation\BASILISK-V4-SUPPORT.md')
+Copy-Item -LiteralPath (Join-Path $root 'tests\RazerV4Support\VALIDATION.json') -Destination (Join-Path $stage 'Documentation\BASILISK-V4-VALIDATION.json')
 Copy-Item -LiteralPath (Join-Path $root 'qt\OpenRGBMonochrome.png') -Destination (Join-Path $stage 'qt')
 # Preserve historical evidence, never present it as a fresh validation.
 if(-not(Test-Path -LiteralPath $LegacyDelivery)){throw 'Historical delivery not found.'}
@@ -54,6 +56,8 @@ Copy-Item -LiteralPath (Join-Path $LegacyDelivery 'BUILDINFO.json') -Destination
 foreach($file in @('logo-toggle-result.json','logo-persistence-result.json','rebind-results.json','windows-accent-state.json','windows-system-accent.json','preview-close.json','modern-deployment.json','settings-footer-final-state.json','single-instance-test.json')){Copy-Item -LiteralPath (Join-Path $root ('build\'+$file)) -Destination (Join-Path $stage 'validation')}
 foreach($file in @('bluetooth-reconnect-test-results.log','bluetooth-before-results.log','bluetooth-mouse-test.log','mouse-candidate.json','lightsync-device-management-tests.log','lightsync-device-deployment.json','battery-monitor-tests.log','bluetooth-battery-regression.log','build-warning-persistence.log','test-warning-persistence.log')){Copy-Item -LiteralPath (Join-Path $root ('build\'+$file)) -Destination (Join-Path $stage 'validation')}
 foreach($file in @('lighting-modes-tests.log','bluetooth-expanded-modes-tests.log','radeon-native-tests.log','radeon-firmware-tests.log','radeon-direct-output-tests.log','build-radeon-direct-output.log','build-radeon-direct-output-final.log','build-radeon-firmware.log','build-radeon-hardware-only.log','build-native-effects.log','rf-native-breathing.log','rf-openrgb-breathing-sdk.log','ble-openrgb-native-breathing-sdk.log','build-native-effects-metadata.log','ble-mouse-native-breathing.log','ble-mouse-native-spectrum.log','ble-mouse-native-wave.log','ble-mouse-native-reactive.log','ble-mouse-native-starlight.log')){Copy-Item -LiteralPath (Join-Path $root ('build\'+$file)) -Destination (Join-Path $stage 'validation')}
+New-Item -ItemType Directory -Path (Join-Path $stage 'validation\basilisk-v4') -Force|Out-Null
+foreach($file in @('layout-tests.log','transport-tests.log','bluetooth-v4-regression.log','modern-build.log','shared-pair-build.log')){Copy-Item -LiteralPath (Join-Path $root ('build\basilisk-v4\'+$file)) -Destination (Join-Path $stage 'validation\basilisk-v4')}
 Copy-Item -LiteralPath (Join-Path $root 'build\modern-tests\results.txt') -Destination (Join-Path $stage 'validation\modern-tests.txt')
 Copy-Item -LiteralPath (Join-Path $root 'build\ui-review\exercise-result.json') -Destination (Join-Path $stage 'validation')
 Copy-Item -LiteralPath (Join-Path $root 'VALIDATION-MODERN.md') -Destination (Join-Path $stage 'validation\README.md')

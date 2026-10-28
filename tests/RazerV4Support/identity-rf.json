@@ -1,0 +1,42 @@
+[
+  {
+    "vid": "1532",
+    "pid": "00E3",
+    "interface": 3,
+    "usage_page": "000C",
+    "usage": "0001",
+    "bus_type": 1,
+    "product": "Razer Basilisk V4 Pro",
+    "queries": {
+      "81": {
+        "sent": 91,
+        "received": 91,
+        "status": 2,
+        "transaction": 31,
+        "class": 0,
+        "command": 129,
+        "data_size": 2,
+        "matches": true,
+        "crc_valid": true,
+        "arguments": [
+          1,
+          1,
+          0,
+          0
+        ]
+      },
+      "82": {
+        "sent": 91,
+        "received": 91,
+        "status": 2,
+        "transaction": 31,
+        "class": 0,
+        "command": 130,
+        "data_size": 22,
+        "matches": true,
+        "crc_valid": true,
+        "serial_hash": "3b572c68cf9906c0"
+      }
+    }
+  }
+]

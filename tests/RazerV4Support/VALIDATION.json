@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-28",
+  "model": "Razer Basilisk V4 Pro",
+  "source": "Owner visual confirmation in this session; targeted tools and actual isolated OpenRGB SDK server",
+  "actualOpenRGB": {
+    "v4ReceiverSharedPair": "keyboard green, mouse logo red / wheel blue / underglow green confirmed",
+    "keyboardReceiverSharedPair": "same independent colors confirmed",
+    "bluetoothStatic": "logo red / wheel blue / underglow green confirmed",
+    "bluetoothNativeBreathing": "green wheel only, remaining groups off confirmed",
+    "bluetoothPowerCycle": "last effect restored automatically, owner confirmed",
+    "usbPriority": "USB selected with keyboard receiver present; Bluetooth suspends writes"
+  },
+  "notValidated": [
+    "Reactive deferred",
+    "continuous per-pixel Bluetooth streaming",
+    "physical order of the five underglow pixels"
+  ],
+  "batteryPolling": "existing five minutes plus manual refresh preserved",
+  "brightnessTransportFix": {
+    "before": {
+      "wheel": 96,
+      "logo": 0,
+      "underglow": 0
+    },
+    "after": {
+      "wheel": 96,
+      "logo": 96,
+      "underglow": 96
+    },
+    "result": "all three colors visually confirmed after restoring group brightness",
+    "productionRegression": "PASS V4 brightness restores wheel logo and underglow after a Bluetooth group was off"
+  }
+}

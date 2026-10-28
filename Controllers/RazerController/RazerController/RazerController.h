@@ -257,6 +257,8 @@ public:
 
     bool                    SupportsBreathing();
     bool                    SupportsAdditionalNativeBreathing() const;
+    bool                    IsBasiliskV4() const;
+    bool                    PrepareLightingMode(bool direct);
     bool                    SupportsReactive();
     bool                    SupportsWave();
 
@@ -277,6 +279,8 @@ private:
     std::chrono::steady_clock::time_point next_transport_check{};
     void                    RefreshSharedTransport();
     bool                    available = true;
+    std::atomic<bool>       v4_direct_ready{false};
+    std::mutex              v4_mode_mutex;
     std::atomic<int>        last_frame_kind{-1};
     std::atomic<int>        requested_brightness{-1};
     std::atomic<long long>  last_brightness_refresh_ms{0};

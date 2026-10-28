@@ -5205,6 +5205,24 @@ static const razer_device basilisk_v3_pro_35k_pg_wireless_device =
     NULL
 };
 
+// Basilisk V4 Pro: indices verified physically and against official Synapse frames.
+// 0 = logo, 1 = wheel, 2..6 = five independently controlled underglow positions.
+static const razer_zone basilisk_v4_pro_logo_zone = { "Logo", ZONE_TYPE_SINGLE, 1, 1 };
+static const razer_zone basilisk_v4_pro_wheel_zone = { "Scroll Wheel", ZONE_TYPE_SINGLE, 1, 1 };
+static const razer_zone basilisk_v4_pro_underglow_zone = { "Underglow", ZONE_TYPE_LINEAR, 1, 5 };
+static const razer_device basilisk_v4_pro_wired_device =
+{
+    "Razer Basilisk V4 Pro (Wired)", RAZER_BASILISK_V4_PRO_WIRED_PID,
+    DEVICE_TYPE_MOUSE, RAZER_MATRIX_TYPE_EXTENDED, 0x1F, 1, 7,
+    { &basilisk_v4_pro_logo_zone, &basilisk_v4_pro_wheel_zone, &basilisk_v4_pro_underglow_zone, NULL, NULL, NULL }, NULL
+};
+static const razer_device basilisk_v4_pro_wireless_device =
+{
+    "Razer Basilisk V4 Pro (Wireless)", RAZER_BASILISK_V4_PRO_WIRELESS_PID,
+    DEVICE_TYPE_MOUSE, RAZER_MATRIX_TYPE_EXTENDED, 0x1F, 1, 7,
+    { &basilisk_v4_pro_logo_zone, &basilisk_v4_pro_wheel_zone, &basilisk_v4_pro_underglow_zone, NULL, NULL, NULL }, NULL
+};
+
 /*-------------------------------------------------------------*\
 |  Razer Basilisk V3 PRO 35K Phantom Green Bluetooth 068E:00D8  |
 |                                                               |
@@ -9551,6 +9569,8 @@ const razer_device* razer_device_list[] =
     &basilisk_v3_pro_35k_pg_wired_device,
     &basilisk_v3_pro_35k_pg_wireless_device,
     &basilisk_v3_pro_35k_pg_bluetooth_device,
+    &basilisk_v4_pro_wired_device,
+    &basilisk_v4_pro_wireless_device,
     &basilisk_v3_pro_bluetooth_device,
     &basilisk_v3_x_hyperspeed_device,
     &cobra_device,

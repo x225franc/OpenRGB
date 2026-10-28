@@ -76,6 +76,7 @@ class Transport
     uint8_t request = 0x30;
 public:
     bool keyboard = false;
+    bool v4 = false;
     std::vector<uint8_t> zones;
     std::vector<Bytes> initial;
     void Close() noexcept
@@ -128,8 +129,9 @@ public:
         if(identity.size() != 7 || identity[0] != 2) throw std::runtime_error("Missing USB-source PnP identity");
         unsigned vid = identity[1] | (identity[2] << 8), pid = identity[3] | (identity[4] << 8);
         keyboard = vid == 0x1532 && pid == 0x0272;
-        if(!keyboard && !(vid == 0x068E && pid == 0x00D8)) throw std::runtime_error("Unvalidated Bluetooth model");
-        zones = keyboard ? std::vector<uint8_t>{5} : std::vector<uint8_t>{1,10};
+        v4 = vid == 0x068E && pid == 0x00E4;
+        if(!keyboard && !v4 && !(vid == 0x068E && pid == 0x00D8)) throw std::runtime_error("Unvalidated Bluetooth model");
+        zones = keyboard ? std::vector<uint8_t>{5} : v4 ? std::vector<uint8_t>{4,1,10} : std::vector<uint8_t>{1,10};
         auto chars = Await(service.GetCharacteristicsAsync(BluetoothCacheMode::Uncached));
         if(chars.Status() != GattCommunicationStatus::Success) throw std::runtime_error("Characteristics unavailable");
         for(auto const& c : chars.Characteristics())

@@ -1,0 +1,145 @@
+[
+  {
+    "vid": "1532",
+    "pid": "00E3",
+    "interface": 0,
+    "usage_page": "0001",
+    "usage": "0002",
+    "status": "0x110000",
+    "input": 9,
+    "output": 0,
+    "feature": 0
+  },
+  {
+    "vid": "1532",
+    "pid": "00E3",
+    "interface": 1,
+    "usage_page": "0001",
+    "usage": "0006",
+    "status": "0x110000",
+    "input": 16,
+    "output": 2,
+    "feature": 0
+  },
+  {
+    "vid": "1532",
+    "pid": "00E3",
+    "interface": 1,
+    "usage_page": "0001",
+    "usage": "0002",
+    "status": "0x110000",
+    "input": 9,
+    "output": 0,
+    "feature": 0
+  },
+  {
+    "vid": "1532",
+    "pid": "00E3",
+    "interface": 1,
+    "usage_page": "000C",
+    "usage": "0001",
+    "status": "0x110000",
+    "input": 16,
+    "output": 0,
+    "feature": 0
+  },
+  {
+    "vid": "1532",
+    "pid": "00E3",
+    "interface": 1,
+    "usage_page": "0001",
+    "usage": "0080",
+    "status": "0x110000",
+    "input": 16,
+    "output": 0,
+    "feature": 0
+  },
+  {
+    "vid": "1532",
+    "pid": "00E3",
+    "interface": 1,
+    "usage_page": "0001",
+    "usage": "0000",
+    "status": "0x110000",
+    "input": 16,
+    "output": 0,
+    "feature": 0
+  },
+  {
+    "vid": "1532",
+    "pid": "00E3",
+    "interface": 1,
+    "usage_page": "0001",
+    "usage": "0000",
+    "status": "0x110000",
+    "input": 16,
+    "output": 0,
+    "feature": 0
+  },
+  {
+    "vid": "1532",
+    "pid": "00E3",
+    "interface": 1,
+    "usage_page": "0001",
+    "usage": "0000",
+    "status": "0x110000",
+    "input": 16,
+    "output": 0,
+    "feature": 0
+  },
+  {
+    "vid": "1532",
+    "pid": "00E3",
+    "interface": 1,
+    "usage_page": "0001",
+    "usage": "0000",
+    "status": "0x110000",
+    "input": 16,
+    "output": 0,
+    "feature": 0
+  },
+  {
+    "vid": "1532",
+    "pid": "00E3",
+    "interface": 2,
+    "usage_page": "0001",
+    "usage": "0006",
+    "status": "0x110000",
+    "input": 9,
+    "output": 2,
+    "feature": 0
+  },
+  {
+    "vid": "1532",
+    "pid": "00E3",
+    "interface": 3,
+    "usage_page": "000C",
+    "usage": "0001",
+    "status": "0x110000",
+    "input": 0,
+    "output": 0,
+    "feature": 91
+  },
+  {
+    "vid": "1532",
+    "pid": "00E3",
+    "interface": -1,
+    "usage_page": "000C",
+    "usage": "0001",
+    "status": "0x110000",
+    "input": 3,
+    "output": 0,
+    "feature": 0
+  },
+  {
+    "vid": "1532",
+    "pid": "00E3",
+    "interface": -1,
+    "usage_page": "0001",
+    "usage": "0080",
+    "status": "0x110000",
+    "input": 2,
+    "output": 0,
+    "feature": 0
+  }
+]

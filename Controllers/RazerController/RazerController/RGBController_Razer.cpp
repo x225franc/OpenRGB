@@ -331,6 +331,7 @@ void RGBController_Razer::DeviceUpdateSingleLED(int /*led*/)
 
 void RGBController_Razer::DeviceUpdateMode()
 {
+    if(modes[active_mode].value != RAZER_MODE_DIRECT && !controller->PrepareLightingMode(false)) return;
     switch(modes[active_mode].value)
     {
         case RAZER_MODE_OFF:
