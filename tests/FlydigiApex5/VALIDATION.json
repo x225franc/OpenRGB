@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-29",
+  "observedIdentity": {
+    "vid": "37D7",
+    "pid": "2501",
+    "interface": 2,
+    "usagePage": "FFA0",
+    "usage": 1,
+    "outputBytes": 32,
+    "leds": 12
+  },
+  "standaloneConfirmed": {
+    "rfStatic": "red fixed, Space Station UI closed",
+    "rfSpatial": "multiple fixed color portions confirmed",
+    "rfNative": [
+      "Breathing",
+      "Gradient",
+      "Default (left-to-right)",
+      "Dynamic glow"
+    ],
+    "usbSpatial": "fixed RGB portions, controls and profile intact"
+  },
+  "actualOpenRGBConfirmed": {
+    "usbDirect": "fluid and responsive, no issues reported",
+    "usbBreathing": "native green breathing confirmed",
+    "usbOff": "fully off confirmed",
+    "rfDirect": "visible after SDK v6 stable-ID correction",
+    "rfNativeGradient": "blue to red to green, fluid, game profile intact"
+  },
+  "observedCadence": {
+    "scenes": 81,
+    "seconds": 5.02,
+    "policyTarget": 20,
+    "hardwareMaximumCertified": false
+  },
+  "bluetooth": {
+    "name": "Xbox Wireless Controller",
+    "transport": "Classic",
+    "vid": "045E",
+    "pid": "02E0",
+    "inputBytes": 16,
+    "outputBytes": 0,
+    "featureBytes": 0,
+    "pairedBleGamepads": 0,
+    "rfcommServices": 0,
+    "rgbSupported": false
+  },
+  "pending": [
+    "Native physical RF wake recovery",
+    "Final installed application restart verification"
+  ]
+}

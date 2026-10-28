@@ -1,0 +1,13 @@
+[
+  {
+    "vid": "045E",
+    "pid": "02E0",
+    "interface": -1,
+    "usage_page": "0001",
+    "usage": "0005",
+    "input": 16,
+    "output": 0,
+    "feature": 0,
+    "status": "0x110000"
+  }
+]

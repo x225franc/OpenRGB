@@ -1,0 +1,24 @@
+[
+  {
+    "vid": "37D7",
+    "pid": "2501",
+    "interface": 2,
+    "usage_page": "FFA0",
+    "usage": "0001",
+    "input": 32,
+    "output": 32,
+    "feature": 0,
+    "status": "0x110000"
+  },
+  {
+    "vid": "37D7",
+    "pid": "2501",
+    "interface": 2,
+    "usage_page": "FFEE",
+    "usage": "0001",
+    "input": 0,
+    "output": 13,
+    "feature": 0,
+    "status": "0x110000"
+  }
+]
