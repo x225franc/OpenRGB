@@ -431,7 +431,10 @@ bool RazerController::PrepareLightingMode(bool direct)
     if(!IsBasiliskV4()) return true;
     std::lock_guard<std::mutex> guard(v4_mode_mutex);
     if(direct && v4_direct_ready.load()) return true;
-    auto request = razer_create_device_mode_report(direct ? RAZER_DEVICE_MODE_SOFTWARE : RAZER_DEVICE_MODE_HARDWARE, 0);
+    // Direct RGB works in hardware mode on V4. Driver mode (3) bypasses
+    // the onboard button assignments when Synapse is not servicing them.
+    // Keep hardware input mappings active for both native effects and Direct.
+    auto request = razer_create_device_mode_report(RAZER_DEVICE_MODE_HARDWARE, 0);
     auto response = razer_create_response();
     v4_direct_ready.store(false);
     if(!razer_usb_query(&request, &response, 5)) return false;

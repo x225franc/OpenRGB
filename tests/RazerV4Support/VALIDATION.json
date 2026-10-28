@@ -29,5 +29,12 @@
     },
     "result": "all three colors visually confirmed after restoring group brightness",
     "productionRegression": "PASS V4 brightness restores wheel logo and underglow after a Bluetooth group was off"
+  },
+  "onboardButtonsFix": {
+    "before": "mode 3 read while onboard button functions unavailable",
+    "test": "mode 0 plus Direct colors, OpenRGB and Synapse closed",
+    "ownerResult": "onboard assignments present, logo blue / wheel red / underglow green correct",
+    "production": "all V4 lighting paths retain hardware mode 0",
+    "firmwareAtTest": "1.3"
   }
 }

@@ -222,6 +222,9 @@ int main()
             mouse.SetLEDs(colors);
             Check(v4.sent.size()==3 && v4.reads==2 && v4.sent.back().command_class==0x0F && v4.sent.back().command_id.id==3,
                   "V4 stream performs acknowledged setup followed by write-only RGB, without an unsupported GET");
+            Check(v4.sent[0].command_class==0 && v4.sent[0].command_id.id==4
+                  && v4.sent[0].arguments[0]==RAZER_DEVICE_MODE_HARDWARE && v4.sent[0].arguments[1]==0,
+                  "V4 Direct preserves hardware mode so onboard button assignments remain active");
             Check(v4.sent.back().data_size==26 && v4.sent.back().arguments[4]==6
                   && v4.sent.back().arguments[5]==255 && v4.sent.back().arguments[10]==255,
                   "V4 frame keeps the verified seven positions and logo/wheel order");
