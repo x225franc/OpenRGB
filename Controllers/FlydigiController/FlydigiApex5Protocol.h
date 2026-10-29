@@ -28,12 +28,12 @@ inline Report Packet(uint8_t command, const Bytes& payload)
     result[5+payload.size()]=checksum;
     return result;
 }
-inline std::vector<Report> Transfer(uint16_t start, const Bytes& data)
+inline std::vector<Report> Transfer(uint8_t profile, uint8_t start, const Bytes& data)
 {
     const size_t count=(data.size()+ChunkSize-1)/ChunkSize;
-    if(data.empty() || count>255) throw std::invalid_argument("Invalid lighting transfer size");
+    if(profile>3 || data.empty() || count>255 || size_t(start)+count>256) throw std::invalid_argument("Invalid lighting transfer size");
     std::vector<Report> result;
-    result.push_back(Packet(0xA8,{uint8_t(start>>8),uint8_t(start),uint8_t(count),ChunkSize}));
+    result.push_back(Packet(0xA8,{profile,start,uint8_t(count),ChunkSize}));
     for(size_t page=0;page<count;++page)
     {
         Bytes payload(ChunkSize+1,0);payload[0]=static_cast<uint8_t>(page);

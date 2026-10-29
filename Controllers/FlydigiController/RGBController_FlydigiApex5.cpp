@@ -58,11 +58,11 @@ public:
         changed.notify_one();
     }
 private:
-    bool Write(uint16_t start,const Bytes& bytes)
+    bool Write(uint8_t profile,uint8_t start,const Bytes& bytes)
     {
         if(!device)device=HidApiLifecycle::OpenPath(path.c_str());
         if(!device)return false;
-        const auto reports=Transfer(start,bytes);
+        const auto reports=Transfer(profile,start,bytes);
         for(size_t index=0;index<reports.size();++index)
         {
             const auto& report=reports[index];
@@ -75,10 +75,36 @@ private:
         }
         return true;
     }
+    bool ReadActiveProfile(uint8_t& profile)
+    {
+        if(!device)device=HidApiLifecycle::OpenPath(path.c_str());
+        if(!device)return false;
+        std::array<uint8_t,64> input{};
+        // Discard stale replies before the read-only A1 request. Never default to slot zero.
+        for(unsigned int i=0;i<64;++i)
+            if(hid_read_timeout(device,input.data(),input.size(),0)<=0)break;
+        Report query{};query[0]=3;query[1]=0x5A;query[2]=0xA5;
+        query[3]=0xA1;query[4]=2;query[5]=0xA3;
+        if(hid_write(device,query.data(),query.size())!=int(query.size()))return false;
+        const auto deadline=std::chrono::steady_clock::now()+std::chrono::milliseconds(150);
+        while(!stop && std::chrono::steady_clock::now()<deadline)
+        {
+            const int count=hid_read_timeout(device,input.data(),input.size(),15);
+            if(count<0)return false;
+            const size_t offset=count>0&&input[0]==4?1:0;
+            if(count<int(offset+15))continue;
+            const auto* data=input.data()+offset;
+            if(data[0]!=0x5A||data[1]!=0xA5||data[2]!=0xA1)continue;
+            // Only the four observed PC slots. Other modes remain untouched.
+            if(data[5]>3)return false;
+            profile=data[5];return true;
+        }
+        return false;
+    }
     void Run()
     {
         using Clock=std::chrono::steady_clock;
-        Scene sent;bool have_sent=false;bool usb_blocked=false;
+        Scene sent;uint8_t sent_profile=255;bool have_sent=false;bool usb_blocked=false;
         unsigned int output_frames=0;auto sample_start=Clock::time_point{};
         auto next=Clock::time_point{},last_configuration=Clock::time_point{},warning=Clock::time_point{};
         std::unique_lock<std::mutex> lock(mutex);
@@ -103,6 +129,20 @@ private:
             // Reconfigure only during active Direct submissions. Never wake an idle
             // controller with autonomous keepalive or input/battery polling.
             const bool refresh=target.direct && now-last_configuration>=std::chrono::seconds(2);
+            uint8_t profile=255;
+            lock.unlock();const bool profile_known=ReadActiveProfile(profile);lock.lock();
+            if(stop)break;
+            if(!profile_known)
+            {
+                have_sent=false;pending=true;next=Clock::now()+std::chrono::seconds(1);
+                if(Clock::now()>=warning)
+                {
+                    LOG_WARNING("[Flydigi Apex 5] Active profile unverified; RGB writes suspended");
+                    warning=Clock::now()+std::chrono::seconds(10);
+                }
+                continue;
+            }
+            if(profile!=sent_profile)have_sent=false;
             if(have_sent && target==sent && !refresh)continue;
             const bool metadata_changed=!have_sent || target.direct!=sent.direct || target.data.size()!=sent.data.size()
                 || !std::equal(target.data.begin(),target.data.begin()+20,sent.data.begin());
@@ -115,12 +155,12 @@ private:
                     ok=true;
                     if(metadata_changed||refresh)
                     {
-                        ok=Write(0,Bytes(target.data.begin(),target.data.begin()+20));
+                        ok=Write(profile,0,Bytes(target.data.begin(),target.data.begin()+20));
                         if(ok)last_configuration=Clock::now();
                     }
-                    if(ok)ok=Write(1,Bytes(target.data.begin()+20,target.data.end()));
+                    if(ok)ok=Write(profile,1,Bytes(target.data.begin()+20,target.data.end()));
                 }
-                else ok=Write(0,target.data);
+                else ok=Write(profile,0,target.data);
             }
             catch(...) {ok=false;}
             lock.lock();
@@ -140,7 +180,7 @@ private:
                     }
                 }
                 else{output_frames=0;sample_start=Clock::time_point{};}
-                sent=std::move(target);have_sent=true;
+                sent=std::move(target);sent_profile=profile;have_sent=true;
             }
             else
             {

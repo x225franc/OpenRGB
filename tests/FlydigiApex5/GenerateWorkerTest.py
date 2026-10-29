@@ -19,10 +19,11 @@ struct Scene { Bytes data;bool direct=false;bool operator==(const Scene& v)const
 struct hid_device{};
 struct Fake {
  std::mutex mutex;std::condition_variable changed;bool fail=false;std::atomic<bool> wired{false};
- int opens=1,closes=0;std::vector<Report> writes;
+ bool query=false;uint8_t profile=2;int opens=1,closes=0;std::vector<Report> writes;
  bool wait(size_t count){std::unique_lock<std::mutex> l(mutex);return changed.wait_for(l,std::chrono::seconds(5),[&]{return writes.size()>=count;});}
 } fake;
-int hid_write(hid_device*,const uint8_t* bytes,size_t size){std::lock_guard<std::mutex> l(fake.mutex);if(fake.fail)return -1;if(size!=32)throw std::runtime_error("wrong size");Report b;std::copy_n(bytes,32,b.begin());fake.writes.push_back(b);fake.changed.notify_all();return 32;}
+int hid_write(hid_device*,const uint8_t* bytes,size_t size){std::lock_guard<std::mutex> l(fake.mutex);if(fake.fail)return -1;if(size!=32)throw std::runtime_error("wrong size");Report b;std::copy_n(bytes,32,b.begin());if(b[3]==0xA1){fake.query=true;return 32;}fake.writes.push_back(b);fake.changed.notify_all();return 32;}
+int hid_read_timeout(hid_device*,uint8_t* bytes,size_t,int timeout){std::lock_guard<std::mutex> l(fake.mutex);if(!timeout||!fake.query)return 0;fake.query=false;std::fill_n(bytes,32,uint8_t(0));bytes[0]=4;bytes[1]=0x5A;bytes[2]=0xA5;bytes[3]=0xA1;bytes[6]=fake.profile;return 32;}
 namespace HidApiLifecycle { hid_device* OpenPath(const char*){std::lock_guard<std::mutex> l(fake.mutex);++fake.opens;return reinterpret_cast<hid_device*>(1);} void Close(hid_device*){std::lock_guard<std::mutex> l(fake.mutex);++fake.closes;} }
 namespace FlydigiApex5 {bool WiredPresent(){return fake.wired;}}
 #define LOG_WARNING(...) ((void)0)
@@ -36,6 +37,7 @@ int main(){try{
  FlydigiApex5Worker worker(reinterpret_cast<hid_device*>(1),"fake");
  std::this_thread::sleep_for(std::chrono::milliseconds(150));check(fake.writes.empty(),"Discovery does not claim lighting before an explicit scene");
  worker.Submit(scene(255,0,0));check(fake.wait(5),"Initial Direct scene sends metadata and two RGB pages");
+ {std::lock_guard<std::mutex> l(fake.mutex);check(fake.writes[0][5]==2,"Initial RGB targets verified active profile 3, not profile 1");}
  std::this_thread::sleep_for(std::chrono::milliseconds(100));
  size_t before;{std::lock_guard<std::mutex> l(fake.mutex);before=fake.writes.size();}
  worker.Submit(scene(255,0,0));std::this_thread::sleep_for(std::chrono::milliseconds(150));
@@ -50,6 +52,17 @@ int main(){try{
  check(fake.wait(before+5),"Failed transfer retries the latest scene with full metadata");
  }
  check(fake.opens==fake.closes,"Every owned handle closes exactly once");
+ {
+ size_t before;{std::lock_guard<std::mutex> l(fake.mutex);before=fake.writes.size();fake.profile=255;++fake.opens;}
+ FlydigiApex5Worker worker(reinterpret_cast<hid_device*>(1),"profile-test");worker.Submit(scene(1,2,3));
+ std::this_thread::sleep_for(std::chrono::milliseconds(300));
+ {std::lock_guard<std::mutex> l(fake.mutex);check(fake.writes.size()==before,"Unknown profile suspends every RGB write");fake.profile=1;}
+ check(fake.wait(before+5),"Verified profile resumes latest requested scene");
+ {std::lock_guard<std::mutex> l(fake.mutex);check(fake.writes[before][5]==1,"Resume targets profile 2 without falling back to profile 1");before=fake.writes.size();fake.profile=3;}
+ worker.Submit(scene(4,5,6));check(fake.wait(before+5),"Profile change invalidates cached RGB metadata");
+ {std::lock_guard<std::mutex> l(fake.mutex);check(fake.writes[before][5]==3,"Changed scene targets newly verified profile 4");}
+ }
+
  {
  fake.wired=true;size_t before;{std::lock_guard<std::mutex> l(fake.mutex);before=fake.writes.size();++fake.opens;}
  FlydigiApex5Worker worker(reinterpret_cast<hid_device*>(1),"receiver",true);worker.Submit(scene(255,0,0));

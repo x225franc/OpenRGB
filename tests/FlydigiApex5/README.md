@@ -1,3 +1,5 @@
+> Profile-isolation regression (29 October 2026): the initial driver incorrectly treated A8's profile ID and RGB block index as a 16-bit address and always targeted slot zero. User reports profile switching blocked and inconsistent bindings while OpenRGB runs. Existing lighting tests did not cover profile switching. The candidate now requires a read-only A1 active-profile response before any lighting transfer, explicitly addresses that slot, and suspends RGB on an unknown profile. Real A1 response uses input Report ID 4 (output ID 3); after correcting the input parser, the live read confirmed slot 2 / user profile 3. Live RF Direct test: owner confirms visible multicolor animation, profile selections remain selected, and per-profile button functions are correct. Installation is recorded separately. No claim that stored bindings were erased. Do not deploy before live profile-switch and bindings tests pass.
+
 # Flydigi APEX 5 native lighting support
 
 Validated locally on 28–29 October 2026. Scope: lighting only. No controller-wide software mode, input mapping, trigger configuration, firmware update or profile save command is implemented.
@@ -27,7 +29,7 @@ While Direct submissions remain active, lighting metadata can be refreshed every
 
 ## Wire protocol and scope safeguards
 
-Only captured lighting opcodes A8 (begin chunk transfer) and A9 (chunk data) are permitted. Report ID 03, prefix 5A A5, 20-byte data chunks. Checksum is the byte sum from opcode through payload, modulo 256. Two header bytes select the starting 20-byte block; the next byte is chunk count. Metadata occupies block zero; twelve RGB values begin at block one and can straddle page boundaries.
+Only captured lighting opcodes A8 (begin chunk transfer) and A9 (chunk data) are permitted. Report ID 03, prefix 5A A5, 20-byte data chunks. Checksum is the byte sum from opcode through payload, modulo 256. The first header byte selects the profile and the second selects the starting 20-byte RGB block; the next byte is chunk count. Metadata occupies block zero; twelve RGB values begin at block one and can straddle page boundaries.
 
 The 20-byte metadata contains observed cycle, brightness, LED count and effect fields. No A6 commit/save command is issued. The encoder rejects unsupported opcodes before HID I/O. Captured fixtures contain only lighting reports, with no serial numbers, device paths, gameplay input or extracted manufacturer application code.
 
