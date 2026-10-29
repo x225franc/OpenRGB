@@ -1,3 +1,5 @@
+> 2026-10-29: user-requested Direct target range extended to 1–20/s, default 20 for new settings. Existing saved rates are retained. Only software limiter tests are available here; 20/s is NOT physically validated on this PC. ACKs, transaction ordering, PCI exclusion and stop-on-error remain unchanged. Actual throughput may be lower than the requested target.
+
 # RX 7900 XTX Reference / Avatar : cadence Direct mesuree
 
 Campagne du 26 octobre 2026. Base : `364a3c470`, branche

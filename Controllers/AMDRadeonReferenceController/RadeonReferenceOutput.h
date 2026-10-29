@@ -116,7 +116,7 @@ class OutputWorker
             else
             {
                 next = frame.kind == 2
-                    ? started + std::chrono::microseconds(1000000 / std::clamp(frame.fps, 1u, 10u))
+                    ? started + std::chrono::microseconds(1000000 / std::clamp(frame.fps, 1u, 20u))
                     : Clock::time_point{};
             }
         }

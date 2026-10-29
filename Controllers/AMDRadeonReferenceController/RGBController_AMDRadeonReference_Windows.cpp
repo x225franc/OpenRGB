@@ -120,7 +120,7 @@ RGBController_AMDRadeonReference::RGBController_AMDRadeonReference(std::shared_p
     direct.name = "Direct";
     direct.value = 2;
     direct.flags |= MODE_FLAG_HAS_SPEED;
-    direct.speed_min = 1;direct.speed_max = 10;direct.speed = 7;
+    direct.speed_min = 1;direct.speed_max = 20;direct.speed = 20;
     modes.push_back(direct);
     // Firmware effect values stay stable; profile migration matches modes by name.
     mode breathing{};
@@ -147,7 +147,7 @@ RGBController_AMDRadeonReference::RGBController_AMDRadeonReference(std::shared_p
     cycle.colors_min = cycle.colors_max = 0;
     cycle.colors.clear();
     modes.push_back(cycle);
-    description += ". Native hardware effects; Direct target 1-10 updates/s (default 7), actual rate depends on verified SMU exchanges.";
+    description += ". Native hardware effects; Direct target 1-20 updates/s (default 20; hardware validation pending above 10), actual rate depends on verified SMU exchanges.";
     SetupZones();
     output_session = std::make_unique<RadeonReference::OutputSession>([this](const RadeonReference::Message& message, bool echo){
         return adl->Exchange(adapter, message, echo);
@@ -187,7 +187,7 @@ void RGBController_AMDRadeonReference::Update()
     const auto& selected=modes[active_mode];
     RadeonReference::Frame frame;
     frame.kind = selected.value;
-    frame.fps = selected.value == 2 ? std::clamp(selected.speed, 1u, 10u) : 7;
+    frame.fps = selected.value == 2 ? std::clamp(selected.speed, 1u, 20u) : 7;
     if(selected.value == 5)
     {
         const auto color = selected.colors.empty() ? colors[0] : selected.colors[0];

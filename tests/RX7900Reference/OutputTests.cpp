@@ -93,10 +93,10 @@ int main()
         {
             std::mutex mutex;std::condition_variable wake;std::vector<std::chrono::steady_clock::time_point> starts;
             OutputWorker worker([&](const Frame&,uint64_t){std::lock_guard<std::mutex> lock(mutex);starts.push_back(std::chrono::steady_clock::now());wake.notify_all();return SendResult::Applied;});
-            worker.Submit(Direct(1,10));
+            worker.Submit(Direct(1,20));
             {std::unique_lock<std::mutex> lock(mutex);wake.wait_for(lock,1s,[&]{return starts.size()==1;});}
-            worker.Submit(Direct(2,10));
-            {std::unique_lock<std::mutex> lock(mutex);Check(wake.wait_for(lock,1s,[&]{return starts.size()==2;}),"Ten-per-second target produces the next frame");Check(starts[1]-starts[0]>=95ms,"Direct limiter prevents catch-up bursts above ten starts per second");}
+            worker.Submit(Direct(2,20));
+            {std::unique_lock<std::mutex> lock(mutex);Check(wake.wait_for(lock,1s,[&]{return starts.size()==2;}),"Twenty-per-second target produces the next frame");Check(starts[1]-starts[0]<95ms,"Twenty FPS is not silently clamped to ten FPS");Check(starts[1]-starts[0]>=45ms,"Direct limiter prevents catch-up bursts above twenty starts per second");}
             worker.Submit(Direct(3,1));
             const auto before=std::chrono::steady_clock::now();worker.Shutdown();
             Check(std::chrono::steady_clock::now()-before<300ms,"Shutdown cancels the cadence wait");
