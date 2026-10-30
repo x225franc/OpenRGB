@@ -10,6 +10,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <thread>
+#include <map>
 
 namespace
 {
@@ -42,9 +43,27 @@ class FlydigiApex5Worker
     bool pending=false;
     Scene desired;
     std::thread thread;
+    std::chrono::steady_clock::time_point resume_not_before{};
+    struct ResumeScenes { std::mutex mutex;std::map<std::string,Scene> scenes; };
+    static ResumeScenes& ResumeCache(){static ResumeScenes cache;return cache;}
 public:
+    static bool LastDirect(const std::string& key,Scene& value)
+    {
+        auto& cache=ResumeCache();std::lock_guard<std::mutex> lock(cache.mutex);
+        const auto previous=cache.scenes.find(key);
+        if(previous==cache.scenes.end())return false;
+        value=previous->second;return true;
+    }
     FlydigiApex5Worker(hid_device* value,const char* device_path,bool is_wireless=false) : device(value),path(device_path),wireless(is_wireless)
     {
+        if(LastDirect(path,desired))
+        {
+            pending=true;
+            // USB collections appear before the controller finishes loading its
+            // onboard input profile. Do not upload RGB during that startup window.
+            resume_not_before=std::chrono::steady_clock::now()+std::chrono::seconds(3);
+            LOG_DEBUG("[Flydigi Apex 5] Deferring session Direct restore until reconnect settles");
+        }
         thread=std::thread([this]{ Run(); });
     }
     ~FlydigiApex5Worker()
@@ -54,6 +73,14 @@ public:
     }
     void Submit(Scene value)
     {
+        {
+            auto& cache=ResumeCache();std::lock_guard<std::mutex> lock(cache.mutex);
+            if(value.direct)
+            {
+                if(cache.scenes.size()<32 || cache.scenes.count(path))cache.scenes[path]=value;
+            }
+            else cache.scenes.erase(path);
+        }
         {std::lock_guard<std::mutex> lock(mutex);desired=std::move(value);pending=true;}
         changed.notify_one();
     }
@@ -106,7 +133,7 @@ private:
         using Clock=std::chrono::steady_clock;
         Scene sent;uint8_t sent_profile=255;bool have_sent=false;bool usb_blocked=false;
         unsigned int output_frames=0;auto sample_start=Clock::time_point{};
-        auto next=Clock::time_point{},last_configuration=Clock::time_point{},warning=Clock::time_point{};
+        auto next=resume_not_before,last_configuration=Clock::time_point{},warning=Clock::time_point{};
         std::unique_lock<std::mutex> lock(mutex);
         while(!stop)
         {
@@ -229,6 +256,13 @@ RGBController_FlydigiApex5::RGBController_FlydigiApex5(hid_device* device,const 
     add("Default",Default,MODE_COLORS_NONE,MODE_FLAG_HAS_BRIGHTNESS|MODE_FLAG_HAS_SPEED);
     add("Dynamic glow",DynamicGlow,MODE_COLORS_NONE,MODE_FLAG_HAS_BRIGHTNESS|MODE_FLAG_HAS_SPEED);
     SetupZones();
+    Scene resumed;
+    if(FlydigiApex5Worker::LastDirect(path,resumed) && resumed.data.size()==20+LedCount*3)
+    {
+        modes[0].brightness=resumed.data[6];
+        for(size_t i=0;i<colors.size();++i)
+            colors[i]=ToRGBColor(resumed.data[20+i*3],resumed.data[21+i*3],resumed.data[22+i*3]);
+    }
     worker=std::make_unique<FlydigiApex5Worker>(device,path,wireless);
 }
 RGBController_FlydigiApex5::~RGBController_FlydigiApex5(){Shutdown();worker.reset();}

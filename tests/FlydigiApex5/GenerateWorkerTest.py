@@ -11,6 +11,7 @@ fixture=r"""
 #include <mutex>
 #include <thread>
 #include <string>
+#include <map>
 #include <iostream>
 #include <stdexcept>
 #include "../Controllers/FlydigiController/FlydigiApex5Protocol.h"
@@ -88,6 +89,16 @@ int main(){try{
  worker.Submit(scene(0,0,255));fake.wired=false;check(fake.wait(before+5),"USB removal resumes latest receiver scene with metadata");
  }
  check(fake.opens==fake.closes,"Transport-priority worker closes its handle");
+ {
+ size_t before;{std::lock_guard<std::mutex> l(fake.mutex);before=fake.writes.size();++fake.opens;}
+ {FlydigiApex5Worker worker(reinterpret_cast<hid_device*>(1),"hotplug");worker.Submit(scene(9,8,7));check(fake.wait(before+5),"Hotplug test owns a Direct scene");}
+ {std::lock_guard<std::mutex> l(fake.mutex);before=fake.writes.size();++fake.opens;}
+ {FlydigiApex5Worker worker(reinterpret_cast<hid_device*>(1),"hotplug");std::this_thread::sleep_for(std::chrono::milliseconds(200));{std::lock_guard<std::mutex> l(fake.mutex);check(fake.writes.size()==before,"Recreated controller does not upload RGB during initial reconnect settling");}check(fake.wait(before+5),"Recreated controller restores its session Direct scene without Submit");
+ auto native=scene(1,1,1);native.direct=false;worker.Submit(native);check(fake.wait(before+9),"Explicit native mode clears Direct resume ownership");}
+ {std::lock_guard<std::mutex> l(fake.mutex);before=fake.writes.size();++fake.opens;}
+ {FlydigiApex5Worker worker(reinterpret_cast<hid_device*>(1),"hotplug");std::this_thread::sleep_for(std::chrono::milliseconds(200));std::lock_guard<std::mutex> l(fake.mutex);check(fake.writes.size()==before,"Native selection does not resurrect an old Direct scene after reconnect");}
+ }
+
  return 0;
  }catch(const std::exception& e){std::cerr<<"FAIL "<<e.what()<<std::endl;return 1;}}
 """
