@@ -46,12 +46,29 @@ int main(){try{
  check(fake.wait(before+3),"Latest burst scene reaches HID worker");std::this_thread::sleep_for(std::chrono::milliseconds(350));
  {std::lock_guard<std::mutex> l(fake.mutex);auto b=fake.writes[fake.writes.size()-2];check(b[3]==0xA9&&b[5]==0&&b[6]==0&&b[7]==0&&b[8]==255,"Burst preserves latest blue scene, not queued stale frames");check(fake.writes.size()<before+20,"One hundred UI submissions do not create a one hundred-frame backlog");before=fake.writes.size();}
  std::this_thread::sleep_for(std::chrono::milliseconds(2200));
- {std::lock_guard<std::mutex> l(fake.mutex);check(fake.writes.size()==before,"Idle Direct scene does not generate polling or autonomous keepalive writes");for(const auto& b:fake.writes)check(b[3]==0xA8||b[3]==0xA9,"Only lighting opcodes reach HID");fake.fail=true;}
+ {std::lock_guard<std::mutex> l(fake.mutex);check(fake.writes.size()>=before+5,"Owned stationary Direct scene refreshes metadata and colors without new submissions");before=fake.writes.size();for(const auto& b:fake.writes)check(b[3]==0xA8||b[3]==0xA9,"Only lighting opcodes reach HID");fake.fail=true;}
  worker.Submit(scene(0,255,0));std::this_thread::sleep_for(std::chrono::milliseconds(200));
  worker.Submit(scene(80,0,80));{std::lock_guard<std::mutex> l(fake.mutex);fake.fail=false;}
  check(fake.wait(before+5),"Failed transfer retries the latest scene with full metadata");
  }
  check(fake.opens==fake.closes,"Every owned handle closes exactly once");
+ {
+ size_t before;{std::lock_guard<std::mutex> l(fake.mutex);before=fake.writes.size();fake.profile=2;++fake.opens;}
+ FlydigiApex5Worker worker(reinterpret_cast<hid_device*>(1),"sleep-recovery");worker.Submit(scene(20,30,40));check(fake.wait(before+5),"Sleep test owns an initial Direct scene");
+ {std::lock_guard<std::mutex> l(fake.mutex);before=fake.writes.size();fake.profile=255;}
+ std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+ {std::lock_guard<std::mutex> l(fake.mutex);check(fake.writes.size()==before,"Sleeping pad receives no RGB when active profile cannot be verified");fake.profile=1;}
+ check(fake.wait(before+5),"Wake restores stationary Direct without a new Submit");
+ {std::lock_guard<std::mutex> l(fake.mutex);check(fake.writes[before][5]==1,"Wake restores RGB on the newly verified onboard profile");}
+ }
+ {
+ size_t before;{std::lock_guard<std::mutex> l(fake.mutex);before=fake.writes.size();++fake.opens;}
+ FlydigiApex5Worker worker(reinterpret_cast<hid_device*>(1),"native-idle");auto native=scene(1,2,3);native.direct=false;worker.Submit(native);check(fake.wait(before+4),"Native scene is applied once");
+ {std::lock_guard<std::mutex> l(fake.mutex);before=fake.writes.size();}
+ std::this_thread::sleep_for(std::chrono::milliseconds(2300));
+ {std::lock_guard<std::mutex> l(fake.mutex);check(fake.writes.size()==before,"Native effects remain autonomous without periodic writes");}
+ }
+
  {
  size_t before;{std::lock_guard<std::mutex> l(fake.mutex);before=fake.writes.size();fake.profile=255;++fake.opens;}
  FlydigiApex5Worker worker(reinterpret_cast<hid_device*>(1),"profile-test");worker.Submit(scene(1,2,3));

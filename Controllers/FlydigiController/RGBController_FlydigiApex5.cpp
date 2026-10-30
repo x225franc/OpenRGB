@@ -122,18 +122,24 @@ private:
                 }
                 if(usb_blocked){have_sent=false;pending=true;usb_blocked=false;}
             }
+            // Direct is volatile: the receiver can remain enumerated while the
+            // pad sleeps and restores its onboard RGB. Revisit an explicitly
+            // owned Direct scene even when the effect sends no new pixels.
+            // Native autonomous modes and unclaimed devices remain idle.
+            if(!pending && have_sent && desired.direct)pending=true;
             if(!pending)continue;
             changed.wait_until(lock,next,[this]{return bool(stop);});if(stop)break;
             Scene target=desired;pending=false;
             const auto now=Clock::now();
-            // Reconfigure only during active Direct submissions. Never wake an idle
-            // controller with autonomous keepalive or input/battery polling.
+            // Refresh only an explicitly requested Direct scene; no battery or
+            // input polling and no writes for unclaimed/native-mode devices.
             const bool refresh=target.direct && now-last_configuration>=std::chrono::seconds(2);
             uint8_t profile=255;
             lock.unlock();const bool profile_known=ReadActiveProfile(profile);lock.lock();
             if(stop)break;
             if(!profile_known)
             {
+                if(device){HidApiLifecycle::Close(device);device=nullptr;}
                 have_sent=false;pending=true;next=Clock::now()+std::chrono::seconds(1);
                 if(Clock::now()>=warning)
                 {
