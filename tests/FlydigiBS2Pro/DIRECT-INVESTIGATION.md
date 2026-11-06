@@ -4,7 +4,7 @@ The user prioritizes Direct for Ambient. Native-mode completion does **not** clo
 
 ## Observed blocker
 
-0x41 initializes staging; 0x47 writes native RGB table chunks; 0x43 applies and persists. The table is 186 bytes: 00 02, first frame, last frame, transition ticks, brightness, then 6 LED-major groups of 10 RGB frames. Two tests staged red then issued 0x44 00 without 0x43, with valid Bluetooth ACKs; the strip remained green. Power removal restored the previous green Breath without manufacturer RGB retransmission. Native controls are valid; continuous commit-based animation is deliberately not offered.
+0x41 initializes staging; 0x47 writes native RGB table chunks; 0x43 applies and persists. The table is 186 bytes: 00 02, first frame, last frame, transition ticks, brightness, then 6 LED-major groups of 10 RGB frames. Two Bluetooth tests staged red then issued 0x44 00 without 0x43, with valid ACKs; the strip remained green. Subsequent USB-only command tests used (1) indexed 0x47 staging and (2) sequential 0x42 blocks of at most 15 bytes, each after 0x41 and followed by 0x44 00, never 0x43. Both received valid USB replies (prefix 3) but the owner still saw the previous pattern, not red. The observed rendering blocker therefore also exists on the tested USB paths; it is not inferred solely from Bluetooth. Power removal restored the previous green Breath without manufacturer RGB retransmission. Native controls are valid; continuous commit-based animation is deliberately not offered.
 
 ## Non-solutions
 

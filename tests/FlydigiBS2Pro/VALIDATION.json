@@ -27,5 +27,11 @@
   "installationStatus": "candidate; deployment recorded separately",
   "finalBluetoothMultiStaticValidated": true,
   "normalTestProcessExit": 0,
-  "nativeEditingBurstTest": "100 edits -> one additional persistent RGB commit"
+  "nativeEditingBurstTest": "100 edits -> one additional persistent RGB commit",
+  "directRamOnlyTests": {
+    "bluetoothIndexed": "ACK valid; prior green remained",
+    "usbIndexed": "ACK valid; prior pattern remained",
+    "usbSequential": "ACK valid; prior pattern remained",
+    "persistentCommitSentDuringTheseTests": false
+  }
 }
