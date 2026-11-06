@@ -1,3 +1,5 @@
+> **Mise à jour du 6 novembre 2026** : le matériel est revenu. Le support RGB natif USB et Bluetooth est implémenté et testé sur le firmware 0.0.3.5, avec deux zones de trois positions (haut/milieu/bas). Lire d'abord `tests/FlydigiBS2Pro/README.md` et `DIRECT-INVESTIGATION.md`, qui remplacent les inconnues de la préparation historique ci-dessous. Le Direct/Ambient demandé reste **non réalisé** : l'application des couleurs personnalisées utilise une commande persistante et deux essais RAM seule ont laissé l'ancienne couleur affichée. Aucun firmware n'a été modifié. Ne pas présenter les modes natifs comme une validation d'Ambient.
+
 # Handoff â€” OpenRGB modifiÃ© / prÃ©paration Flydigi BS2 Pro
 
 Mis Ã  jour le **29 octobre 2026**. Document destinÃ© Ã  une IA qui n'a pas accÃ¨s Ã  la conversation. Lire ce document puis `tests/FlydigiBS2Pro/README.md` et `STATIC-EVIDENCE.json` avant toute action matÃ©rielle.

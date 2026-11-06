@@ -5,9 +5,9 @@
 #include <stdexcept>
 #include <vector>
 
-// INACTIVE PREPARATION: derived from local Space Station source, not hardware captures.
-// No HID/GATT I/O, registration, fan commands, RGB schema or ACK parser is implemented.
-// This is the inner manufacturer frame. BLE wrapping/UUIDs remain unverified.
+// RGB-only BS2 Pro protocol. USB and Bluetooth HID framing validated on 2026-11-06.
+// Configuration finalization persists to flash; never use this path as a Direct stream.
+// The enum intentionally cannot construct fan, thermal, firmware or reset commands.
 namespace FlydigiBS2Pro
 {
 using Bytes=std::vector<uint8_t>;
@@ -44,13 +44,12 @@ struct PlannedRequest
 {
     RgbCommand command;
     Bytes frame;
-    // A future executor must validate a real, matching success reply BEFORE advancing.
-    // Static source checks response[4]==1, but framing/CRC/opcode must be confirmed on hardware.
+    // The executor validates the matching opcode, checksum and success byte before advancing.
     bool requires_verified_success_response=true;
 };
 inline std::vector<PlannedRequest> PlanRgbUpload(const Bytes& rgb_configuration)
 {
-    // The meaning of configuration bytes is intentionally left to future hardware work.
+    // RGB-only native table, never a global fan/system configuration.
     if(rgb_configuration.empty()||rgb_configuration.size()>2560)
         throw std::invalid_argument("RGB configuration must fit at most 256 indexed ten-byte chunks");
     std::vector<PlannedRequest> plan;
@@ -65,4 +64,38 @@ inline std::vector<PlannedRequest> PlanRgbUpload(const Bytes& rgb_configuration)
     plan.push_back({RgbCommand::Finalize,Encode(RgbCommand::Finalize),true});
     return plan;
 }
+enum class Transport { USB, Bluetooth };
+// Verified HID descriptors: USB has a zero report prefix and 31 payload bytes;
+// Bluetooth uses output report 2 with 24 payload bytes.
+inline Bytes HidReport(RgbCommand command,const Bytes& payload,Transport transport)
+{
+    const auto inner=Encode(command,payload);
+    Bytes report(transport==Transport::USB?32:25,0);
+    report[0]=transport==Transport::USB?0:2;
+    std::copy_n(inner.begin(),std::min(inner.size(),report.size()-1),report.begin()+1);
+    return report;
+}
+inline bool ParseReply(const Bytes& report,Transport transport,RgbCommand command,uint8_t& value)
+{
+    const uint8_t prefix=transport==Transport::USB?3:1;
+    if(report.size()<7||report[0]!=prefix||report[1]!=0x5A||report[2]!=0xA5
+       ||report[3]!=static_cast<uint8_t>(command)||report[4]!=3)return false;
+    if(uint8_t(report[3]+report[4]+report[5])!=report[6])return false;
+    value=report[5];return value<=1;
+}
+// RGB-only native animation table: six spatial positions, ten frames per position.
+// Layout is LED-major, never the controller-wide fan/system configuration.
+inline Bytes Configuration(const std::vector<Bytes>& colors,uint8_t last_frame,uint8_t speed,uint8_t brightness)
+{
+    if(colors.size()!=6||last_frame>9||speed>10||brightness>100)
+        throw std::invalid_argument("Invalid BS2 RGB table");
+    Bytes result{0,2,0,last_frame,uint8_t(11-speed),brightness};
+    for(const auto& led:colors)
+    {
+        if(led.size()!=30)throw std::invalid_argument("Each BS2 RGB position needs ten RGB frames");
+        result.insert(result.end(),led.begin(),led.end());
+    }
+    return result;
+}
+
 }

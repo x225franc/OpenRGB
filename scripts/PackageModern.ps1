@@ -1,5 +1,6 @@
 ﻿param(
     [switch]$OfflineSnapshot,
+    [string]$SourceBranch='feature/fluent-interface',
     [string]$LightSyncCommit="",
     [string]$LegacyDelivery=(Join-Path $PSScriptRoot '..\..\build\hibernate-delivery-20261014-933765b'),
     [string]$Destination=(Join-Path $env:USERPROFILE 'Downloads'),
@@ -42,6 +43,10 @@ Copy-Item -LiteralPath (Join-Path $root 'tests\RazerV4Support\README.md') -Desti
 Copy-Item -LiteralPath (Join-Path $root 'tests\RazerV4Support\VALIDATION.json') -Destination (Join-Path $stage 'Documentation\BASILISK-V4-VALIDATION.json')
 Copy-Item -LiteralPath (Join-Path $root 'tests\FlydigiApex5\README.md') -Destination (Join-Path $stage 'Documentation\FLYDIGI-APEX5.md')
 Copy-Item -LiteralPath (Join-Path $root 'tests\FlydigiApex5\VALIDATION.json') -Destination (Join-Path $stage 'Documentation\FLYDIGI-APEX5-VALIDATION.json')
+Copy-Item -LiteralPath (Join-Path $root 'tests\FlydigiBS2Pro\README.md') -Destination (Join-Path $stage 'Documentation\FLYDIGI-BS2-PRO.md')
+Copy-Item -LiteralPath (Join-Path $root 'tests\FlydigiBS2Pro\DIRECT-INVESTIGATION.md') -Destination (Join-Path $stage 'Documentation\BS2-DIRECT-INVESTIGATION.md')
+Copy-Item -LiteralPath (Join-Path $root 'tests\FlydigiBS2Pro\VALIDATION.json') -Destination (Join-Path $stage 'Documentation\BS2-VALIDATION.json')
+
 Copy-Item -LiteralPath (Join-Path $root 'qt\OpenRGBMonochrome.png') -Destination (Join-Path $stage 'qt')
 # Preserve historical evidence, never present it as a fresh validation.
 if(-not(Test-Path -LiteralPath $LegacyDelivery)){throw 'Historical delivery not found.'}
@@ -62,6 +67,8 @@ New-Item -ItemType Directory -Path (Join-Path $stage 'validation\basilisk-v4') -
 foreach($file in @('layout-tests.log','transport-tests.log','bluetooth-v4-regression.log','modern-build.log','shared-pair-build.log')){Copy-Item -LiteralPath (Join-Path $root ('build\basilisk-v4\'+$file)) -Destination (Join-Path $stage 'validation\basilisk-v4')}
 New-Item -ItemType Directory -Path (Join-Path $stage 'validation\flydigi-apex5') -Force|Out-Null
 foreach($file in @('protocol-tests.log','worker-tests.log','build.log','openrgb-usb-direct-20fps.log','openrgb-rf-direct-v6.log','openrgb-native-breathing.log','openrgb-off.log','openrgb-rf-gradient.log','bluetooth-survey.log')){Copy-Item -LiteralPath (Join-Path $root ('build\flydigi-apex5\'+$file)) -Destination (Join-Path $stage 'validation\flydigi-apex5')}
+New-Item -ItemType Directory -Path (Join-Path $stage 'validation\bs2-pro') -Force|Out-Null
+foreach($file in @('protocol-tests.log','worker-tests.log','build-native.log','openrgb-usb-rotate.log','openrgb-usb-off.log','openrgb-bt-breath.log')){Copy-Item -LiteralPath (Join-Path (Join-Path $root 'build\bs2-pro') $file) -Destination (Join-Path $stage 'validation\bs2-pro')}
 Copy-Item -LiteralPath (Join-Path $root 'build\modern-tests\results.txt') -Destination (Join-Path $stage 'validation\modern-tests.txt')
 Copy-Item -LiteralPath (Join-Path $root 'build\ui-review\exercise-result.json') -Destination (Join-Path $stage 'validation')
 Copy-Item -LiteralPath (Join-Path $root 'VALIDATION-MODERN.md') -Destination (Join-Path $stage 'validation\README.md')
@@ -79,7 +86,7 @@ if($privateFiles.Count){throw 'The payload contains a private key or development
 $plugins=@(Get-ChildItem -LiteralPath (Join-Path $stage 'app\plugins') -Filter '*.dll' -File)
 if($plugins.Count -ne 3){throw 'Expected exactly Effects, LightSync and Visual Map.'}
 $hashes=@(Get-ChildItem -LiteralPath $stage -Recurse -File|Where-Object {$_.Extension -in @('.exe','.dll','.msix','.cer')}|ForEach-Object {@{Path=$_.FullName.Substring($stage.Length+1).Replace('\','/');SHA256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash}})
-@{Created=(Get-Date).ToUniversalTime().ToString('o');SourceCommit=$SourceCommit;PluginSourceCommits=@{LightSync=$LightSyncCommit};SourceBranch='feature/fluent-interface';SourceRepository='https://github.com/x225franc/OpenRGB';Configuration='Release x64';Qt='6.8.3';PluginAPI=5;ApplicationIdentity='OpenRGB.LightSync';ExecutableSignature=$signature.Status.ToString();Files=$hashes}|ConvertTo-Json -Depth 5|Set-Content -LiteralPath (Join-Path $stage 'BuildManifest.json') -Encoding utf8
+@{Created=(Get-Date).ToUniversalTime().ToString('o');SourceCommit=$SourceCommit;PluginSourceCommits=@{LightSync=$LightSyncCommit};SourceBranch=$SourceBranch;SourceRepository='https://github.com/x225franc/OpenRGB';Configuration='Release x64';Qt='6.8.3';PluginAPI=5;ApplicationIdentity='OpenRGB.LightSync';ExecutableSignature=$signature.Status.ToString();Files=$hashes}|ConvertTo-Json -Depth 5|Set-Content -LiteralPath (Join-Path $stage 'BuildManifest.json') -Encoding utf8
 Copy-Item -LiteralPath (Join-Path $stage 'BuildManifest.json') -Destination (Join-Path $stage 'BUILDINFO.json')
 $Destination=[IO.Path]::GetFullPath($Destination)
 if(-not(Test-Path -LiteralPath $Destination)){throw 'The destination directory must already exist.'}

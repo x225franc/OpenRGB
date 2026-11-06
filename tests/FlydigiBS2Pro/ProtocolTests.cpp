@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
-#include "../../Controllers/FlydigiController/FlydigiBS2ProProtocol.h"
+#include "../../Controllers/FlydigiController/FlydigiBS2ProModes.h"
 #include <iostream>
 using namespace FlydigiBS2Pro;
 void Check(bool value,const char* text){if(!value)throw std::runtime_error(text);std::cout<<"PASS "<<text<<'\n';}
@@ -17,5 +17,24 @@ int main(){try{
  rejected=false;try{Encode(RgbCommand::SetSwitch,{2});}catch(const std::invalid_argument&){rejected=true;}Check(rejected,"Invalid RGB switch value rejected");
  rejected=false;try{PlanRgbUpload(Bytes(2561));}catch(const std::invalid_argument&){rejected=true;}Check(rejected,"Oversized plan cannot wrap sequence counter");
  rejected=false;try{PlanRgbUpload({});}catch(const std::invalid_argument&){rejected=true;}Check(rejected,"Empty configuration is not submitted accidentally");
+ auto usb=HidReport(RgbCommand::GetSwitch,{},Transport::USB);
+ auto bt=HidReport(RgbCommand::GetSwitch,{},Transport::Bluetooth);
+ Check(usb.size()==32&&usb[0]==0&&bt.size()==25&&bt[0]==2,"Observed USB and Bluetooth output report layouts");
+ uint8_t value=0;Bytes reply{3,90,165,69,3,1,73};
+ Check(ParseReply(reply,Transport::USB,RgbCommand::GetSwitch,value)&&value==1,"Live USB RGB status reply validates opcode and checksum");
+ reply[0]=1;Check(ParseReply(reply,Transport::Bluetooth,RgbCommand::GetSwitch,value),"Live Bluetooth status reply uses input report one");
+ reply[6]^=1;Check(!ParseReply(reply,Transport::Bluetooth,RgbCommand::GetSwitch,value),"Corrupted reply cannot advance a transfer");
+ reply[6]^=1;Check(!ParseReply(reply,Transport::Bluetooth,RgbCommand::Finalize,value),"Unrelated opcode cannot acknowledge finalization");
+ std::vector<Bytes> colors(6,Bytes(30));colors[2][0]=255;
+ auto table=Configuration(colors,0,0,30);
+ Check(table.size()==186&&table[1]==2&&table[4]==11&&table[5]==30&&table[66]==255,"RGB-only table preserves six positions and LED-major frames");
+ Check(PlanRgbUpload(table).size()==21,"Native RGB table uses nineteen acknowledged chunks");
+ rejected=false;try{Configuration(colors,10,0,30);}catch(const std::invalid_argument&){rejected=true;}Check(rejected,"Out-of-bounds animation frames rejected");
+ auto breathing=NativeTable(Breath,{{0,255,0}},30,5);
+ Check(breathing[3]==1&&breathing[4]==6&&breathing[6]==0&&breathing[10]==255,"Breath uses two native frames with a black and a green endpoint");
+ auto flow=NativeTable(Flow,{{0,255,0}},30,5);
+ Check(flow[3]==5&&flow[7]!=flow[37]&&flow[7]!=flow[10],"Flow is a spatial and temporal firmware table");
+ auto multi=NativeTable(MultiStatic,{{255,0,0},{0,255,0},{0,0,255}},30,5);
+ Check(multi[6]==255&&multi[37]==255&&multi[68]==255,"Multi Static assigns separate spatial RGB positions");
  return 0;
  }catch(const std::exception& e){std::cerr<<"FAIL "<<e.what()<<'\n';return 1;}}
