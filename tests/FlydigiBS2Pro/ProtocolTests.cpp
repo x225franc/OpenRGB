@@ -36,5 +36,7 @@ int main(){try{
  Check(flow[3]==5&&flow[7]!=flow[37]&&flow[7]!=flow[10],"Flow is a spatial and temporal firmware table");
  auto multi=NativeTable(MultiStatic,{{255,0,0},{0,255,0},{0,0,255}},30,5);
  Check(multi[6]==255&&multi[37]==255&&multi[68]==255,"Multi Static assigns separate spatial RGB positions");
+ rejected=false;try{Encode(RgbCommand::Chunk,{19,0});}catch(const std::invalid_argument&){rejected=true;}Check(rejected,"Out-of-table frame indices cannot be encoded");
+ rejected=false;try{PlanRgbUpload(Bytes(187));}catch(const std::invalid_argument&){rejected=true;}Check(rejected,"Native RGB program cannot exceed its 186-byte table");
  return 0;
  }catch(const std::exception& e){std::cerr<<"FAIL "<<e.what()<<'\n';return 1;}}

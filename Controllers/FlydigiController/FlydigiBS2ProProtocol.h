@@ -28,7 +28,7 @@ inline Bytes Encode(RgbCommand command,const Bytes& payload={})
     case RgbCommand::Finalize:
         if(!payload.empty())throw std::invalid_argument("RGB transfer control payload must be empty");break;
     case RgbCommand::Chunk:
-        if(payload.size()<2||payload.size()>11)throw std::invalid_argument("RGB chunk needs an index and one to ten bytes");break;
+        if(payload.size()<2||payload.size()>11||payload[0]>18)throw std::invalid_argument("RGB chunk needs an index and one to ten bytes");break;
     default:throw std::invalid_argument("Only observed BS2 RGB opcodes are allowed");
     }
     Bytes result(size,0);
@@ -50,8 +50,8 @@ struct PlannedRequest
 inline std::vector<PlannedRequest> PlanRgbUpload(const Bytes& rgb_configuration)
 {
     // RGB-only native table, never a global fan/system configuration.
-    if(rgb_configuration.empty()||rgb_configuration.size()>2560)
-        throw std::invalid_argument("RGB configuration must fit at most 256 indexed ten-byte chunks");
+    if(rgb_configuration.empty()||rgb_configuration.size()>186)
+        throw std::invalid_argument("BS2 native RGB configuration must fit its 186-byte table");
     std::vector<PlannedRequest> plan;
     plan.push_back({RgbCommand::Prepare,Encode(RgbCommand::Prepare),true});
     for(size_t offset=0,index=0;offset<rgb_configuration.size();offset+=10,++index)
