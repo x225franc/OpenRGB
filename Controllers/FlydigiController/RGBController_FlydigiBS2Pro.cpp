@@ -11,7 +11,7 @@
 namespace
 {
 using namespace FlydigiBS2Pro;
-struct Scene {Bytes table;bool off=false;bool operator==(const Scene& other)const{return off==other.off&&table==other.table;}};
+struct Scene {Bytes table;bool off=false;int preset=-1;bool operator==(const Scene& other)const{return off==other.off&&preset==other.preset&&table==other.table;}};
 bool USBPresent()
 {
     auto list=HidApiLifecycle::Enumerate(0x37D7,0x1002);bool found=false;
@@ -28,7 +28,7 @@ class FlydigiBS2Worker
     Transport transport;
     std::atomic<bool> stop{false};
     std::mutex mutex;std::condition_variable changed;
-    bool pending=false;Scene desired;std::thread thread;
+    bool pending=false;Scene desired;std::thread thread;bool preset_ready=false;
     std::chrono::steady_clock::time_point last_submit{},flash_ready{};
     bool WaitFlashWindow()
     {
@@ -53,6 +53,8 @@ class FlydigiBS2Worker
     }
     bool Apply(const Scene& scene)
     {
+        if(scene.preset==0)return true; // HOLD is not the firmware's preset zero.
+        if(scene.preset<0)preset_ready=false;
         if(!WaitFlashWindow())return false;
         uint8_t value=0;
         if(!Request(RgbCommand::GetSwitch,{},value))return false;
@@ -66,6 +68,12 @@ class FlydigiBS2Worker
         {
             const bool ok=Request(RgbCommand::SetSwitch,{1},value)&&value==1;
             NoteFlash();if(!ok||!WaitFlashWindow())return false;
+        }
+        if(scene.preset>0)
+        {
+            if(!preset_ready&&(!Request(RgbCommand::Preset,{0},value)||value!=1))return false;
+            const bool ok=Request(RgbCommand::Preset,{uint8_t(scene.preset)},value)&&value==1;
+            preset_ready=ok;return ok;
         }
         for(const auto& step:PlanRgbUpload(scene.table))
         {
@@ -84,7 +92,7 @@ class FlydigiBS2Worker
             changed.wait(lock,[this]{return stop||pending;});if(stop)break;
             // RGB apply persists to flash. Wait for editing to settle so dragging
             // a slider/color picker produces one final upload rather than many saves.
-            while(!stop&&!desired.off)
+            while(!stop&&!desired.off&&desired.preset<0)
             {
                 const auto observed=last_submit;
                 if(!changed.wait_until(lock,observed+std::chrono::milliseconds(500),[this,observed]{return stop||desired.off||last_submit!=observed;}))break;
@@ -100,11 +108,11 @@ class FlydigiBS2Worker
             {
                 pending=true;changed.wait_for(lock,std::chrono::seconds(1),[this]{return bool(stop);});
             }
-            else if(ok){sent=std::move(target);have_sent=true;}
+            else if(ok){const bool volatile_scene=target.preset>=0;sent=std::move(target);have_sent=true;if(volatile_scene)changed.wait_for(lock,std::chrono::milliseconds(100),[this]{return bool(stop);});}
             else
             {
                 // Do not advance/retry a partially acknowledged transfer on a timer.
-                have_sent=false;LOG_WARNING("[Flydigi BS2 Pro] RGB transfer stopped: matching success ACK missing");
+                have_sent=false;changed.wait_for(lock,std::chrono::seconds(1),[this]{return bool(stop);});LOG_WARNING("[Flydigi BS2 Pro] RGB transfer stopped: matching success ACK missing");
             }
         }
     }
@@ -117,7 +125,7 @@ public:
 RGBController_FlydigiBS2Pro::RGBController_FlydigiBS2Pro(hid_device* device,const char* path,bool bluetooth)
 {
     name=bluetooth?"Flydigi BS2 Pro (Bluetooth)":"Flydigi BS2 Pro (USB)";vendor="Flydigi";type=DEVICE_TYPE_COOLER;
-    description="Six native hardware RGB modes. Direct/Ambient unavailable with firmware 0.0.3.5: custom color apply persists to flash. Fan settings are not controlled.";location=std::string("HID: ")+path;
+    description="Native RGB modes plus Preset Sync (approx.) for Ambient: one averaged color for all six sections, mapped to red/green/yellow/blue firmware presets. Dark/neutral scenes hold the last preset. Preset brightness/animation is fixed by firmware. Fan settings are not controlled.";location=std::string("HID: ")+path;
     auto add=[this](const char* title,unsigned value,unsigned maximum,bool speed)
     {
         mode item;item.name=title;item.value=value;item.color_mode=maximum?MODE_COLORS_MODE_SPECIFIC:MODE_COLORS_NONE;
@@ -129,6 +137,10 @@ RGBController_FlydigiBS2Pro::RGBController_FlydigiBS2Pro(hid_device* device,cons
     };
     add("Off",Off,0,false);add("Flow",Flow,0,true);add("Rotate",Rotate,3,true);add("Breath",Breath,5,true);
     add("Single Static",SingleStatic,1,false);add("Multi Static",MultiStatic,6,false);
+    // Effects recognizes the exact name Direct; output remains explicitly approximate.
+    add("Direct",PresetSync,0,false);
+    modes.back().color_mode=MODE_COLORS_PER_LED;
+    modes.back().flags=MODE_FLAG_HAS_PER_LED_COLOR;
     active_mode=4;
     for(const char* side:{"Left","Right"})
     {
@@ -142,7 +154,19 @@ RGBController_FlydigiBS2Pro::~RGBController_FlydigiBS2Pro(){Shutdown();worker.re
 void RGBController_FlydigiBS2Pro::DeviceUpdateLEDs()
 {
     if(active_mode<0||size_t(active_mode)>=modes.size())return;
-    const auto& selected=modes[active_mode];std::vector<Color> palette;
+    const auto& selected=modes[active_mode];
+    if(selected.value==PresetSync)
+    {
+        if(colors.empty())return;
+        unsigned r=0,g=0,b=0;
+        for(auto color:colors){r+=RGBGetRValue(color);g+=RGBGetGValue(color);b+=RGBGetBValue(color);}
+        const Color average{uint8_t(r/colors.size()),uint8_t(g/colors.size()),uint8_t(b/colors.size())};
+        const auto preset=PresetForColor(average,previous_preset.load());
+        if(!preset)return;
+        previous_preset=preset;Scene scene;scene.preset=preset;worker->Submit(std::move(scene));return;
+    }
+    previous_preset=0;
+    std::vector<Color> palette;
     for(auto color:selected.colors)palette.push_back({uint8_t(RGBGetRValue(color)),uint8_t(RGBGetGValue(color)),uint8_t(RGBGetBValue(color))});
     if(palette.empty())palette.push_back({0,255,0});
     Scene scene;scene.off=selected.value==Off;
@@ -152,3 +176,9 @@ void RGBController_FlydigiBS2Pro::DeviceUpdateLEDs()
 void RGBController_FlydigiBS2Pro::DeviceUpdateMode(){DeviceUpdateLEDs();}
 void RGBController_FlydigiBS2Pro::DeviceUpdateZoneLEDs(int){DeviceUpdateLEDs();}
 void RGBController_FlydigiBS2Pro::DeviceUpdateSingleLED(int){DeviceUpdateLEDs();}
+
+void RGBController_FlydigiBS2Pro::SetCustomMode()
+{
+    for(unsigned i=0;i<modes.size();++i)
+        if(modes[i].value==PresetSync){SetActiveMode(i);UpdateMode();return;}
+}

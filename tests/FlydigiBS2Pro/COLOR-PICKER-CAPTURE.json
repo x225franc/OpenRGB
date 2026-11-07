@@ -1,0 +1,64 @@
+{
+  "date": "2026-11-07",
+  "events": [
+    {
+      "event": "down",
+      "utc": "2026-11-07T15:40:31.6118572Z"
+    },
+    {
+      "event": "before-up",
+      "utc": "2026-11-07T15:40:34.1820529Z"
+    },
+    {
+      "event": "after-up",
+      "utc": "2026-11-07T15:40:36.1970225Z"
+    }
+  ],
+  "capturedReports": 42,
+  "deduplicatedReports": 21,
+  "commands": {
+    "0x41": 1,
+    "0x47": 19,
+    "0x43": 1
+  },
+  "firstReportUtc": "2026-11-07T15:40:34.315057+00:00",
+  "lastReportUtc": "2026-11-07T15:40:34.438292+00:00",
+  "header": [
+    0,
+    2,
+    0,
+    0,
+    11,
+    30
+  ],
+  "firstLedFirstColor": [
+    255,
+    0,
+    255
+  ],
+  "nativeFinalizeObserved": true,
+  "duringDragReports": 0,
+  "note": "Duplicate observations of identical indexed frames are collapsed within this single transfer. The uploaded color is magenta, the same as the initial displayed selection: a different final color and physical LED response are not validated.",
+  "subsequentGreenSelection": {
+    "commands": {
+      "0x41": 1,
+      "0x47": 19,
+      "0x43": 1
+    },
+    "firstColor": [
+      0,
+      255,
+      0
+    ],
+    "header": [
+      0,
+      2,
+      0,
+      0,
+      11,
+      30
+    ],
+    "interfaceColor": "#00ff00 observed in actual Space Station UI",
+    "physicalLedObserved": false
+  }
+}

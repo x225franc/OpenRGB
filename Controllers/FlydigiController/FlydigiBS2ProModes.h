@@ -1,12 +1,36 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 #pragma once
 #include "FlydigiBS2ProProtocol.h"
+#include <algorithm>
 #include <array>
+#include <cmath>
 namespace FlydigiBS2Pro
 {
 using Color=std::array<uint8_t,3>;
 // Values match the observed manufacturer modes, not fan or controller profiles.
-enum Effect { Off=0, Flow=1, Rotate=2, Breath=3, SingleStatic=4, MultiStatic=5 };
+enum Effect { Off=0, Flow=1, Rotate=2, Breath=3, SingleStatic=4, MultiStatic=5, PresetSync=6 };
+// Whole-cooler approximation. Values 1/2/5 are animated green/yellow/blue
+// on the tested device; 4 is fixed red. Zero means HOLD, never hardware Off.
+inline uint8_t PresetForColor(const Color& c,uint8_t previous=0)
+{
+    const int r=c[0],g=c[1],b=c[2],mx=std::max({r,g,b}),mn=std::min({r,g,b});
+    if(mx<24||(mx-mn)*100<mx*20)return 0;
+    const double d=mx-mn;
+    double hue=mx==r?60.0*((g-b)/d):mx==g?60.0*(2+(b-r)/d):60.0*(4+(r-g)/d);
+    if(hue<0)hue+=360;
+    const auto distance=[hue](double center){const double delta=std::abs(hue-center);return std::min(delta,360.0-delta);};
+    struct Choice{uint8_t preset;double center;};
+    constexpr std::array<Choice,4> choices{{{4,0},{2,60},{1,120},{5,240}}};
+    uint8_t best=4;double nearest=361,old_distance=361;
+    for(const auto& choice:choices)
+    {
+        const double value=distance(choice.center);
+        if(value<nearest){nearest=value;best=choice.preset;}
+        if(choice.preset==previous)old_distance=value;
+    }
+    // Small hue movements around a boundary should not flip the native effect.
+    return old_distance<=nearest+12?previous:best;
+}
 inline Bytes NativeTable(unsigned effect,const std::vector<Color>& palette,uint8_t brightness,uint8_t speed)
 {
     if(effect>MultiStatic||palette.empty()||palette.size()>6)

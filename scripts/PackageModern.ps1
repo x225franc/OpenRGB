@@ -46,6 +46,7 @@ Copy-Item -LiteralPath (Join-Path $root 'tests\FlydigiApex5\VALIDATION.json') -D
 Copy-Item -LiteralPath (Join-Path $root 'tests\FlydigiBS2Pro\README.md') -Destination (Join-Path $stage 'Documentation\FLYDIGI-BS2-PRO.md')
 Copy-Item -LiteralPath (Join-Path $root 'tests\FlydigiBS2Pro\DIRECT-INVESTIGATION.md') -Destination (Join-Path $stage 'Documentation\BS2-DIRECT-INVESTIGATION.md')
 Copy-Item -LiteralPath (Join-Path $root 'tests\FlydigiBS2Pro\VALIDATION.json') -Destination (Join-Path $stage 'Documentation\BS2-VALIDATION.json')
+foreach($file in @('COLOR-PICKER-AUDIT.md','COLOR-PICKER-CAPTURE.json')){Copy-Item -LiteralPath (Join-Path $root ('tests\FlydigiBS2Pro\'+$file)) -Destination (Join-Path $stage 'Documentation')}
 
 Copy-Item -LiteralPath (Join-Path $root 'qt\OpenRGBMonochrome.png') -Destination (Join-Path $stage 'qt')
 # Preserve historical evidence, never present it as a fresh validation.
@@ -68,6 +69,7 @@ foreach($file in @('layout-tests.log','transport-tests.log','bluetooth-v4-regres
 New-Item -ItemType Directory -Path (Join-Path $stage 'validation\flydigi-apex5') -Force|Out-Null
 foreach($file in @('protocol-tests.log','worker-tests.log','build.log','openrgb-usb-direct-20fps.log','openrgb-rf-direct-v6.log','openrgb-native-breathing.log','openrgb-off.log','openrgb-rf-gradient.log','bluetooth-survey.log')){Copy-Item -LiteralPath (Join-Path $root ('build\flydigi-apex5\'+$file)) -Destination (Join-Path $stage 'validation\flydigi-apex5')}
 New-Item -ItemType Directory -Path (Join-Path $stage 'validation\bs2-pro') -Force|Out-Null
+foreach($file in @('preset-protocol-tests.log','preset-worker-tests.log','preset-final-build.log')){Copy-Item -LiteralPath (Join-Path $root ('build\bs2-pro\'+$file)) -Destination (Join-Path $stage 'validation\bs2-pro')}
 foreach($file in @('protocol-tests.log','worker-tests.log','build-native.log','openrgb-usb-rotate.log','openrgb-usb-off.log','openrgb-bt-breath.log')){Copy-Item -LiteralPath (Join-Path (Join-Path $root 'build\bs2-pro') $file) -Destination (Join-Path $stage 'validation\bs2-pro')}
 Copy-Item -LiteralPath (Join-Path $root 'build\modern-tests\results.txt') -Destination (Join-Path $stage 'validation\modern-tests.txt')
 Copy-Item -LiteralPath (Join-Path $root 'build\ui-review\exercise-result.json') -Destination (Join-Path $stage 'validation')

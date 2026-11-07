@@ -13,7 +13,7 @@ namespace FlydigiBS2Pro
 using Bytes=std::vector<uint8_t>;
 enum class RgbCommand : uint8_t
 {
-    Prepare=0x41, Finalize=0x43, GetSwitch=0x45, SetSwitch=0x46, Chunk=0x47
+    Prepare=0x41, Finalize=0x43, GetSwitch=0x45, SetSwitch=0x46, Chunk=0x47, Preset=0x44
 };
 inline Bytes Encode(RgbCommand command,const Bytes& payload={})
 {
@@ -24,6 +24,8 @@ inline Bytes Encode(RgbCommand command,const Bytes& payload={})
         size=32;if(!payload.empty())throw std::invalid_argument("RGB query payload must be empty");break;
     case RgbCommand::SetSwitch:
         size=32;if(payload.size()!=1||payload[0]>1)throw std::invalid_argument("RGB switch must be zero or one");break;
+    case RgbCommand::Preset:
+        size=32;if(payload.size()!=1||payload[0]>5)throw std::invalid_argument("BS2 native preset must be 0..5");break;
     case RgbCommand::Prepare:
     case RgbCommand::Finalize:
         if(!payload.empty())throw std::invalid_argument("RGB transfer control payload must be empty");break;

@@ -25,6 +25,9 @@ int main(){try{
  reply[0]=1;Check(ParseReply(reply,Transport::Bluetooth,RgbCommand::GetSwitch,value),"Live Bluetooth status reply uses input report one");
  reply[6]^=1;Check(!ParseReply(reply,Transport::Bluetooth,RgbCommand::GetSwitch,value),"Corrupted reply cannot advance a transfer");
  reply[6]^=1;Check(!ParseReply(reply,Transport::Bluetooth,RgbCommand::Finalize,value),"Unrelated opcode cannot acknowledge finalization");
+ auto p=Encode(RgbCommand::Preset,{1});Check(p.size()==32&&p[2]==0x44&&p[3]==3&&p[5]==0x48,"Native preset 0x44 frame matches documented 5A A5 44 03 01 48");
+ rejected=false;try{Encode(RgbCommand::Preset,{6});}catch(const std::invalid_argument&){rejected=true;}Check(rejected,"Preset above 5 rejected");
+ Check(PresetForColor({0,255,0})==1&&PresetForColor({255,255,0})==2&&PresetForColor({255,0,0})==4&&PresetForColor({0,0,0})==0&&PresetForColor({0,0,255})==5,"Preset Sync hue mapping");
  std::vector<Bytes> colors(6,Bytes(30));colors[2][0]=255;
  auto table=Configuration(colors,0,0,30);
  Check(table.size()==186&&table[1]==2&&table[4]==11&&table[5]==30&&table[66]==255,"RGB-only table preserves six positions and LED-major frames");
@@ -38,5 +41,9 @@ int main(){try{
  Check(multi[6]==255&&multi[37]==255&&multi[68]==255,"Multi Static assigns separate spatial RGB positions");
  rejected=false;try{Encode(RgbCommand::Chunk,{19,0});}catch(const std::invalid_argument&){rejected=true;}Check(rejected,"Out-of-table frame indices cannot be encoded");
  rejected=false;try{PlanRgbUpload(Bytes(187));}catch(const std::invalid_argument&){rejected=true;}Check(rejected,"Native RGB program cannot exceed its 186-byte table");
+ Check(PresetForColor({128,128,128})==0,"Neutral scenes hold instead of selecting red");
+ Check(PresetForColor({255,128,0},4)==4&&PresetForColor({255,255,0},4)==2,"Hue hysteresis prevents boundary flapping but permits a real color change");
+ Check(HidReport(RgbCommand::Preset,{5},Transport::USB)[5]==5,"Observed blue preset five is encodable");
+ rejected=false;try{Encode(RgbCommand::Preset,{6});}catch(const std::invalid_argument&){rejected=true;}Check(rejected,"Undocumented preset six is rejected");
  return 0;
  }catch(const std::exception& e){std::cerr<<"FAIL "<<e.what()<<'\n';return 1;}}

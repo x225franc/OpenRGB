@@ -33,5 +33,21 @@
     "usbIndexed": "ACK valid; prior pattern remained",
     "usbSequential": "ACK valid; prior pattern remained",
     "persistentCommitSentDuringTheseTests": false
+  },
+  "approximateAmbient": {
+    "implemented": true,
+    "integratedUsbRedValidated": true,
+    "integratedUsbBlueValidated": true,
+    "darkHoldsLastPresetValidated": true,
+    "continuousAmbientValidated": false,
+    "bluetoothApproximationValidated": false,
+    "palette": {
+      "4": "fixed red",
+      "1": "animated green with white highlights",
+      "2": "animated yellow with white highlights",
+      "5": "animated blue with white highlights"
+    },
+    "presetZero": "Restores saved custom table; not Off",
+    "firmwareModified": false
   }
 }

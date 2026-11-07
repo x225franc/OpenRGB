@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 """Explicit lighting test against a Flydigi-only isolated OpenRGB SDK server."""
 import argparse,socket,struct,time,colorsys
-p=argparse.ArgumentParser();p.add_argument('--port',type=int,default=6745);p.add_argument('--list-only',action='store_true');p.add_argument('--mode',default='Single Static');p.add_argument('--transport',choices=['usb','bluetooth'],default='usb');p.add_argument('--brightness',type=int,default=30);p.add_argument('--speed',type=int,default=5);p.add_argument('--seconds',type=float,default=0);p.add_argument('--fps',type=int,default=20);a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--custom-mode',action='store_true');p.add_argument('--color',choices=['red','green','yellow','blue','dark'],default='red');p.add_argument('--port',type=int,default=6745);p.add_argument('--list-only',action='store_true');p.add_argument('--mode',default='Single Static');p.add_argument('--transport',choices=['usb','bluetooth'],default='usb');p.add_argument('--brightness',type=int,default=30);p.add_argument('--speed',type=int,default=5);p.add_argument('--seconds',type=float,default=0);p.add_argument('--fps',type=int,default=20);a=p.parse_args()
 if not 0<=a.brightness<=100:p.error('brightness must be 0..100')
 if not 1<=a.speed<=100:p.error('speed must be 1..100')
 def exact(s,n):
@@ -54,11 +54,13 @@ with socket.create_connection(('127.0.0.1',a.port),timeout=5) as s:
  print(name,'LEDs',led_count,'modes:',', '.join(n for n,_ in records),flush=True)
  if a.list_only:raise SystemExit(0)
  selected=next(i for i,(title,_) in enumerate(records) if title==a.mode);record=records[selected][1]
- send(controller_id,1101,struct.pack('<II',8+len(record),selected)+record)
+ if a.custom_mode:send(controller_id,1100);selected=next(i for i,(title,_) in enumerate(records) if title=='Direct')
+ else:send(controller_id,1101,struct.pack('<II',8+len(record),selected)+record)
  def colors(values):send(controller_id,1050,struct.pack('<IH',6+len(values)*4,len(values))+struct.pack('<'+'I'*len(values),*values))
+ if a.custom_mode:colors([{'red':0x000000FF,'green':0x0000FF00,'yellow':0x0000FFFF,'blue':0x00FF0000,'dark':0}[a.color]]*6)
  time.sleep(2)
  current=Reader(query(controller_id,1));current.read('II')
  for _ in range(6):current.string()
  current.read('H');active=current.read('I')
  if active!=selected:raise RuntimeError('SDK did not apply selected mode')
- print('SENT',a.mode,'brightness',a.brightness,'; visual confirmation required',flush=True)
+ print('SENT',('Preset Sync (approx.) '+a.color if a.custom_mode else a.mode),' ; visual confirmation required',flush=True)

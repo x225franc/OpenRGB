@@ -1,16 +1,16 @@
-# Flydigi BS2 Pro — native RGB support
+# Flydigi BS2 Pro ï¿½ native RGB support
 
 Validated on 6 November 2026, firmware **0.0.3.5**, VID/PID **37D7:1002**. Lighting only: the driver cannot encode fan speed, thermal policy, factory reset, pairing or firmware-update commands.
 
 ## Supported modes and physical layout
 
-Off, Flow, Rotate, Breath, Single Static and Multi Static run on the cooler after one RGB upload. Brightness is 0–100; animation speed is 1–10. Two linear zones, **Left** and **Right**, each contain **Top / Middle / Bottom**. Six distinct control positions were checked with a six-color table and a red-only upper-left test. The diffuser blends adjacent colors; the number of visible gradients is not the number of independently addressed positions.
+Off, Flow, Rotate, Breath, Single Static and Multi Static run on the cooler after one RGB upload. Brightness is 0ï¿½100; animation speed is 1ï¿½10. Two linear zones, **Left** and **Right**, each contain **Top / Middle / Bottom**. Six distinct control positions were checked with a six-color table and a red-only upper-left test. The diffuser blends adjacent colors; the number of visible gradients is not the number of independently addressed positions.
 
 USB: interface 0, usage FFA0:0001, output 32 bytes including HIDAPI's zero prefix, input protocol prefix 3. Bluetooth: HID bus Bluetooth, usage FFA0:00FF, 25-byte reports, output ID 2 / input ID 1. Both interfaces can coexist. OpenRGB exposes one entry per transport; queued Bluetooth writes defer while the USB data connection is present. Keep the power supply connected when removing a USB data connection. The USB presence policy currently targets the single-cooler setup validated here; multiple physical BS2 units have not been tested.
 
 ## Direct / Ambient limitation
 
-**Direct is not implemented or advertised for this stock firmware.** This is a remaining requested feature, not a completed capability.
+**Arbitrary-color Direct is not implemented for this stock firmware.** A separate experimental Preset Sync approximation is described below.
 
 The exact-model firmware analysis describes RGB commit 0x43 as a persistent flash write. The user confirmed green Breath survives physically disconnecting power. Passive observation found no manufacturer RGB resend during that test. Two bounded Bluetooth experiments wrote a red table into staging RAM (0x41 / indexed 0x47) and requested user-buffer selection (0x44 00), deliberately omitting 0x43: all ACKs passed, but the user still saw green. Two subsequent USB tests, using indexed 0x47 and sequential 0x42 staging followed by 0x44 00, also received valid USB replies but did not display red. Staging alone did not render the requested colors on either tested transport.
 
@@ -35,3 +35,13 @@ Discovery does not claim RGB. One worker owns each HID handle, with one in-fligh
 `Run-Tests.cmd` tests protocol/modes. `Run-Worker-Tests.cmd` tests the actual worker extracted from production source. `Test-SDK.py --transport usb|bluetooth --mode "Breath" --brightness 30 --speed 5` targets a BS2-only local test server on 6745, using stable SDK v6 IDs. Close competing RGB controllers, retain cooling power and leave the manufacturer's cooling service running if it manages your fan policy. No test asks for a global cooler configuration upload.
 
 Protocol sources: local Space Station 36.9.5 plus captures; [THRM BS2 Pro firmware analysis](https://github.com/TIANLI0/THRM/blob/main/docs/bs2pro-ota-ble-commands.md) (same 0.0.3.5); [THRM RGB implementation](https://github.com/TIANLI0/THRM/blob/main/internal/device/rgb.go); [flydigictl firmware analysis](https://github.com/ElXreno/flydigictl/blob/main/docs/FIRMWARE.md) concerns BS3 Pro and is supplementary, not a substitute for BS2 evidence. No proprietary application or firmware binary is redistributed.
+
+## Experimental Ambient approximation (Preset Sync)
+
+The mode is named exactly `Direct` for Effects compatibility. It implements **Preset Sync (approx.)**, not arbitrary RGB Direct. Both the controller custom-mode hook and Effects can select it. It averages the six incoming LED colors into one global dominant hue, then selects a volatile firmware preset with hue hysteresis. The six physical positions remain available for the native modes; approximation does not render separate colors at those positions.
+
+Owner-observed USB preset outputs on this unit: 4 = fixed red; 1 = animated green with white highlights; 2 = animated yellow with white highlights; 5 = animated blue with white highlights. Preset 0 restores the saved custom table and is NOT Off. Dark or low-saturation input therefore holds the last preset. Approximation does not provide arbitrary white, black, brightness, or exact color reproduction. Preset animation/brightness is firmware-defined.
+
+The worker sends only changed presets, at most one change per 100 ms, with one replaceable pending frame. Preset selection uses volatile 0x44, never the persistent table commit 0x43. If RGB is disabled, initial enable still uses the existing persistent power-switch command once. Native modes retain their existing bounded, debounced upload path. Firmware and cooling policy are unchanged.
+
+Protocol and worker tests pass, and Windows x64 compilation plus header-isolation verification pass. SDK custom-mode selection has been exercised; owner confirmed integrated USB red, then blue, then black input holding blue. Continuous Ambient and Bluetooth approximation have not yet been validated. Use `Test-SDK.py --custom-mode --color red` against the isolated BS2-only server to exercise the actual custom-mode hook and incoming per-LED color path.
