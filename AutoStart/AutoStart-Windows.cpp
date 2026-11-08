@@ -97,6 +97,7 @@ bool AutoStart::EnableAutoStart(AutoStartInfo autostart_info)
         if(SUCCEEDED(result))
         {
             shellLink->SetPath(exepathw.c_str());
+            shellLink->SetWorkingDirectory(filesystem::path(exepathw).parent_path().wstring().c_str());
             shellLink->SetArguments(argumentsw.c_str());
             shellLink->SetDescription(descriptionw.c_str());
             shellLink->SetIconLocation(iconw.c_str(), 0);
@@ -177,12 +178,12 @@ void AutoStart::InitAutoStart(std::string name)
     /*-----------------------------------------------------*\
     | Get startup applications path                         |
     \*-----------------------------------------------------*/
-    HRESULT result = SHGetFolderPathW(NULL, CSIDL_PROGRAMS, NULL, 0, startMenuPath);
+    HRESULT result = SHGetFolderPathW(NULL, CSIDL_STARTUP, NULL, 0, startMenuPath);
 
     if(SUCCEEDED(result))
     {
         std::string autostart_dir = StringUtils::wstring_to_string(startMenuPath);
-        autostart_dir += "\\Startup\\";
+        autostart_dir += "\\";
 
         /*-------------------------------------------------*\
         | Create the directory if it doesn't exist          |

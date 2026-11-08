@@ -378,6 +378,7 @@ win32:HEADERS +=                                                                
     i2c_smbus/Windows/i2c_smbus_nvapi.h                                                         \
     i2c_smbus/Windows/i2c_smbus_pawnio.h                                                        \
     wmi/wmi.h                                                                                   \
+    startup/NativeRecovery_Windows.h                                                           \
     AutoStart/AutoStart-Windows.h                                                               \
     SuspendResume/SuspendResume_Windows.h                                                       \
 

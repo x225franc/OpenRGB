@@ -34,6 +34,7 @@ $backups=@(Get-ChildItem -LiteralPath $app -Filter 'identity-backup-*.reg' -File
 if($backups.Count){New-Item -ItemType Directory -Path (Join-Path $stage 'app\identity-backups') -Force|Out-Null;$backups|Copy-Item -Destination (Join-Path $stage 'app\identity-backups')}
 foreach($file in @('LISEZ-MOI.md','Lancer-OpenRGB.cmd','VALIDATION-MODERN.md','SECOND-PC-TEST.md','LIGHTSYNC-NETWORK.md','BATTERY-REFRESH.md','WARNING-PERSISTENCE-TEST.md','LICENSE')){Copy-Item -LiteralPath (Join-Path $root $file) -Destination $stage}
 Copy-Item -LiteralPath (Join-Path $root 'Documentation\MODERN-INTERFACE.md') -Destination (Join-Path $stage 'Documentation')
+Copy-Item -LiteralPath (Join-Path $root 'Documentation\NATIVE-RESUME-RECOVERY.md') -Destination (Join-Path $stage 'Documentation')
 Copy-Item -LiteralPath (Join-Path $root 'Documentation\RAZER-AND-RADEON-LIGHTING-MODES.md') -Destination (Join-Path $stage 'Documentation')
 Copy-Item -LiteralPath (Join-Path $root 'tests\RX7900Reference\FIRMWARE-MODES-RESULTS.md') -Destination (Join-Path $stage 'Documentation')
 Copy-Item -LiteralPath (Join-Path $root 'tests\RX7900Reference\HANDOFF-DIRECT-CADENCE.md') -Destination (Join-Path $stage 'Documentation')
@@ -68,6 +69,8 @@ New-Item -ItemType Directory -Path (Join-Path $stage 'validation\basilisk-v4') -
 foreach($file in @('layout-tests.log','transport-tests.log','bluetooth-v4-regression.log','modern-build.log','shared-pair-build.log')){Copy-Item -LiteralPath (Join-Path $root ('build\basilisk-v4\'+$file)) -Destination (Join-Path $stage 'validation\basilisk-v4')}
 New-Item -ItemType Directory -Path (Join-Path $stage 'validation\flydigi-apex5') -Force|Out-Null
 foreach($file in @('protocol-tests.log','worker-tests.log','build.log','openrgb-usb-direct-20fps.log','openrgb-rf-direct-v6.log','openrgb-native-breathing.log','openrgb-off.log','openrgb-rf-gradient.log','bluetooth-survey.log')){Copy-Item -LiteralPath (Join-Path $root ('build\flydigi-apex5\'+$file)) -Destination (Join-Path $stage 'validation\flydigi-apex5')}
+New-Item -ItemType Directory -Path (Join-Path $stage 'validation\native-recovery') -Force|Out-Null
+foreach($file in @('tests.log','build-final.log')){Copy-Item -LiteralPath (Join-Path $root ('build\native-recovery\'+$file)) -Destination (Join-Path $stage 'validation\native-recovery')}
 New-Item -ItemType Directory -Path (Join-Path $stage 'validation\bs2-pro') -Force|Out-Null
 foreach($file in @('preset-protocol-tests.log','preset-worker-tests.log','preset-final-build.log')){Copy-Item -LiteralPath (Join-Path $root ('build\bs2-pro\'+$file)) -Destination (Join-Path $stage 'validation\bs2-pro')}
 foreach($file in @('protocol-tests.log','worker-tests.log','build-native.log','openrgb-usb-rotate.log','openrgb-usb-off.log','openrgb-bt-breath.log')){Copy-Item -LiteralPath (Join-Path (Join-Path $root 'build\bs2-pro') $file) -Destination (Join-Path $stage 'validation\bs2-pro')}

@@ -28,6 +28,9 @@
 #include "ModernInterface.h"
 
 #include "ui_OpenRGBDialog.h"
+#ifdef _WIN32
+#include "../../startup/NativeRecovery_Windows.h"
+#endif
 
 #include <QDirIterator>
 #include <QLabel>
@@ -189,6 +192,13 @@ OpenRGBDialog::OpenRGBDialog(QWidget *parent) : QMainWindow(parent), ui(new Ui::
     autostart_settings_schema["custom_arguments"]["description"]            = QT_TRANSLATE_NOOP("Settings", "Additional command line arguments to pass to OpenRGB when starting on login");
     autostart_settings_schema["custom_arguments"]["order"]                  = 2;
 
+#ifdef _WIN32
+    autostart_settings_schema["restart_after_crash"]["title"] = "Automatically restart after a crash";
+    autostart_settings_schema["restart_after_crash"]["description"] = "Native recovery, including crashes during resume. Quit and shutdown remain final. Stops after three consecutive crashes.";
+    autostart_settings_schema["restart_after_crash"]["type"] = "bool";
+    autostart_settings_schema["restart_after_crash"]["default"] = true;
+    autostart_settings_schema["restart_after_crash"]["order"] = 3;
+#endif
     ResourceManager::get()->GetSettingsManager()->RegisterSettingsSchemaComplete("AutoStart", QT_TRANSLATE_NOOP("Settings", "Start at Login"), autostart_settings_schema, 2, true, false);
 
     /*-----------------------------------------------------*\
@@ -614,6 +624,10 @@ void OpenRGBDialog::closeEvent(QCloseEvent *event)
         | worker threads would post blocking calls no loop  |
         | will ever service.                                |
         \*-------------------------------------------------*/
+#ifdef _WIN32
+        StopPowerNotifications();
+        NativeRecovery::MarkNormalExit();
+#endif
         ResourceManager::get()->UnregisterResourceManagerCallback(OpenRGBDialogResourceManagerCallback, this);
 
         // Device pages unregister their callbacks in their destructors. Delete
@@ -1547,6 +1561,9 @@ void OpenRGBDialog::OnResume()
 
 void OpenRGBDialog::on_Exit()
 {
+#ifdef _WIN32
+    NativeRecovery::MarkNormalExit();
+#endif
     /*-----------------------------------------------------*\
     | This is the exit from the tray icon NOT the main exit |
     | button (top right on Windows)                         |
@@ -1785,7 +1802,23 @@ void OpenRGBDialog::onSettingsUpdated()
     std::string     autostart_arguments     = JsonUtils::JsonGetString(autostart_settings, "custom_arguments");
     bool            autostart_enabled       = JsonUtils::JsonGetBool(autostart_settings, "enabled");
     bool            autostart_minimized     = JsonUtils::JsonGetBool(autostart_settings, "start_minimized");
-    AutoStart       auto_start("OpenRGB Preview");
+#ifdef _WIN32
+    // Migrate the preview shortcut to the same native entry used by the CLI.
+    AutoStart legacy_auto_start("OpenRGB Preview");
+    legacy_auto_start.DisableAutoStart();
+    AutoStart auto_start("OpenRGB");
+#else
+    AutoStart auto_start("OpenRGB Preview");
+#endif
+#ifdef _WIN32
+    // Preserve the exact configuration when Explorer starts the application after login.
+    if(autostart_arguments.find("--config")==std::string::npos && autostart_arguments.find("--localconfig")==std::string::npos)
+        autostart_arguments="--gui --config "+std::string(1,char(34))+ResourceManager::get()->GetConfigurationDirectory().u8string()+std::string(1,char(34))+" "+autostart_arguments;
+    const bool recover=!autostart_settings.is_object()||!autostart_settings.contains("restart_after_crash")||
+        (autostart_settings["restart_after_crash"].is_boolean()&&autostart_settings["restart_after_crash"].get<bool>());
+    if(recover)NativeRecovery::Start();else NativeRecovery::Stop();
+#endif
+
 
     if(autostart_minimized)
     {

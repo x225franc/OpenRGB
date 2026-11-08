@@ -23,6 +23,7 @@
 
 #include "cli.h"
 #include "startup.h"
+#include "NativeRecovery_Windows.h"
 #include "LogManager.h"
 #include "NetworkServer.h"
 #include "DetectionManager.h"
@@ -393,6 +394,8 @@ static void WINAPI ServiceMain(DWORD dwArgc, LPTSTR *lpszArgv)
 \*---------------------------------------------------------*/
 int main(int argc, char* argv[])
 {
+    int recovery_result=0;
+    if(NativeRecovery::HandleEarlyCommandLine(argc,argv,recovery_result))return recovery_result;
     started_as_service = false;
 
     /*-----------------------------------------------------*\
@@ -658,6 +661,11 @@ static int common_main(int argc, char* argv[])
             return EXIT_SUCCESS;
         }
         gui_activation_event = activation_event.get();
+        const auto recovery_settings=ResourceManager::get()->GetSettingsManager()->GetSettings("AutoStart");
+        const bool recovery_enabled=!recovery_settings.is_object()||!recovery_settings.contains("restart_after_crash")||
+            (recovery_settings["restart_after_crash"].is_boolean()&&recovery_settings["restart_after_crash"].get<bool>());
+        if(recovery_enabled)
+            LOG_INFO("[NativeRecovery] Integrated crash observer %s",NativeRecovery::Start()?"started":"could not start");
     }
 
     /*-----------------------------------------------------*\
@@ -693,6 +701,7 @@ static int common_main(int argc, char* argv[])
     | closing or if not running the GUI.                    |
     \*-----------------------------------------------------*/
     int exitval = startup(argc, argv, ret_flags);
+    if(ret_flags & RET_FLAG_START_GUI)NativeRecovery::MarkNormalExit();
 
     /*-----------------------------------------------------*\
     | If running as a service, unregister the service       |
