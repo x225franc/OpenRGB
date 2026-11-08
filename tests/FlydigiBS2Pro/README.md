@@ -1,10 +1,10 @@
-# Flydigi BS2 Pro � native RGB support
+# Flydigi BS2 Pro – native RGB support
 
 Validated on 6 November 2026, firmware **0.0.3.5**, VID/PID **37D7:1002**. Lighting only: the driver cannot encode fan speed, thermal policy, factory reset, pairing or firmware-update commands.
 
 ## Supported modes and physical layout
 
-Off, Flow, Rotate, Breath, Single Static and Multi Static run on the cooler after one RGB upload. Brightness is 0�100; animation speed is 1�10. Two linear zones, **Left** and **Right**, each contain **Top / Middle / Bottom**. Six distinct control positions were checked with a six-color table and a red-only upper-left test. The diffuser blends adjacent colors; the number of visible gradients is not the number of independently addressed positions.
+Off, Flow, Rotate, Breath, Single Static and Multi Static run on the cooler after one RGB upload. Brightness is 0–100; animation speed is 1–10. Two linear zones, **Left** and **Right**, each contain **Top / Middle / Bottom**. Six distinct control positions were checked with a six-color table and a red-only upper-left test. The diffuser blends adjacent colors; the number of visible gradients is not the number of independently addressed positions.
 
 USB: interface 0, usage FFA0:0001, output 32 bytes including HIDAPI's zero prefix, input protocol prefix 3. Bluetooth: HID bus Bluetooth, usage FFA0:00FF, 25-byte reports, output ID 2 / input ID 1. Both interfaces can coexist. OpenRGB exposes one entry per transport; queued Bluetooth writes defer while the USB data connection is present. Keep the power supply connected when removing a USB data connection. The USB presence policy currently targets the single-cooler setup validated here; multiple physical BS2 units have not been tested.
 
@@ -42,6 +42,6 @@ The mode is named exactly `Direct` for Effects compatibility. It implements **Pr
 
 Owner-observed USB preset outputs on this unit: 4 = fixed red; 1 = animated green with white highlights; 2 = animated yellow with white highlights; 5 = animated blue with white highlights. Preset 0 restores the saved custom table and is NOT Off. Dark or low-saturation input therefore holds the last preset. Approximation does not provide arbitrary white, black, brightness, or exact color reproduction. Preset animation/brightness is firmware-defined.
 
-The worker sends only changed presets, at most one change per 100 ms, with one replaceable pending frame. Preset selection uses volatile 0x44, never the persistent table commit 0x43. If RGB is disabled, initial enable still uses the existing persistent power-switch command once. Native modes retain their existing bounded, debounced upload path. Firmware and cooling policy are unchanged.
+The worker sends only changed presets, only after a dominant color remains stable for a configurable delay (100–1900 ms), with a hard 100 ms minimum between transmissions, with one replaceable pending frame. Preset selection uses volatile 0x44, never the persistent table commit 0x43. If RGB is disabled, initial enable still uses the existing persistent power-switch command once. The Direct Speed slider runs from 1 (slow: 1900 ms) to 10 (fast: 100 ms), default 7 (700 ms). The slider controls a stable-color follow delay: short color excursions are filtered out, and identical incoming frames do not reset the timer. It does not create a visual crossfade and cannot slow the internal animations of built-in presets. Intermediate frames are discarded, not queued. Native modes retain their existing bounded, debounced upload path. Firmware and cooling policy are unchanged.
 
 Protocol and worker tests pass, and Windows x64 compilation plus header-isolation verification pass. SDK custom-mode selection has been exercised; owner confirmed integrated USB red, then blue, then black input holding blue. Continuous Ambient and Bluetooth approximation have not yet been validated. Use `Test-SDK.py --custom-mode --color red` against the isolated BS2-only server to exercise the actual custom-mode hook and incoming per-LED color path.

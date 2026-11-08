@@ -11,6 +11,11 @@ using Color=std::array<uint8_t,3>;
 enum Effect { Off=0, Flow=1, Rotate=2, Breath=3, SingleStatic=4, MultiStatic=5, PresetSync=6 };
 // Whole-cooler approximation. Values 1/2/5 are animated green/yellow/blue
 // on the tested device; 4 is fixed red. Zero means HOLD, never hardware Off.
+// Direct speed controls the stable-color follow delay, not the fixed firmware animation.
+inline unsigned PresetIntervalMs(unsigned speed)
+{
+    return 100u+(10u-std::clamp(speed,1u,10u))*200u;
+}
 inline uint8_t PresetForColor(const Color& c,uint8_t previous=0)
 {
     const int r=c[0],g=c[1],b=c[2],mx=std::max({r,g,b}),mn=std::min({r,g,b});

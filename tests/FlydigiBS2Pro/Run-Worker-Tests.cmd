@@ -7,4 +7,4 @@ if errorlevel 1 exit /b 1
 cd build
 cl /nologo /EHsc /std:c++17 /W4 /MD /Fe:BS2WorkerTests.exe bs2-worker-test.cpp
 if errorlevel 1 exit /b 1
-BS2WorkerTests.exe
+.\BS2WorkerTests.exe

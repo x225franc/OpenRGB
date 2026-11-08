@@ -13,7 +13,7 @@ fixture=r"""
 #include <iostream>
 #include "../Controllers/FlydigiController/FlydigiBS2ProModes.h"
 using namespace FlydigiBS2Pro;
-struct Scene{Bytes table;bool off=false;int preset=-1;bool operator==(const Scene& v)const{return off==v.off&&preset==v.preset&&table==v.table;}};
+struct Scene{Bytes table;bool off=false;int preset=-1;unsigned interval_ms=100;bool operator==(const Scene& v)const{return off==v.off&&preset==v.preset&&interval_ms==v.interval_ms&&table==v.table;}};
 struct hid_device{};
 struct Fake{std::mutex mutex;std::condition_variable wake;std::vector<Bytes> writes;bool enabled=false,corrupt=false;uint8_t pending=0,prefix=3;int closes=0;bool wait(size_t n){std::unique_lock<std::mutex> lock(mutex);return wake.wait_for(lock,std::chrono::seconds(4),[&]{return writes.size()>=n;});}} fake;
 std::atomic<bool> wired{false};bool USBPresent(){return wired;}
@@ -38,7 +38,23 @@ int main(){try{
  {std::lock_guard<std::mutex> lock(fake.mutex);for(size_t i=start;i<fake.writes.size();++i)check(fake.writes[i][3]==0x44||fake.writes[i][3]==0x45,"Approximate Ambient never writes flash or native RGB tables while RGB is enabled");}
  value.preset=0;worker.Submit(value);std::this_thread::sleep_for(std::chrono::milliseconds(150));{std::lock_guard<std::mutex> lock(fake.mutex);check(fake.writes.size()==expected,"Dark HOLD does not send firmware preset zero or persistent Off");}
  }
- check(fake.closes==4,"Every owned HID handle closes after its worker stops");return 0;
+ {size_t n;{std::lock_guard<std::mutex> lock(fake.mutex);n=fake.writes.size();fake.enabled=true;}FlydigiBS2Worker worker(reinterpret_cast<hid_device*>(1),false);
+ Scene value;value.preset=4;value.interval_ms=700;worker.Submit(value);check(fake.wait(n+3),"Direct speed-limited initial scene is sent");
+ value.preset=1;worker.Submit(value);value.preset=2;worker.Submit(value);std::this_thread::sleep_for(std::chrono::milliseconds(200));
+ {std::lock_guard<std::mutex> lock(fake.mutex);check(fake.writes.size()==n+3,"Slow Direct speed prevents rapid dominant-color changes");}
+ check(fake.wait(n+5),"Latest dominant color is sent after the configured interval");
+ {std::lock_guard<std::mutex> lock(fake.mutex);check(fake.writes.back()[3]==0x44&&fake.writes.back()[5]==2,"Intermediate dominant colors do not build a backlog");}
+ }
+ {size_t n;{std::lock_guard<std::mutex> lock(fake.mutex);n=fake.writes.size();fake.enabled=true;}FlydigiBS2Worker worker(reinterpret_cast<hid_device*>(1),false);
+ Scene value;value.preset=4;value.interval_ms=300;
+ for(unsigned i=0;i<10;++i){worker.Submit(value);std::this_thread::sleep_for(std::chrono::milliseconds(20));}
+ {std::lock_guard<std::mutex> lock(fake.mutex);check(fake.writes.size()==n,"Stable-color delay does not apply immediately");}
+ for(unsigned i=0;i<15;++i){worker.Submit(value);std::this_thread::sleep_for(std::chrono::milliseconds(20));}
+ {std::lock_guard<std::mutex> lock(fake.mutex);check(fake.writes.size()==n+3,"Identical incoming frames do not postpone a stable color forever");}
+ value.preset=1;worker.Submit(value);std::this_thread::sleep_for(std::chrono::milliseconds(100));value.preset=4;worker.Submit(value);
+ std::this_thread::sleep_for(std::chrono::milliseconds(400));{std::lock_guard<std::mutex> lock(fake.mutex);check(fake.writes.size()==n+3,"Short color flashes returning to the current preset generate no RGB command");}
+ }
+ check(fake.closes==6,"Every owned HID handle closes after its worker stops");return 0;
  }catch(const std::exception& e){std::cerr<<"FAIL "<<e.what()<<std::endl;return 1;}}
 """
 Path(sys.argv[1]).write_text(fixture+worker+tests)

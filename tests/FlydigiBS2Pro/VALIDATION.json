@@ -49,5 +49,24 @@
     },
     "presetZero": "Restores saved custom table; not Off",
     "firmwareModified": false
+  },
+  "directFollowDelay": {
+    "speedRange": [
+      1,
+      10
+    ],
+    "delayMs": [
+      1900,
+      100
+    ],
+    "defaultSpeed": 7,
+    "defaultDelayMs": 700,
+    "stableCandidateRequired": true,
+    "dropsShortColorExcursions": true,
+    "inputFramesDoNotResetStableTimer": true,
+    "crossfadeImplemented": false,
+    "firmwarePresetAnimationSpeedChanged": false,
+    "fakeHidTestsPassed": true,
+    "physicalSliderTestPending": true
   }
 }

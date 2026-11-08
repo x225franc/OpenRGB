@@ -41,6 +41,7 @@ int main(){try{
  Check(multi[6]==255&&multi[37]==255&&multi[68]==255,"Multi Static assigns separate spatial RGB positions");
  rejected=false;try{Encode(RgbCommand::Chunk,{19,0});}catch(const std::invalid_argument&){rejected=true;}Check(rejected,"Out-of-table frame indices cannot be encoded");
  rejected=false;try{PlanRgbUpload(Bytes(187));}catch(const std::invalid_argument&){rejected=true;}Check(rejected,"Native RGB program cannot exceed its 186-byte table");
+ Check(PresetIntervalMs(1)==1900&&PresetIntervalMs(10)==100&&PresetIntervalMs(7)==700&&PresetIntervalMs(0)==1900&&PresetIntervalMs(20)==100,"Direct speed has bounded slow-to-fast intervals");
  Check(PresetForColor({128,128,128})==0,"Neutral scenes hold instead of selecting red");
  Check(PresetForColor({255,128,0},4)==4&&PresetForColor({255,255,0},4)==2,"Hue hysteresis prevents boundary flapping but permits a real color change");
  Check(HidReport(RgbCommand::Preset,{5},Transport::USB)[5]==5,"Observed blue preset five is encodable");

@@ -11,7 +11,7 @@
 namespace
 {
 using namespace FlydigiBS2Pro;
-struct Scene {Bytes table;bool off=false;int preset=-1;bool operator==(const Scene& other)const{return off==other.off&&preset==other.preset&&table==other.table;}};
+struct Scene {Bytes table;bool off=false;int preset=-1;unsigned interval_ms=100;bool operator==(const Scene& other)const{return off==other.off&&preset==other.preset&&interval_ms==other.interval_ms&&table==other.table;}};
 bool USBPresent()
 {
     auto list=HidApiLifecycle::Enumerate(0x37D7,0x1002);bool found=false;
@@ -29,7 +29,7 @@ class FlydigiBS2Worker
     std::atomic<bool> stop{false};
     std::mutex mutex;std::condition_variable changed;
     bool pending=false;Scene desired;std::thread thread;bool preset_ready=false;
-    std::chrono::steady_clock::time_point last_submit{},flash_ready{};
+    std::chrono::steady_clock::time_point last_submit{},preset_changed{},last_preset_sent{},flash_ready{};
     bool WaitFlashWindow()
     {
         std::unique_lock<std::mutex> lock(mutex);
@@ -97,8 +97,18 @@ class FlydigiBS2Worker
                 const auto observed=last_submit;
                 if(!changed.wait_until(lock,observed+std::chrono::milliseconds(500),[this,observed]{return stop||desired.off||last_submit!=observed;}))break;
             }
+            // A stable candidate, not every input frame, starts this delay.
+            // Brief color excursions are discarded before any device command.
+            while(!stop&&!desired.off&&desired.preset>0)
+            {
+                const auto observed=preset_changed;
+                const auto deadline=std::max(observed+std::chrono::milliseconds(desired.interval_ms),last_preset_sent+std::chrono::milliseconds(100));
+                if(!changed.wait_until(lock,deadline,[this,observed]{return stop||desired.off||desired.preset<0||preset_changed!=observed;}))break;
+            }
             if(stop)break;
             Scene target=desired;pending=false;
+            if(target.preset==0)continue;
+            if(have_sent&&target.preset>0&&target.preset==sent.preset){sent.interval_ms=target.interval_ms;continue;}
             if(have_sent&&target==sent)continue;
             lock.unlock();
             const bool deferred=transport==Transport::Bluetooth&&USBPresent();
@@ -108,7 +118,7 @@ class FlydigiBS2Worker
             {
                 pending=true;changed.wait_for(lock,std::chrono::seconds(1),[this]{return bool(stop);});
             }
-            else if(ok){const bool volatile_scene=target.preset>=0;sent=std::move(target);have_sent=true;if(volatile_scene)changed.wait_for(lock,std::chrono::milliseconds(100),[this]{return bool(stop);});}
+            else if(ok){if(target.preset>0)last_preset_sent=std::chrono::steady_clock::now();sent=std::move(target);have_sent=true;}
             else
             {
                 // Do not advance/retry a partially acknowledged transfer on a timer.
@@ -120,12 +130,19 @@ public:
     FlydigiBS2Worker(hid_device* value,bool bluetooth):device(value),transport(bluetooth?Transport::Bluetooth:Transport::USB)
     {thread=std::thread([this]{Run();});}
     ~FlydigiBS2Worker(){stop=true;changed.notify_all();if(thread.joinable())thread.join();HidApiLifecycle::Close(device);}
-    void Submit(Scene scene){{std::lock_guard<std::mutex> lock(mutex);desired=std::move(scene);last_submit=std::chrono::steady_clock::now();pending=true;}changed.notify_one();}
+    void Submit(Scene scene)
+    {
+        {std::lock_guard<std::mutex> lock(mutex);
+         const auto now=std::chrono::steady_clock::now();
+         if(scene.preset!=desired.preset||scene.interval_ms!=desired.interval_ms)preset_changed=now;
+         desired=std::move(scene);last_submit=now;pending=true;}
+        changed.notify_one();
+    }
 };
 RGBController_FlydigiBS2Pro::RGBController_FlydigiBS2Pro(hid_device* device,const char* path,bool bluetooth)
 {
     name=bluetooth?"Flydigi BS2 Pro (Bluetooth)":"Flydigi BS2 Pro (USB)";vendor="Flydigi";type=DEVICE_TYPE_COOLER;
-    description="Native RGB modes plus Preset Sync (approx.) for Ambient: one averaged color for all six sections, mapped to red/green/yellow/blue firmware presets. Dark/neutral scenes hold the last preset. Preset brightness/animation is fixed by firmware. Fan settings are not controlled.";location=std::string("HID: ")+path;
+    description="Native RGB modes plus Preset Sync (approx.) for Ambient: one averaged color for all six sections, mapped to red/green/yellow/blue firmware presets. Dark/neutral scenes hold the last preset. Direct speed adjusts how long a dominant color must remain stable (slow 1 to fast 10); preset brightness/animation is fixed by firmware. Fan settings are not controlled.";location=std::string("HID: ")+path;
     auto add=[this](const char* title,unsigned value,unsigned maximum,bool speed)
     {
         mode item;item.name=title;item.value=value;item.color_mode=maximum?MODE_COLORS_MODE_SPECIFIC:MODE_COLORS_NONE;
@@ -140,7 +157,8 @@ RGBController_FlydigiBS2Pro::RGBController_FlydigiBS2Pro(hid_device* device,cons
     // Effects recognizes the exact name Direct; output remains explicitly approximate.
     add("Direct",PresetSync,0,false);
     modes.back().color_mode=MODE_COLORS_PER_LED;
-    modes.back().flags=MODE_FLAG_HAS_PER_LED_COLOR;
+    modes.back().flags=MODE_FLAG_HAS_PER_LED_COLOR|MODE_FLAG_HAS_SPEED;
+    modes.back().speed=7;
     active_mode=4;
     for(const char* side:{"Left","Right"})
     {
@@ -163,7 +181,7 @@ void RGBController_FlydigiBS2Pro::DeviceUpdateLEDs()
         const Color average{uint8_t(r/colors.size()),uint8_t(g/colors.size()),uint8_t(b/colors.size())};
         const auto preset=PresetForColor(average,previous_preset.load());
         if(!preset)return;
-        previous_preset=preset;Scene scene;scene.preset=preset;worker->Submit(std::move(scene));return;
+        previous_preset=preset;Scene scene;scene.preset=preset;scene.interval_ms=PresetIntervalMs(selected.speed);worker->Submit(std::move(scene));return;
     }
     previous_preset=0;
     std::vector<Color> palette;
